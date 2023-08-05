@@ -5,4 +5,6 @@ Welcome to CoNekT Grasses's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   initial_setup
+   connect_mysql
+   building_conekt
+   apache_wsgi
