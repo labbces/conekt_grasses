@@ -1,0 +1,5 @@
+08-18-2021	git Version:  09d24e6
+id	name	defn	synonyms	is_a id	is_a name
+PO:0025034	leaf	A phyllome (PO:0006001) that is not associated with a reproductive structure.	hoja (Spanish, exact) EXACT; 葉 (Japanese, exact) EXACT	PO:0006001	phyllome
+PO:0009005	root	A plant axis (PO:0025004) that lacks shoot axis nodes (PO:0005004) and usually grows indeterminately.	aerial root (narrow) NARROW; climbing root (narrow) NARROW; ra&#237z (Spanish, exact) EXACT; radices (exact, plural) EXACT; radix (exact) EXACT; 根 (Japanese, exact) EXACT	PO:0025004	plant axis
+PO:0009047	stem	A shoot axis (PO:0025029) that is the primary axis of a plant.	bole (narrow) NARROW; ca&#241a (Spanish, exact) EXACT; cane (narrow) NARROW; caudex (narrow) NARROW; caudices (narrow) NARROW Plural; core (narrow) NARROW; culm (exact) EXACT; eje primario (Spanish, exact) EXACT; primary axis (exact) EXACT; primary stem (exact) EXACT; primocane (narrow) NARROW; scape (narrow) NARROW; stalk (narrow) NARROW; tallo (Spanish, exact) EXACT; tronco (Spanish, exact) EXACT; trunk (narrow) NARROW; 茎 (Japanese, exact) EXACT	PO:0025029	shoot axis

@@ -1,0 +1,5 @@
+# Copyright disclosure: This data is parsed from webpages of www.cazy.org.
+AA10	AA10 (formerly CBM33) proteins are copper-dependent lytic polysaccharide monooxygenases (LPMOs); some proteins have been shown to act on chitin, others on cellulose; lytic cellulose monooxygenase (C1-hydroxylating) (EC 1.14.99.54); lytic cellulose monooxygenase (C4-dehydrogenating)(EC 1.14.99.56); lytic chitin monooxygenase (EC 1.14.99.53); lytic xylan monooxygenase / xylan oxidase (glycosidic bond-cleaving) (EC 1.14.99.-)
+AA11	AA11 proteins are copper-dependent lytic polysaccharide monooxygenases (LPMOs); cleavage of chitin chains with oxidation of C-1 has been demonstrated for a AA11 LPMO from Aspergillus oryzae;lytic chitin monooxygenase (1.14.99.53)
+CBM10	Modules of approx. 50 residues. The cellulose-binding function has been demonstrated in one case.
+CBM11	Modules of approx. 180-200 residues. The CBM11 of Clotridium thermocellum Cel26A-Cel5E has been shown to bind both beta-1,4-glucan and beta-1,3-1,4-mixed linked glucans.
