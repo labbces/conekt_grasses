@@ -1,0 +1,314 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if order %}
+        {% if cluster %}
+            {{cluster.name}} heatmap
+        {% else %}
+            Custom Heatmap
+        {% endif %}
+    {% else %}
+        Create Custom Heatmap
+    {% endif %}
+{% endblock %}
+
+{% block container %}
+<div class="top-pad">
+
+    {% if order %}
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+        <li><a href="{{ url_for('main.features') }}">Tools</a></li>
+        <li><a href="{{ url_for('heatmap.heatmap_main') }}">Expression Heatmap</a></li>
+        <li class="active"><strong>Results</strong></li>
+    </ol>
+    {% if cluster %}
+        <h1>Heatmap: <strong><a href="{{ url_for('expression_cluster.expression_cluster_view', cluster_id=cluster.id) }}"
+                                           class="qtip_tooltip"
+                                qtip_href="{{ url_for('expression_cluster.cluster_tooltip', cluster_id=cluster.id) }}">{{ cluster.name }}</a></strong> <small>({{ cluster.method.method }})</small></h1>
+        {% import "macros/cluster_actions.html" as ca %}
+        <div class="row">
+            <div class="col-lg-6 col-sm-6 col-xs-12">
+                <p><strong>View as: </strong>{{ ca.cluster_actions(cluster.id, exclude=["heatmap"]) }} <span class="text-muted">{% if zlog == 1 %}
+                        (view <a href="{{ url_for('heatmap.heatmap_cluster', cluster_id=cluster.id, option='raw') }}">raw</a> or <a href="{{ url_for('heatmap.heatmap_cluster', cluster_id=cluster.id, option='rnorm') }}">row-normalized</a>)
+                    {% elif raw == 1 %}
+                        (view <a href="{{ url_for('heatmap.heatmap_cluster', cluster_id=cluster.id, option='zlog') }}">zlog-transformed</a> or <a href="{{ url_for('heatmap.heatmap_cluster', cluster_id=cluster.id, option='rnorm') }}">row-normalized</a>)
+                    {% else %}
+                        (view <a href="{{ url_for('heatmap.heatmap_cluster', cluster_id=cluster.id, option='raw') }}">raw</a> or <a href="{{ url_for('heatmap.heatmap_cluster', cluster_id=cluster.id, option='zlog') }}">zlog-transformed</a>)
+                    {% endif %}</span>
+                </p>
+            </div>
+            <div class="col-lg-6 col-sm-6 col-xs-12">
+                <p>View using InCHLib : <a href="{{ url_for('heatmap.heatmap_inchlib', cluster_id=cluster.id) }}">here</a>
+                <span class="text-muted">(<i class="fa fa-flask" aria-hidden="true"></i> <em>Experimental feature, still under development</em>)</span></p>
+            </div>
+        </div>
+    {% elif tree %}
+        <h1>Comparative Heatmap for <a href="{{ url_for('tree.tree_view', tree_id=tree.id) }}">{{ tree.label }}</a></h1>
+    {% elif family %}
+        <h1>Comparative Heatmap for <a href="{{ url_for('family.family_view', family_id=family.id) }}">{{ family.name }}</a></h1>
+    {% else %}
+        <h1>Heatmap</h1>
+    {% endif %}
+    {% if zlog == 1 %}
+    <p class="text-muted" >(Values are log<sub>2</sub> transformed ratios of a genes expression in a sample divided by the mean expression level)</p>
+    {% elif raw == 1 %}
+        {% if tree %}
+            <p class="text-muted" >(Showing raw values, normalize by <a href="{{ url_for('heatmap.heatmap_comparative_tree', tree_id=tree.id, option='row') }}">row</a>)</p>
+        {% elif family %}
+            <p class="text-muted" >(Showing raw values, normalize by <a href="{{ url_for('heatmap.heatmap_comparative_family', family_id=family.id, option='row') }}">row</a>)</p>
+        {% else %}
+            <p class="text-muted" >(Showing raw values)</p>
+        {% endif%}
+    {% else %}
+        {% if tree %}
+            <p class="text-muted" >(Values are normalized against highest expression of the row, show <a href="{{ url_for('heatmap.heatmap_comparative_tree', tree_id=tree.id, option='raw') }}">raw</a> values)</p>
+        {% elif family %}
+            <p class="text-muted" >(Values are normalized against highest expression of the row, show <a href="{{ url_for('heatmap.heatmap_comparative_family', family_id=family.id, option='raw') }}">raw</a> values)</p>
+        {% else %}
+            <p class="text-muted" >(Values are normalized against highest expression of the row)</p>
+        {% endif %}
+    {% endif %}
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="btn-group pull-right" role="group" aria-label="...">
+                <a id="transpose" class="btn btn-default"><i class="fa fa-undo" aria-hidden="true"></i>&nbsp;Transpose table</a>
+                <a id="download" class="btn btn-primary"><i class="fa fa-download" aria-hidden="true"></i>&nbsp;Download table</a>
+            </div>
+        </div>
+    </div>
+     <div class="table-responsive">
+        <table class="table" style="width:auto" id="heatmap-table">
+            <thead>
+                <tr>
+                    <th>Gene</th>
+                    {% for o in order %}
+                    <th class="rotated"><div><span>{{ o.capitalize() }}</span></div></th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+            {% for p in profiles  %}
+                <tr class="heatmap">
+                    {% if p.sequence_id %}
+                        <td><div><span><a href="{{ url_for('sequence.sequence_view', sequence_id=p.sequence_id) }}"
+                               class="qtip_tooltip"
+                               qtip_href="{{ url_for('sequence.sequence_tooltip', sequence_id=p.sequence_id) }}">{{ p.name }}</a></span>{%- if p.shortest_alias %}&nbsp;<span class="text-muted">({{ p.shortest_alias }})</span>{%- endif -%}</div></td>
+                    {% else %}
+                    <td><div><span>{{ p.name }}</span></div></td>
+                    {% endif %}
+                    {% for o in order %}
+                    <td class="value">{% if p['values'][o] != '-' %}{{ p['values'][o]|round(2) }}{% else %}-{% endif %}</td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+         <div class="panel">
+             <div class="panel-body">
+                 <h3>Details</h3>
+                     {% if zlog == 1 %}
+                 <p><span style="color:#333333;font-weight:bold">Dark gray</span> cells indicate values where the raw expression is zero (cannot be log-transformed). <span style="color:#0000FF;font-weight:bold">Blue</span> cells indicate samples where the expression of the gene is below average and <span style="color:#FF0000;font-weight:bold">red</span> cells indicate the gene is expressed above average in the sample. White cells are average.</p>
+                    {% elif raw == 1 %}
+                 <p>Raw expression values (TPM normalized), <span style="color:#53db3b;font-weight:bold">Green</span> cells indicate low expression and <span style="color:#d11010;font-weight:bold">red</span> high. (<span style="color:#333333;font-weight:bold">Dark gray</span> cells indicate missing values)</p>
+                    {% else %}
+                    <p>Expression values normalized per gene (using the maximum value, <span style="color:#53db3b;font-weight:bold">Green</span> cells indicate low expression and <span style="color:#d11010;font-weight:bold">red</span> high. (<span style="color:#333333;font-weight:bold">Dark gray</span> cells indicate missing values)</p>
+                    {% endif %}
+             </div>
+         </div>
+     </div>
+        {% else %}
+        <ol class="breadcrumb">
+            <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+            <li><a href="{{ url_for('main.features') }}">Tools</a></li>
+            <li class="active"><strong>Expression Heatmap</strong></li>
+        </ol>
+        <h1>Heatmap</h1>
+        <p>Creates an expression heatmap (table with shaded cells) for a selected set of genes.</p>
+        <div class="row">
+             <div class="col-md-8 col-sm-6 col-xs-12">
+                 <div class="panel with-nav-tabs panel-default">
+                    <div class="panel-heading">
+                            <ul class="nav nav-tabs">
+                                <li class="active"><a href="#tab1default" data-toggle="tab">Default</a></li>
+                                <li><a href="#tab2default" data-toggle="tab">Comparative</a></li>
+                            </ul>
+                    </div>
+                    <div>
+                        <div class="tab-content">
+                            <div class="tab-pane fade in active" id="tab1default">
+                                <div class="panel-body">
+                                    <form method="POST"  action="{{ url_for('heatmap.heatmap_custom_default') }}"  role="form">
+                                        <div class="row">
+                                            <div class="col-xs-12">
+                                                {{ form.csrf_token }}
+                                                {{form.species_id(class_="form-control") }}<br />
+                                                {{form.probes(class_="form-control") }}<br />
+                                                {{form.options(class_="form-control") }}<br />
+                                                <div class="pull-right">
+                                                {% if example and example.probes %}
+                                                    <button class="btn btn-default" id="load_example">Load example</button>
+                                                {% endif %}
+                                                    <button type="submit" class="btn btn-primary" data-toggle="modal" data-target="#loaderModal">Generate heatmap</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade in" id="tab2default">
+                                <div class="panel-body">
+                                    <form method="POST"  action="{{ url_for('heatmap.heatmap_custom_comparable') }}"  role="form">
+                                        <div class="row">
+                                            <div class="col-xs-12">
+                                                {{ form2.csrf_token }}
+                                                {{form2.comparable_probes(class_="form-control") }}<br />
+                                                {{form2.comparable_options(class_="form-control") }}<br />
+                                                <div class="pull-right">
+                                                    {% if example2 and example2.comparable_probes %}
+                                                        <button class="btn btn-default" id="load_example2">Load example</button>
+                                                    {% endif %}
+                                                    <button type="submit" class="btn btn-primary" data-toggle="modal" data-target="#loaderModal">Generate heatmap</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                 </div>
+             </div>
+            <div class="col-md-4 col-sm-6 col-xs-12">
+                <div class="panel panel-default">
+                    <div class="panel-heading"><strong>Help</strong></div>
+                    <div class="panel-body">
+                        <ul>
+                            <li>You can generate a detailed heatmap for a single species (Default-tab) and a cross-species comparative heatmap (Comparative-tab)</li>
+                            <li>First select the desired <strong>species</strong> <span class="text-muted">(Default only)</span></li>
+                            <li>Next add the genes to include in the heatmap
+                                (space, tab or line separated) in the corresponding box</li>
+                            <li>Select if the heatmap should display raw values or normalized</li>
+                            <li>Click <strong>Generate heatmap</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+
+</div>
+{% endblock %}
+
+{% block extrajs %}
+{% if order %}
+<script src="{{ url_for('static', filename='js/jquery.hottie.js') }}"></script>
+<script src="{{ url_for('static', filename='js/table2CSV.js') }}" > </script>
+<script>
+$( document ).ready(function() {
+    {% if zlog==1 %}
+    $('td.value').hottie({
+        colorArray : [
+            "#0000FF",
+            "#FFFFFF",
+            "#FF0000"
+        ], symmetrical : true
+    });
+    {% else %}
+    $('td.value').hottie({
+        colorArray : [
+            "#53db3b",
+            "#efec40",
+            "#d11010"
+        ], symmetrical : false
+    });
+    {% endif %}
+
+    function prepare_download() {
+        var csv_data = $("#heatmap-table").table2CSV({delivery:'value'});
+
+        $("#download").attr('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(csv_data));
+        $("#download").attr('download', "table.csv");
+    }
+
+    prepare_download();
+
+function tableTransform(objTable) {
+    if (typeof objTable != 'undefined') {
+        objTable.each(function () {
+            var $this = $(this);
+            var newrows = [];
+            $this.find("tbody tr, thead tr").each(function () {
+                var i = 0;
+                $(this).find("td, th").each(function () {
+                    i++;
+                    if (newrows[i] === undefined) {
+                        newrows[i] = $("<tr></tr>");
+                    }
+                    newrows[i].append($(this));
+                });
+            });
+            $this.find("tr").remove();
+            $.each(newrows, function () {
+                $this.append(this);
+            });
+        });
+        //switch old th to td
+        objTable.find('th').wrapInner('<td />').contents().unwrap();
+        //move first tr into thead
+        var thead = objTable.find("thead");
+        var thRows = objTable.find("tr:first");
+        var copy = thRows.clone(true).appendTo("thead");
+        thRows.remove();
+        //switch td in thead into th
+        objTable.find('thead tr td').wrapInner('<th class="rotated" />').contents().unwrap();
+        //add tr back into tfoot
+        objTable.find('tfoot').append("<tr></tr>");
+        //add tds into tfoot
+        objTable.find('tbody tr:first td').each(function () {
+            objTable.find('tfoot tr').append("<td>&nbsp;</td>");
+        });
+        return false;
+    }
+}
+
+    $("#transpose").click(function(){
+        $('.qtip_tooltip').qtip('destroy', true);
+        tableTransform($("#heatmap-table"));
+        init_qtip(); //defined in base.html
+        prepare_download();
+        return false;
+    });
+
+});
+</script>
+{% else %}
+{% if example and example.probes %}
+<script>
+$(function() {
+    $('#load_example').click(function (ev) {
+        ev.preventDefault();
+        {% for key, value in example.items() %}
+            $('#{{key}}').val("{{value}}");
+        {% endfor %}
+    });
+});
+</script>
+{% endif %}
+
+{% if example2 and example2.comparable_probes %}
+<script>
+$(function() {
+    $('#load_example2').click(function (ev) {
+        ev.preventDefault();
+        {% for key, value in example2.items() %}
+            $('#{{key}}').val("{{value}}");
+        {% endfor %}
+    });
+});
+</script>
+{% endif %}
+{% endif %}
+
+{% endblock %}

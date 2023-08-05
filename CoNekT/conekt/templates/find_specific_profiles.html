@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if form %}
+        Search specific profiles
+    {% else %}
+        Specific profiles results
+    {% endif %}
+{% endblock %}
+
+{% block container %}
+<div class="top-pad">
+
+    {% if form %}
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+        <li><a href="{{ url_for('main.features') }}">Tools</a></li>
+        <li class="active"><strong>Specific Profiles</strong></li>
+    </ol>
+    <h1>Specific Profiles</h1>
+    <p>Using the form below genes can be found which are expressed specifically under a desired condition.</p>
+        <div class="row">
+            <div class="col-md-6 col-md-offset-1 col-xs-8">
+                <div class="panel panel-primary">
+                    <div class="panel-heading"><strong>Search options</strong></div>
+                    <div class="panel-body">
+                        <form method="POST"  action="{{ url_for('search.search_specific_profiles') }}"  role="form">
+                            {{ form.csrf_token }}
+                            <label>Species</label>
+                            {{form.species(class_="form-control")}}<br/>
+                            <label>Method</label>
+                            {{form.methods(class_="form-control", disabled=True)}}<br/>
+                            <label>Condition</label>
+                            {{form.conditions(class_="form-control", disabled=True)}}<br/>
+                            <label><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='spm') }}" data-target="#helpModal">SPM</abbr> cutoff :</label>
+                            {{form.cutoff(class_="form-control", **{'data-provide':"slider",
+                                                                    'data-slider-id':"cutoffSlider",
+                                                                    'data-slider-min':"0.5",
+                                                                    'data-slider-max':"1",
+                                                                    'data-slider-step': "0.01",
+                                                                    'data-slider-value': "0.85"})}}<br/>
+
+                            <button type="submit" id="show_button" class="btn btn-primary pull-right" data-toggle="modal" data-target="#loaderModal">Show genes</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 col-xs-4">
+                <div class="panel panel-default">
+                    <div class="panel-heading"><strong>Help</strong></div>
+                    <div class="panel-body">
+                        <ul>
+                            <li>Select the <strong>species</strong> first</li>
+                            <li>Next select a <strong>method</strong>. Note that different methods can include different options or different level of details in conditions</li>
+                            <li>Select the desired condition/tissue</li>
+                            <li>Set the <abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='spm') }}" data-target="#helpModal">SPM</abbr> cutoff (recommended setting: 0.85). Higher values are more specific, lower ones will include genes that are expressed more broadly</li>
+                            <li>Click <strong>Show genes</strong> <span class="text-muted"> When updating the slider a number will appear in the button indicating how many genes there will be in the results</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% elif results %}
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+        <li><a href="{{ url_for('main.features') }}">Tools</a></li>
+        <li>Specific Profiles</li>
+        <li class="active"><strong><em>{{species.name}}</em>: {{condition}}</strong> ({{method.description}})</li>
+    </ol>
+    <h1><em>{{species.name}}</em> profiles specific for <strong>{{condition}}</strong><br /><small>Method: {{method.description}}</small></h1>
+    <div class="row">
+        <div class="col-lg-12">
+        <table class="table table-striped" id="results_table">
+            <thead>
+            <tr>
+                <th data-sort="string-ins"><span class="sort-icon"></span>Gene</th>
+                <th data-sort="string-ins"><span class="sort-icon"></span>Aliases</th>
+                <th data-sort="string-ins"><span class="sort-icon"></span>Description</th>
+                <th data-sort="string-ins"><span class="sort-icon"></span>Condition</th>
+                <th data-sort="float"><span class="sort-icon"></span><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='spm') }}" data-target="#helpModal">SPM</abbr> score</th>
+                <th data-sort="float"><span class="sort-icon"></span><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='entropy') }}" data-target="#helpModal">Entropy</abbr> score</th>
+                <th data-sort="float"><span class="sort-icon"></span><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='tau') }}" data-target="#helpModal">Tau</abbr> score</th>
+                <th>Info</th>
+                <th>Action</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for r in results %}
+                {% if r.profile.sequence %}
+                    <tr>
+                        <td><a href="{{url_for('sequence.sequence_view', sequence_id=r.profile.sequence.id)}}" class="qtip_tooltip"
+                               qtip_href="{{ url_for('sequence.sequence_tooltip', sequence_id=r.profile.sequence_id) }}">{{ r.profile.sequence.name }}</a></td>
+                        {% if r.profile.sequence.aliases %}
+                        <td class="alias-cell">{{ r.profile.sequence.aliases }}</td>
+                        {% else %}
+                        <td class="alias-cell"><span class="text-muted">None</span></td>
+                        {% endif %}
+                        {% if r.profile.sequence.description %}
+                        <td class="alias-cell">{{ r.profile.sequence.description }}</td>
+                        {% else %}
+                        <td class="alias-cell"><span class="text-muted">None</span></td>
+                        {% endif %}
+                        <td>{{ r.condition }}</td>
+                        <td>{{ r.score|round(2) }}</td>
+                        <td>{{ r.entropy|round(2) }}</td>
+                        <td>{% if r.tau %}{{ r.tau|round(2) }}{% else %}<span class="text-muted">None</span>{% endif %}</td>
+                        <td>{% if r.profile.low_abundance %}<span class="warning-message qtip_tooltip"
+                               qtip_href="{{ url_for('help.help_popup', topic='lowabundance') }}"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i></span>{% endif %}</td>
+                        <td><a href="{{url_for('expression_profile.expression_profile_view', profile_id=r.profile_id)}}">view profile</a></td>
+ </tr>
+                {% endif %}
+            {% endfor %}
+            </tbody>
+        </table>
+        <a id="DownloadTable" href="#" class="btn btn-primary">Download table</a><br /><br />
+        </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extrajs %}
+<script src="{{ url_for('static', filename='js/bootstrap-slider.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/table2CSV.js') }}" > </script>
+{% if form %}
+<script>
+$(function () {
+
+    function update_count(value) {
+        post_data = {
+                    'method': $('#methods').val(),
+                    'cutoff': value,
+                    'condition': $('#conditions').val()
+                }
+
+        $.ajax({
+            type: "POST",
+            url: "{{ url_for('search.count_specific_profiles') }}",
+            contentType: 'application/json;charset=UTF-8',
+            data : JSON.stringify(post_data, null, '\t'),
+            success: function(data) {
+                $('#show_button').text('Show genes (' + data.count + ')');
+            }
+        });
+    }
+
+    cutoff_slider = $('#cutoff').slider({
+        formatter: function(value) {
+            return 'Cutoff: ' + value;
+        }
+    }).on("slideStop", function(ev) {
+            update_count(ev.value);
+    });
+
+    var formdata;
+    var selectedSpecies = [];
+
+    var populate_species = function(data) {
+        $('#species').find('option').remove();
+        $.each(data, function () {
+            $('#species').append($("<option />").val(this.id).text(this.name));
+        });
+        $('#species').trigger('change');
+    };
+
+    var populate_methods = function(data) {
+        $('#methods').find('option').remove();
+        $.each(data, function () {
+            $('#methods').append($("<option />").val(this.id).text(this.description));
+        });
+
+        if ($('#methods').find('option').length > 0) {
+            $('#methods').prop('disabled', false);
+        } else {
+            $('#methods').prop('disabled', 'disabled');
+            $('#methods').append($("<option />").val(0).text("Not available"));
+            $('#conditions').find('option').remove();
+            $('#conditions').prop('disabled', 'disabled');
+            $('#conditions').append($("<option />").val(0).text("Not available"));
+        }
+        $('#methods').trigger('change');
+    }
+
+    var populate_conditions = function(data) {
+        $('#conditions').find('option').remove();
+        $.each(data, function () {
+            $('#conditions').append($("<option />").val(this).text(this));
+        });
+
+        if ($('#conditions').find('option').length > 0) {
+            $('#conditions').prop('disabled', false);
+        } else {
+            $('#conditions').prop('disabled', 'disabled');
+            $('#conditions').append($("<option />").val(0).text("Not available"));
+        }
+
+        $('#conditions').trigger('change');
+    }
+
+    $('#species').change(function(ev) {
+        var valueSelected = this.value;
+         $.each(formdata, function () {
+
+          if (this.id == valueSelected) {
+            selectedSpecies = this;
+            populate_methods(this.methods);
+          }
+
+         });
+    });
+
+    $('#methods').change(function(ev) {
+        var valueSelected = this.value;
+         $.each(selectedSpecies.methods, function () {
+
+          if (this.id == valueSelected) {
+            populate_conditions(this.conditions);
+          }
+
+         });
+    });
+
+    $('#conditions').change(function(ev) {
+        update_count(cutoff_slider.slider('getValue'));
+    });
+
+    $.getJSON("{{ url_for('search.search_specific_profiles_json') }}", function(json) {
+      formdata = json;
+      populate_species(formdata);
+    });
+});
+</script>
+{% elif results %}
+<script>
+$(function () {
+    $("#results_table").stupidtable();
+
+    var csv_data = $("#results_table").table2CSV({delivery:'value'});
+    csv_data = csv_data.replace(/,"Action"\n/,'\n');
+    csv_data = csv_data.replace(/,"view profile"\n/gi,'\n');
+    csv_data = csv_data.replace(/,"view profile"$/gi,'\n');
+    $("#DownloadTable").attr('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(csv_data));
+    $("#DownloadTable").attr('download', "table.csv");
+
+});
+</script>
+{% endif %}
+{% endblock %}

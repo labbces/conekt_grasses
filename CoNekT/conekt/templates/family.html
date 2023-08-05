@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if family %}
+        {{ family.name }} details
+    {% else %}
+        Gene family not found
+    {% endif %}
+{% endblock %}
+
+{% block container %}
+{% import 'macros/pagination.html' as macro %}
+{% import 'macros/ajax_table.html' as ajax %}
+<div class="top-pad">
+        <div class="sidebar-sequence" id="sidebar">
+            <p>Jump to ...</p>
+
+            <nav id="navbar-side">
+            <ul class="nav nav-pills nav-stacked" data-spy="affix">
+              <li><a href="#phylo_profile">Profile</a></li>
+              <li><a href="#sequences">Sequences</a></li>
+              <li><a href="#expression_conservation">ECC</a></li>
+              <li><a href="#associated_things">Annotation</a></li>
+              <li><a href="#links">Links</a></li>
+            </ul>
+            </nav>
+        </div>
+    {% if family %}
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+        <li><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='gene_family') }}" data-target="#helpModal">Gene Family</abbr></li>
+        <li class="active"><strong>{{ family.name }}</strong></li>
+    </ol>
+
+    <h1><strong>{{ family.name }}</strong> <small>({{ family.method.method }})</small></h1>
+
+    <p>View comparative expression as heatmap: <a href="{{ url_for('heatmap.heatmap_comparative_family', family_id=family.id, option='raw') }}">raw</a> <span class="text-muted">| <a href="{{ url_for('heatmap.heatmap_comparative_family', family_id=family.id, option='row') }}">row-normalized</a></span></p>
+
+    <p>Trees:
+    {% for t in family.trees %}
+        <a href="{{ url_for('tree.tree_view', tree_id=t.id) }}">{{t.label}}</a> ({{t.method.description}})
+    {% else%}
+    <span class="text-muted">No tree available</span>
+    {% endfor %}
+    </p>
+    {% if family.clade_id %}
+    <p>Specific for <strong><a href="{{ url_for('clade.clade_view', clade_id=family.clade_id) }}">{{ family.clade.name}}</a></strong></p>
+    {% endif %}
+
+    {% if family.go_annotations.count() > 0 %}
+        <p>GO Terms <span class="text-muted">(top 5)</span>:
+        {% for term in family.go_annotations %}
+            <span><a href="{{ url_for('go.go_view', go_id=term.go_id) }}">{{ term.go_term.name }}</a></span>{%- if not loop.last -%}, {%- endif -%}
+        {% endfor %}
+        </p>
+    {% endif %}
+
+    {% if family.interpro_annotations.count() > 0 %}
+        <p>InterPro domains <span class="text-muted">(top 3)</span>:
+        {% for domain in family.interpro_annotations %}
+            <span><a href="{{ url_for('interpro.interpro_view', interpro_id=domain.interpro_id) }}">{{ domain.domain.description }}</a></span>{%- if not loop.last -%}, {%- endif -%}
+        {% endfor %}
+        </p>
+    {% endif %}
+    <br />
+    <div class="row" id="phylo_profile">
+        <div class="col-lg-12 col-md-12 col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <p>There are <strong>{{ count }}</strong> sequences with this label.</p>
+                    {% if count > 0 %}
+                    <div id="canvas-holder" class="center-block" style="height:300px;max-height:300px">
+                        <div id="chart-loader"></div>
+                        <canvas id="chart-area" class="center-block" width="300" height="300" style="display:none"/>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+    <div id="sequences">
+        {{ macro.pagination(
+            'Sequences',
+            url_for('family.family_sequences', family_id=family.id),
+            count,
+            url_for('family.family_sequences_table', family_id=family.id),
+            'seq'
+        ) }}
+    </div>
+    <div id="expression_conservation">
+        {{ macro.pagination(
+            'Expression Context Conservation',
+            url_for('family.family_ecc_relations', family_id=family.id),
+            -1,
+            none,
+            'ecc'
+        ) }}
+    </div>
+
+    <h3 class="banner-green" id="associated_things">Associations</h3>
+    {% if (count >= 300) %}
+        <div class="alert alert-info"><strong>Info: </strong>GO-associations disabled for items with more than 300 associated sequences !
+            {% if (count >= 5000) %}
+                <br />InterPro and Family associations disabled for items with more than 5000 associated sequences !
+            {% endif %}
+        </div>
+    {% endif %}
+
+
+
+    {% if (count < 5000) %}
+    {{ ajax.ajax_table(
+        'InterPro Domains',
+        url_for('family.family_interpro_ajax', family_id=family.id),
+        none,
+        'interpro_ajax'
+    ) }}
+    {% endif %}
+
+    {% if (count < 300) %}
+        {{ ajax.ajax_table(
+            'GO terms',
+            url_for('family.family_go_ajax', family_id=family.id),
+            none,
+            'go_ajax'
+        ) }}
+    {% endif %}
+
+    {% if (count < 5000) %}
+    {{ ajax.ajax_table(
+        'Other families',
+        url_for('family.family_family_ajax', family_id=family.id),
+        none,
+        'family_ajax'
+    ) }}
+    {% endif %}
+
+    <div class="row">
+    <div class="col-lg-12 col-md-12 col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-heading" id="links">External Links</div>
+                <div class="table-responsive">
+                    <table class="table table-striped table-separated">
+                        <tbody>
+                            {% for xref in xrefs %}
+                            <tr>
+                                <td><strong>{{ xref.platform }}</strong></td>
+                                <td>
+                                    <a href="{{ xref.url }}">{{ xref.name }} <i class="fa fa-external-link"></i></a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td>
+                                    <p><em>No external references for this sequences in the database.</em></p>
+                                </td>
+                                <td></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+</div>
+{% endblock %}
+
+{% block extrajs %}
+    {% if count > 0 %}
+    <script src="{{ url_for('static', filename='js/Chart.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/hammer.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chartjs-plugin-zoom.min.js') }}"></script>
+	<script>
+	{% import "macros/chartjs.html" as chartjs %}
+
+	{{ chartjs.pie_chart_loader("chart-area", url_for('family.family_json_species', family_id=family.id), "chart-loader") }}
+	</script>
+    {% endif %}
+{% endblock %}

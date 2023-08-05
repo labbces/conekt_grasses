@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    CoNekT - About
+{% endblock %}
+
+{% block container %}
+<div class="top-pad">
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+        <li class="active"><strong>About</strong></li>
+    </ol>
+    <h1>About CoNekT BioEnergy</h1>
+    <br />
+    <p>CoNekT Bioenergy is being developed by the Laboratory of Computational, Evolutionary and Systems Biology at the Center for Nuclear Energy in Agricultura, University of São Paulo. CoNekT Bioenergy is also a product of the <a href="https://www.rcgi.poli.usp.br/pt-br/">Research Centre for Greenhouse Gas Innovation</a> and the  <a href="https://bv.fapesp.br/pt/auxilios/97251/inct-2014-instituto-nacional-de-ciencia-e-tecnologia-do-bioetanol/">National Institute for Science and Technology of Bioethanol.</p></a>
+    <br />
+
+
+     
+
+    <h1 class="banner-green">Funding Agencies</h1>
+    <div class="row">
+        <div class="col-lg-2 col-md-2 col-sm-4 hidden-xs"><a href="https://www.gov.br/capes/pt-br" target="_blank"><img alt="capes picture" class="rounded" style="width: 100%; height: auto; margin-top: 20px;"  src="{{ url_for('static', filename='img/funding/capes_logo_250x250.png') }}"></a>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-4 hidden-xs"><a href="https://www.gov.br/cnpq/pt-br" target="_blank"><img alt="cnpq picture" class="rounded" style="width: 100%; height: auto; margin-top: 20px;" src="{{ url_for('static', filename='img/funding/cnpq_250.png') }}"></a>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-4 hidden-xs"><a href="https://fapesp.br/" target="_blank"><img alt="fapesp picture" class="rounded" style="width: 100%; height: auto; margin-top: 20px;" src="{{ url_for('static', filename='img/funding/fapesp_250.png') }}"></a>
+        </div>
+                             
+    </div>
+    <h1 class="banner-green">Institutional Support</h1>
+    <div class="row">
+        <div class="col-lg-2 col-md-2 col-sm-4 hidden-xs"><a href="https://www.usp.br" target="_blank"><img alt="usp picture" class="rounded" style="width: 100%; height: auto; margin-top: 20px;"  src="{{ url_for('static', filename='img/funding/usp_logo_250x250.png') }}"></a>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-4 hidden-xs"><a href="https://www.cena.usp.br" target="_blank"><img alt="cena picture" class="rounded" style="width: 100%; height: auto; margin-top: 20px;" src="{{ url_for('static', filename='img/funding/logo_cena_250x250.png') }}"></a>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-4 hidden-xs"><a href="https://labbces.netlify.app/" target="_blank"><img alt="bces picture" class="rounded" style="width: 100%; height: auto; margin-top: 20px;" src="{{ url_for('static', filename='img/funding/bces_logo_250x250.png') }}"></a>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-4 hidden-xs"><a href="https://www.rcgi.poli.usp.br/" target="_blank"><img alt="rcgi picture" class="rounded" style="width: 100%; height: auto; margin-top: 20px;" src="{{ url_for('static', filename='img/funding/logo_rcgi_200x200.png') }}"></a>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-4 hidden-xs"><a href="https://inctbioetanol.ib.usp.br/" target="_blank"><img alt="inct picture" class="rounded" style="width: 100%; height: auto; margin-top: 20px;" src="{{ url_for('static', filename='img/funding/logo_inct_200x200.png') }}"></a>
+        </div>                        
+    </div>
+    
+    
+    <h1 class="banner-green">Computer Resources</h1>
+    <div class="row">
+        <div class="col-lg-2 col-md-2 col-sm-4 hidden-xs"><a href="https://www.cenapad.unicamp.br/" target="_blank"><img alt="cenapad picture" class="rounded" style="width: 100%; height: auto; margin-top: 20px" src="{{ url_for('static', filename='img/funding/cenapad_250.png') }}"></a>
+        </div>
+    </div>
+    
+</div>
+
+{% endblock %}

@@ -1,0 +1,28 @@
+<div class="table-responsive">
+    <table class="table table-striped stupidtable">
+        <thead>
+            <tr>
+                <th data-sort="string-ins"><span class="sort-icon"></span>Label</th>
+                <th data-sort="int"><span class="sort-icon"></span>Sequence count</th>
+                <th data-sort="int"><span class="sort-icon"></span>Species count</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for family_id, family_stat in family_stats.items() %}
+            <tr>
+                <td><a href="{{ url_for('family.family_view', family_id=family_id) }}">{{ family_stat.family.name }}</a></td>
+                <td>{{ family_stat.count }}</td>
+                <td>{{ family_stat.species_count }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td>
+                    <p><em>No associated families for this item in the database.</em></p>
+                </td>
+                <td></td>
+                <td></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

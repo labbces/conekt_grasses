@@ -1,0 +1,31 @@
+<div class="table-responsive">
+    <table class="table table-striped stupidtable">
+        <thead>
+            <tr>
+                <th data-sort="string-ins"><span class="sort-icon"></span>Family</th>
+                <th data-sort="string-ins"><span class="sort-icon"></span>CAZYme class</th>
+                <th data-sort="int"><span class="sort-icon"></span>Count</th>
+                <th data-sort="int"><span class="sort-icon"></span>Sequence count</th>
+                <th data-sort="int"><span class="sort-icon"></span>Species count</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cazyme_id, cazyme_stat in cazyme_stats.items() %}
+            <tr>
+                <td><a href="{{ url_for('cazyme.cazyme_view', cazyme_id=cazyme_id) }}">{{ cazyme_stat.cazyme.family }}</a></td>
+                <td>{{ cazyme_stat.cazyme.cazyme_class }}</td>
+                <td>{{ cazyme_stat.count }}</td>
+                <td>{{ cazyme_stat.sequence_count }}</td>
+                <td>{{ cazyme_stat.species_count }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td>
+                    <p><em>No associated CAZYmes for this item in the database.</em></p>
+                </td>
+                <td></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

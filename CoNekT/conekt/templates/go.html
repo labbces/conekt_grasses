@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if go %}
+        {{ go.label }}: {{ go.name }} details
+    {% else %}
+        GO not found
+    {% endif %}
+{% endblock %}
+
+{% block container %}
+{% import 'macros/pagination.html' as macro %}
+{% import 'macros/ajax_table.html' as ajax %}
+{% import 'macros/cluster_actions.html' as ca %}
+<div class="top-pad">
+
+    {% if go %}
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+        <li><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='go') }}" data-target="#helpModal">GO</abbr></li>
+        <li class="active"><strong>{{ go.label }}</strong></li>
+    </ol>
+    <h1>{{ go.label }}: <strong>{{ go.name }}</strong> <small>({{ go.readable_type }})</small></h1>
+
+    <p>{{ go.description }}</p>
+    <br />
+    <div class="row">
+        <div class="col-lg-12 col-md-12 col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <p>There are <strong>{{ count }}</strong> sequences with this label.</p>
+                    {% if count > 0 %}
+                    <div id="canvas-holder" class="center-block"  style="height:300px;max-height:300px">
+                        <div id="chart-loader"></div>
+                        <canvas id="chart-area" class="center-block" width="300" height="300" style="display:none"/>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-12 col-md-12 col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">Enriched clusters</div>
+                <div class="panel-scroll">
+                <div class="table-responsive">
+                    <table class="table table-striped table-separated" id="enriched_clusters">
+                        <thead>
+                            <tr>
+                                <th data-sort="string-ins"><span class="sort-icon"></span>Name</th>
+                                <th data-sort="string-ins"><span class="sort-icon"></span>Species</th>
+                                <th data-sort="float"><span class="sort-icon"></span>% in cluster</th>
+                                <th data-sort="float"><span class="sort-icon"></span>p-value</th>
+                                <th data-sort="float"><span class="sort-icon"></span>corrected p-value</th>
+                                <th>action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cluster in clusters %}
+                                {% if cluster.corrected_p_value <= 0.05 %}
+                                <tr>
+                                    <td><a href="{{ url_for('expression_cluster.expression_cluster_view', cluster_id=cluster.cluster.id) }}"
+                                           class="qtip_tooltip"
+                                           qtip_href="{{ url_for('expression_cluster.cluster_tooltip', cluster_id=cluster.cluster.id) }}">{{ cluster.cluster.name }}</a></td>
+                                    <td><em>{{ cluster.cluster.method.network_method.species.name }}</em></td>
+                                    <td>{{ cluster.cluster_percentage|round(2) }} %</td>
+                                    <td>{{ cluster.p_value|round(6) }}</td>
+                                    <td>{{ cluster.corrected_p_value|round(6) }}</td>
+                                    <td>{{ ca.cluster_actions(cluster.cluster.id) }}</td>
+                                </tr>
+                                {% endif %}
+                            {% else %}
+                                 <tr>
+                                    <td colspan="6"><em>No clusters are enriched for this term</em></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    {{ macro.pagination('Sequences',
+        url_for('go.go_sequences', go_id=go.id),
+        count,
+        url_for('go.go_sequences_table', go_id=go.id),
+        'go'
+    ) }}
+
+    <h3 class="banner-green" id="associated_things">Associations</h3>
+    {% if (count >= 300) %}
+        <div class="alert alert-info"><strong>Info: </strong>GO-associations disabled for items with more than 300 associated sequences !
+            {% if (count >= 5000) %}
+                <br />InterPro and Family associations disabled for items with more than 5000 associated sequences !
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {% if (count < 5000) %}
+    {{ ajax.ajax_table(
+        'InterPro Domains',
+        url_for('go.go_interpro_ajax', go_id=go.id),
+        none,
+        'interpro_ajax'
+    ) }}
+    {% endif %}
+
+    {% if (count < 300) %}
+        {{ ajax.ajax_table(
+            'GO Terms',
+            url_for('go.go_go_ajax', go_id=go.id),
+            none,
+            'go_ajax'
+        ) }}
+    {% endif %}
+
+    {% if (count < 5000) %}
+    {{ ajax.ajax_table(
+        'Family Terms',
+        url_for('go.go_family_ajax', go_id=go.id),
+        none,
+        'family_ajax'
+    ) }}
+    {% endif %}
+
+
+
+
+    {% endif %}
+
+
+
+</div>
+{% endblock %}
+
+{% block extrajs %}
+    {% if count > 0 %}
+    <script src="{{ url_for('static', filename='js/Chart.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/hammer.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chartjs-plugin-zoom.min.js') }}"></script>
+	<script>
+	$( document ).ready(function() {
+	        $("#enriched_clusters").stupidtable();
+	        $('[data-toggle="tooltip"]').tooltip();
+	});
+	{% import "macros/chartjs.html" as chartjs %}
+	   {{ chartjs.pie_chart_loader("chart-area", url_for('go.go_json_species', go_id=go.id), "chart-loader") }}
+
+	</script>
+    {% endif %}
+{% endblock %}

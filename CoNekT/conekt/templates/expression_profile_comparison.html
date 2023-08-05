@@ -1,0 +1,294 @@
+{% extends 'base.html' %}
+
+{% block title %}
+        Profile comparison
+{% endblock %}
+
+{% block container %}
+<div class="top-pad">
+
+
+    {% if profiles %}
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+        <li><a href="{{ url_for('main.features') }}">Tools</a></li>
+        <li><a href="{{ url_for('profile_comparison.profile_comparison_main') }}">Compare Profiles</a></li>
+        <li class="active"><strong>Results</strong></li>
+    </ol>
+
+    {% if cluster %}
+        <h1>Profile comparison: <strong><a href="{{ url_for('expression_cluster.expression_cluster_view', cluster_id=cluster.id) }}"
+                                           class="qtip_tooltip"
+                                           qtip_href="{{ url_for('expression_cluster.cluster_tooltip', cluster_id=cluster.id) }}">{{ cluster.name }}</a></strong> <small>({{ cluster.method.method }})</small></h1>
+        {% import "macros/cluster_actions.html" as ca %}
+        <div class="row">
+            <div class="col-xs-6"><p><strong>View as: </strong>{{ ca.cluster_actions(cluster.id, exclude=["profile"]) }}</p></div>
+            <div class="col-xs-6"><p class="pull-right">
+                {% if normalize == 1 %}
+                    <span class="text-muted">Normalization: <strong>Enabled</strong></span> | (<a href="{{ url_for('profile_comparison.profile_comparison_cluster', cluster_id=cluster.id, normalize=0)}}">disable</a>)
+                {% else %}
+                    <span class="text-muted">Normalization: <strong>Disabled</strong></span> | (<a href="{{ url_for('profile_comparison.profile_comparison_cluster', cluster_id=cluster.id, normalize=1)}}">enable</a>)
+                {% endif %}
+            </p>
+            </div>
+        </div>
+    {% else %}
+        <h1>Profile comparison</h1>
+    {% endif %}
+
+    <div id="canvas-holder" class="center-block">
+        <canvas id="chart-line" class="center-block" width="800" height="600"/>
+    </div>
+
+    <div class="select">
+        <div class="po"><input type="checkbox" value="po" id="po" checked><label for="po" style="margin-left:3px; font-size:12px; color: #575555; font-weight: 100;">PO</label></div>
+        <div class="peco"><input type="checkbox" value="peco" id="peco"><label for="peco" style="margin-left:3px; font-size:12px; color: #575555; font-weight: 100;">PECO</label></div>
+    </div>
+    <div class="select ontology"></div>
+
+        {% if data %}
+        <div>
+            <a class="btn btn-primary pull-right" href="data:text/plain;base64,{{data}}" download="profile_data.txt">Download</a>
+            <br /><br />
+            <br />
+        </div>
+        {% endif %}
+    {% else %}
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+        <li><a href="{{ url_for('main.features') }}">Tools</a></li>
+        <li class="active"><strong>Compare Profiles</strong></li>
+    </ol>
+
+        <h1>Compare Profiles</h1>
+        <p>Use this tool to simultaneously display the expression profiles of multiple genes of interest.</p>
+        <div class="row">
+            <div class="col-md-4 col-md-offset-2 col-xs-8">
+                <div class="panel panel-primary">
+                    <div class="panel-heading"><strong>Select species and genes</strong></div>
+                    <div class="panel-body">
+                        <form method="POST"  action="{{ url_for('profile_comparison.profile_comparison_main') }}"  role="form">
+                            {{ form.csrf_token }}
+                            {{form.species_id(class_="form-control") }}<br />
+                            {{form.probes(class_="form-control") }}<br />
+                            <div class="input-group">{{ form.normalize.label }}&nbsp;&nbsp;{{form.normalize(checked=True) }}</div>
+                            <div class="pull-right">
+                            {% if example and example.probes %}
+                                <button class="btn btn-default" id="load_example">Load example</button>
+                            {% endif %}
+                                <button type="submit" class="btn btn-primary" data-toggle="modal" data-target="#loaderModal">Show profiles</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 col-xs-4">
+                <div class="panel panel-default">
+                    <div class="panel-heading"><strong>Help</strong></div>
+                    <div class="panel-body">
+                        <ul>
+                            <li>First select a <strong>species</strong> of interest</li>
+                            <li>Enter a list of gene identifiers (or probe ids) for the genes of interest, separated by
+                            spaces, tabs or newlines.</li>
+                            <li>By default profiles are normalized against the most expressed gene in each profile (recommended). The checkbox allow you to disable this feature.</li>
+                            <li>Click <strong>Show profiles</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    {% endif %}
+
+
+</div>
+{% endblock %}
+
+{% block extrajs %}
+    <script src="{{ url_for('static', filename='js/Chart.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/hammer.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chartjs-plugin-zoom.min.js') }}"></script>
+    
+    {% if profiles %}
+        <script>
+        var myChart;
+        
+        function abbreviate(text) {
+            const words = text.split(' ');
+
+            let abbreviation = '';
+
+            for (const word of words) {
+                if (word.length > 0) abbreviation += word[0].toUpperCase();
+            }
+
+            return abbreviation;
+        }
+
+        function setupCharts(data, clas) {
+            $(".select.ontology").empty();
+
+            data.data.labels.forEach((e, i) =>{
+                const match = e.match(/^(.*?)\((.*?)\)$/);
+                if (match) {
+                    const sample = match[1];
+                    const word = match[2];
+                    
+                    if (clas == "peco") data.data.labels[i] = sample + " ("+ abbreviate(word) +")";
+            
+
+                    if (!$(`input[value="${word}"]`).length) {
+                        const $itemDiv = $('<div>').addClass('item ' + clas);
+
+                        $('<input>')
+                            .attr('type', 'checkbox')
+                            .attr('value', word)
+                            .attr('id', word)
+                            .prop('checked', true)
+                            .appendTo($itemDiv);
+
+                        $('<label>')
+                            .attr('for', word)
+                            .text(clas == "po"? word.charAt(0).toUpperCase() + word.slice(1): word.charAt(0).toUpperCase() + word.slice(1) + " (" + abbreviate(word) + ")")
+                            .css({
+                                'margin-left':'3px',
+                                'font-size': '12px',
+                                'color': '#575555',
+                                'font-weight': '100',
+                            })
+                            .appendTo($itemDiv);
+                            
+                        $itemDiv.appendTo('.select.ontology');
+                    }
+                }
+            });
+
+            var arr = data.data.labels.slice();
+
+            data.data.datasets.forEach((e,i) => {
+                e.data.forEach((d,j) =>{
+                    if(i == 0) arr[j] = [arr[j], d];      
+                    else arr[j].push(d);
+                });
+            });
+            
+            if(myChart) myChart.destroy();
+
+            var ctx = document.getElementById("chart-line").getContext("2d");
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+            myChart = new Chart(ctx, data);
+
+            $(".ontology input[type='checkbox']").change(function () {
+                var selectedOptions = [];
+
+                $('.ontology input[type="checkbox"]:checked').each(function () {
+                    let option = $(this).val();
+                    
+                    if(clas == "peco"){
+                        option = abbreviate(option);
+                    }
+
+                    selectedOptions.push(option);
+                });
+
+                console.log(selectedOptions);
+                
+                var filteredArr = arr.filter(e => {
+                    return selectedOptions.some(option => e[0].includes(option));
+                })
+                .sort((a, b) => {
+                    const partA = a[0].substring(a.indexOf("(") + 1);
+                    const partB = b[0].substring(b.indexOf("(") + 1);
+                    return partA.localeCompare(partB);
+                });
+
+                myChart.data.labels = filteredArr.map(sub => sub[0]);
+
+                myChart.data.datasets.forEach((e,i)=>{
+                    e.data = filteredArr.map(sub => sub[i + 1]);
+                });
+
+                myChart.update();
+            });
+        }
+
+        $(document).ready(function(){
+            setupCharts({{ profiles|safe }}, "po");
+        })
+        
+        $("#po").click(function() {
+            if (!this.checked) {
+                this.checked = true;
+            } 
+            else {
+                $("#peco").prop("checked", false);
+                setupCharts({{ profiles|safe }}, "po");
+            }
+        });
+
+        $("#peco").click(function() {
+            if (!this.checked) {
+                this.checked = true;
+            } 
+            else {
+                $("#po").prop("checked", false);
+                setupCharts({{ peco_profiles|safe }}, "peco");
+            }
+        });
+        </script>
+        <style>
+            .select{
+                text-decoration-thickness: 2px;
+                user-select: none;
+            }
+
+            .select input{
+                display: none;
+            }
+
+            .select input + label:before{
+                display: inline-block;
+                content: '';
+                width: 40px;
+                height: 15px;
+                border: 1px solid gray;
+                vertical-align: middle;
+                margin-right: 2px;
+                margin-left: 7px;
+            }
+            
+            .po, .peco{
+                display: inline-block;
+            }
+
+            .po input:checked + label:before{
+                background-color: #0b8b0b;
+            }
+
+            .peco input:checked + label:before{
+                background-color: #0b3a8b;
+            }
+
+            .select input:checked + label{
+                text-decoration: none;
+            }
+
+            .ontology input + label{
+                text-decoration: line-through;
+            }
+        </style>
+    {% endif %}
+    {% if example and example.probes %}
+    <script>
+    $(function() {
+        $('#load_example').click(function (ev) {
+            ev.preventDefault();
+            {% for key, value in example.items() %}
+                $('#{{key}}').val("{{value}}");
+            {% endfor %}
+        });
+    });
+    </script>
+    {% endif %}
+{% endblock %}

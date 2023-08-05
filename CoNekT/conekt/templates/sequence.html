@@ -1,0 +1,474 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if sequence %}
+        {{ sequence.name }} details
+    {% else %}
+        Sequence not found
+    {% endif %}
+{% endblock %}
+
+{% block container %}
+{% import "macros/cluster_actions.html" as ca %}
+{% import "macros/neighborhood_actions.html" as na %}
+<div class="top-pad">
+        <div class="sidebar-sequence" id="sidebar">
+            <p>Jump to ...</p>
+
+            <nav id="navbar-side">
+            <ul class="nav nav-pills nav-stacked" data-spy="affix">
+              <li><a href="#expression_profile">Profile</a></li>
+              <li><a href="#coexpression_networks">Networks</a></li>
+              {% if ecc_query_associations|count > 0 %}
+                <li><a href="#expression_conservation">ECC</a></li>
+              {% endif %}
+              <li><a href="#annotation">Annotation</a></li>
+              <li><a href="#links">Links</a></li>
+            </ul>
+            </nav>
+        </div>
+    {% if sequence %}
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+        <li><a href="{{ url_for('species.species_overview') }}">Species</a></li>
+        <li><a href="{{ url_for('species.species_view', species_id=sequence.species.id) }}"><em>{{ sequence.species.name }}</em></a></li>
+        <li>Sequence</li>
+        <li class="active"><strong>{{ sequence.name }}</strong></li>
+    </ol>
+    <h1><strong>{{ sequence.name }}</strong>{%- if sequence.aliases -%}&nbsp;<small>({{ sequence.aliases|truncate(25) }})</small>{%endif%}</h1>
+    <br />
+    {%- if sequence.aliases -%}
+    <p><strong>Aliases : </strong>{{sequence.aliases}}</p>
+    {%endif%}
+    {% if sequence.description %}
+
+    <p><strong>Description : </strong> {{sequence.description}}</p>
+
+    {% else %}
+
+    <p><span class="text-muted"><em>No description available</em></span></p>
+
+    {% endif %}
+
+    <br />
+    <div>
+    <p><strong><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='gene_family') }}" data-target="#helpModal">Gene families</abbr> : </strong>{%- if families|count > 0 -%}{%- for family in families -%}
+        <a href="{{ url_for('family.family_view', family_id=family.id) }}">{{ family.name }}</a> ({{ family.method.method }}) Phylogenetic Tree(s):
+        {% for tree in family.trees %}
+            <a href="{{ url_for('tree.tree_view', tree_id=tree.id) }}">{{tree.label}}</a>
+            {%- if not loop.last -%}, {% endif %}
+        {% else %}
+        <span class="text-muted">No tree available for this family</span>
+        {% endfor %}
+        {%- if not loop.last -%},<br/> {% endif %}
+        {% endfor %} {% else %}<em>No families found for this sequence</em>{% endif %}</p>
+    <p><strong>Sequence :</strong> <a href="{{ url_for('sequence.sequence_modal_coding', sequence_id=sequence.id) }}" data-target="#profileModal">coding</a> (<a href="{{ url_for('sequence.sequence_fasta_coding', sequence_id=sequence.id) }}">download</a>) {%- if sequence.type == 'protein_coding' -%}, <a href="{{ url_for('sequence.sequence_modal_protein', sequence_id=sequence.id) }}" data-target="#profileModal">protein</a> (<a href="{{ url_for('sequence.sequence_fasta_protein', sequence_id=sequence.id) }}">download</a>) {% endif %}</p>
+    </div>
+
+    {% if expression_profiles|count > 0 %}
+    <h3 class="banner-green" id="expression_profile">Expression Profile</h3>
+        {% for profile in expression_profiles %}
+            {% if loop.first %}
+                {% if profile.low_abundance %}
+                <br />
+                <span class="warning-message"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i> <strong>Attention:</strong> This gene has <strong><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='lowabundance') }}" data-target="#helpModal">low abundance</abbr></strong>.</span>
+                <br /><br />
+                {% endif %}
+                <div class="pull-right">
+                    <a href="#" class="btn btn-default" id="enable_pan" data-toggle="tooltip" title="Toggle Pan"><i class="fa fa-arrows" aria-hidden="true"></i></a> <a href="#" class="btn btn-default" id="enable_zoom" data-toggle="tooltip" title="Toggle zoom"><i class="fa fa-search" aria-hidden="true"></i></a>
+                </div>
+                <div style="height:550px; max-height:550px; margin-top:30px">
+                    <canvas id="expression-profile" class="center-block" height="550"/>
+                </div>
+                <br />
+                <div class="pull-right">
+                    <a href="{{ url_for('expression_profile.expression_profile_download_plot', profile_id=profile.id) }}" class="btn btn-primary" download="plot_{{profile.id}}.txt">Download</a>
+                </div>
+                <p><strong>Note:</strong>Only the main profile, including all conditions, is shown. Additional statistics and tissue specific profiles are available <a href="{{ url_for('expression_profile.expression_profile_view', profile_id=profile.id) }}">here</a>.</p>
+            {% endif %}
+        {% endfor %}
+        {% if expression_profiles|count > 1 %}
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="btn-group">
+                      <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        All profiles <span class="caret"></span>
+                      </button>
+                      <ul class="dropdown-menu">
+                        {% for profile in expression_profiles %}
+                            <li class="dropdown-header">{{ profile.probe }}</li>
+                            <li><a href="{{ url_for('expression_profile.expression_profile_view', profile_id=profile.id) }}">View details</a></li>
+                            <li><a href="{{ url_for('expression_profile.expression_profile_modal', profile_id=profile.id) }}" data-target="#profileModal">Show</a></li>
+                              {% if not loop.last %}
+                                <li role="separator" class="divider"></li>
+                              {% endif %}
+                        {% endfor %}
+                      </ul>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    {% else %}
+        <p><span class="text-muted"><em>No expression profile available</em></span></p>
+    {% endif %}
+    <br />
+    <div>
+    <h3 class="banner-green" id="coexpression_networks">Co-expression Networks</h3>
+    {% if network_nodes|count > 0 or coexpression_clusters|count > 0 %}
+    <div class="table-responsive">
+        <table class="table table-striped table-separated" id="coexpression_table">
+            <thead>
+                <tr>
+                    <th data-sort="string-ins"><span class="sort-icon"></span>Type</th>
+                    <th data-sort="string-ins"><span class="sort-icon"></span>Description</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for network in network_nodes %}
+                <tr>
+                    <td><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='neighborhood') }}" data-target="#helpModal">Neighborhood</abbr></td>
+                    <td>{{ network.method.description }}: <strong>{{ network.probe }}</strong></td>
+                    {% if network.neighbors_count > 0 %}
+                        <td>{{ na.neighborhood_actions(network.id) }}</td>
+                    {% else %}
+                    <td><span class="text-muted"><em>No neighbors in network</em></span></td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+                {% for cluster in coexpression_clusters %}
+                <tr>
+                    <td><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='cluster') }}" data-target="#helpModal">Cluster</abbr></td>
+                    <td>{{ cluster.method.method }}: <strong><a href="{{ url_for('expression_cluster.expression_cluster_view', cluster_id=cluster.id) }}"
+                                                                class="qtip_tooltip"
+                                                                qtip_href="{{ url_for('expression_cluster.cluster_tooltip', cluster_id=cluster.id) }}">{{ cluster.name }}</a></strong></td>
+                    <td>{{ ca.cluster_actions(cluster.id) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p><span class="text-muted"><em>No co-expressed genes found</em></span></p>
+    {% endif %}
+    </div>
+    <br />
+    {% if ecc_query_associations|count > 0 %}
+    <h3 class="banner-green" id="expression_conservation">Expression Context Conservation (<abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='ecc') }}" data-target="#helpModal">ECC</abbr>)</h3>
+    <div class="table-responsive">
+        <table class="table table-striped table-separated" id="ecc_hits_table">
+            <thead>
+                <tr>
+                    <th data-sort="string-ins"><span class="sort-icon"></span>Target</th>
+                    <th data-sort="string-ins"><span class="sort-icon"></span>Alias</th>
+                    <th data-sort="string-ins"><span class="sort-icon"></span>Description</th>
+                    <th data-sort="float"><span class="sort-icon"></span><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='ecc') }}" data-target="#helpModal">ECC</abbr> score</th>
+                    <!--<th class="col-xs-1" data-sort="float"><span class="sort-icon"></span>p-Value</th>
+                    <th class="col-xs-1" data-sort="float"><span class="sort-icon"></span>p-Value <span class="text-muted">(adjusted)</span></th>-->
+                    <th data-sort="string-ins"><span class="sort-icon"></span>Gene Family Method</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ecc_query_association in ecc_query_associations %}
+                <tr>
+                    <td><a href="{{ url_for('sequence.sequence_view', sequence_id=ecc_query_association.target_id) }}" class="qtip_tooltip qtip_dynamic_tooltip" qtip_href="{{ url_for('sequence.sequence_tooltip', sequence_id=ecc_query_association.target_id) }}">{{ ecc_query_association.target_sequence.name }}</a></td>
+                    <td>{% if ecc_query_association.target_sequence.aliases %}{{ ecc_query_association.target_sequence.aliases|truncate(20) }}{% else %}<span class="text-muted">No alias</span>{% endif %}</td>
+                    <td>{% if ecc_query_association.target_sequence.description %}{{ ecc_query_association.target_sequence.description|truncate(60) }}{% else %}<span class="text-muted">No description available</span>{% endif %}</td>
+                    <td>{{ ecc_query_association.ecc|round(2) }}</td>
+                    <!--<td class="col-xs-1">{% if ecc_query_association.p_value %}{{ ecc_query_association.p_value|round(3) }}{% else %}<em class="text-muted">None</em>{% endif %}</td>
+                    <td class="col-xs-1">{% if ecc_query_association.corrected_p_value %}{{ ecc_query_association.corrected_p_value|round(3) }}{% else %}<em class="text-muted">None</em>{% endif %}</td>-->
+                    <td>{{ ecc_query_association.gene_family_method.method }}</td>
+                    <td><a href="{{ url_for('ecc.ecc_graph_pair', ecc_id=ecc_query_association.id) }}" data-toggle="tooltip"  data-placement="top" title="View ECC pair as graph"><i class="fa fa-eye"></i></a>
+                        <a href="{{ url_for('ecc.ecc_graph', sequence=sequence.id, network=ecc_query_association.query_network_method_id, family=ecc_query_association.gene_family_method_id) }}" data-toggle="tooltip"  data-placement="top" title="View ECC as graph"><i class="fa fa-sitemap"></i></a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    <br />
+    <h3 class="banner-green" id="annotation">Functional Annotation</h3>
+    <div class="panel with-nav-tabs panel-default">
+    <div class="panel-heading">
+            <ul class="nav nav-tabs">
+                <li class="active"><a href="#tab1default" data-toggle="tab">GO</a></li>
+                <li><a href="#tab2default" data-toggle="tab">Predicted GO</a></li>
+                <li><a href="#tab3default" data-toggle="tab">InterPro</a></li>
+                <li><a href="#tab4default" data-toggle="tab">CAZYme</a></li>
+            </ul>
+    </div>
+    <div>
+        <div class="tab-content">
+            <div class="tab-pane fade in active" id="tab1default">
+                <div class="table-responsive">
+                    <table class="table table-striped table-fixed" id="go_table">
+                        <thead>
+                            <tr>
+                                <th class="col-xs-1" data-sort="string-ins"><span class="sort-icon"></span>Type</th>
+                                <th class="col-xs-2" data-sort="string-ins"><span class="sort-icon"></span><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='go') }}" data-target="#helpModal">GO</abbr> Term</th>
+                                <th class="col-xs-6" data-sort="string-ins"><span class="sort-icon"></span>Name</th>
+                                <th class="col-xs-1" data-sort="string-ins"><span class="sort-icon"></span>Evidence</th>
+                                <th class="col-xs-2" data-sort="string-ins"><span class="sort-icon"></span>Source</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for go_association in go_associations if not go_association.predicted %}
+                            {% if go_association.evidence == None %}
+                            <tr class="parent_term" style="display: none" style="clear:both;">
+                            {% else %}
+                            <tr style="clear:both;">
+                            {% endif %}
+                                <td class="col-xs-1">{{ go_association.go.short_type }}</td>
+                                <td class="col-xs-2"><a href="{{ url_for('go.go_view', go_id=go_association.go.id) }}" data-toggle="tooltip"
+                                       data-placement="top" title="{{ go_association.go.description }}">{{ go_association.go.label }}</a></td>
+                                <td class="col-xs-6">{{ go_association.go.name }}</td>
+                                <td class="col-xs-1">{{ go_association.evidence }}</td>
+                                <td class="col-xs-2">{{ go_association.source }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td class="col-xs-12"><p>No GO annotation available for this sequence</p></td>
+                            </tr>
+
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="panel-body">
+                    <a href="#" id="go_toggle">Toggle parental</a>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="tab2default">
+                <div class="table-responsive">
+                    <table class="table table-striped table-fixed" id="predicted_go_table">
+                        <thead>
+                            <tr>
+                                <th class="col-xs-1" data-sort="string-ins"><span class="sort-icon"></span>Type</th>
+                                <th class="col-xs-2" data-sort="string-ins"><span class="sort-icon"></span><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='go') }}" data-target="#helpModal">GO</abbr> Term</th>
+                                <th class="col-xs-6" data-sort="string-ins"><span class="sort-icon"></span>Name</th>
+                                <th class="col-xs-1" data-sort="string-ins"><span class="sort-icon"></span>Evidence</th>
+                                <th class="col-xs-2" data-sort="string-ins"><span class="sort-icon"></span>Source</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for go_association in go_associations if go_association.predicted %}
+                            {% if go_association.evidence == None %}
+                            <tr class="parent_term" style="display: none" style="clear:both;">
+                            {% else %}
+                            <tr style="clear:both;">
+                            {% endif %}
+                                <td class="col-xs-1">{{ go_association.go.short_type }}</td>
+                                <td class="col-xs-2"><a href="{{ url_for('go.go_view', go_id=go_association.go.id) }}" data-toggle="tooltip"
+                                       data-placement="top" title="{{ go_association.go.description }}">{{ go_association.go.label }}</a></td>
+                                <td class="col-xs-6">{{ go_association.go.name }}</td>
+                                <td class="col-xs-1">{{ go_association.evidence }}</td>
+                                <td class="col-xs-2">{{ go_association.source }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td class="col-xs-12"><p>No Predicted GO terms available for this sequence</p></td>
+                            </tr>
+
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="tab3default">
+                {% if interpro_associations|count > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-fixed" id="interpro_table">
+                        <thead>
+                            <tr>
+                                <th class="col-xs-3" data-sort="string-ins"><span class="sort-icon"></span><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='interpro_domain') }}" data-target="#helpModal">InterPro domains</abbr></th>
+                                <th class="col-xs-5" data-sort="string-ins"><span class="sort-icon"></span>Description</th>
+                                <th class="col-xs-2" data-sort="int"><span class="sort-icon"></span>Start</th>
+                                <th class="col-xs-2" data-sort="int"><span class="sort-icon"></span>Stop</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for association in interpro_associations %}
+                            <tr>
+                                <td class="col-xs-3"><a href="{{ url_for('interpro.interpro_view', interpro_id=association.domain.id) }}">{{ association.domain.label }}</a></td>
+                                <td class="col-xs-5">{{ association.domain.description }}</td>
+
+                                {% if association.start %}
+                                    <td class="col-xs-2">{{ association.start }}</td>
+                                {% else %}
+                                    <td class="col-xs-2"> - </td>
+                                {% endif %}
+
+                                {% if association.stop %}
+                                    <td class="col-xs-2">{{ association.stop }}</td>
+                                {% else %}
+                                    <td class="col-xs-2"> - </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="panel-body">
+                    <p>No InterPro domains available for this sequence</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="tab-pane fade" id="tab4default">
+                {% if cazyme_associations|count > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-fixed" id="cazyme_table">
+                        <thead>
+                            <tr>
+                                <th class="col-xs-2" data-sort="string-ins"><span class="sort-icon"></span>HMM Family</th>
+                                <th class="col-xs-1" data-sort="string-ins"><span class="sort-icon"></span>HMM Length</th>
+                                <th class="col-xs-1" data-sort="string-ins"><span class="sort-icon"></span>Query Length</th>
+                                <th class="col-xs-2" data-sort="string-ins"><span class="sort-icon"></span>e-Value</th>
+                                <th class="col-xs-2" data-sort="string-ins"><span class="sort-icon"></span>Query Start</th>
+                                <th class="col-xs-2" data-sort="string-ins"><span class="sort-icon"></span>Query End</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for association in cazyme_associations %}
+                            <tr>
+                                <td class="col-xs-2"><a href="{{ url_for('cazyme.cazyme_view', cazyme_id=association.cazyme.id) }}">{{ association.cazyme.family }}</a></td>
+                                <td class="col-xs-1">{{ association.hmm_length }}</td>
+                                <td class="col-xs-1">{{ association.query_length }}</td>
+                                <td class="col-xs-2">{{ association.e_value }}</td>
+                                <td class="col-xs-2">{{ association.query_start }}</td>
+                                <td class="col-xs-2">{{ association.query_end }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="panel-body">
+                    <p>No CAZYmes available for this sequence</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    </div>
+    <div class="row">
+        <div class="col-lg-12 col-md-12 col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-heading" id="links">External Links</div>
+                <div class="table-responsive">
+                    <table class="table table-striped table-separated">
+                        <tbody>
+                            {% for xref in sequence.xrefs if xref.platform != 'token' and  xref.platform != 'display' %}
+                            <tr>
+                                <td><strong>{{ xref.platform }}</strong></td>
+                                <td>
+                                    {% if xref.url %}
+                                        <a href="{{ xref.url }}">{{ xref.name }} <i class="fa fa-external-link"></i></a>
+                                    {% else %}
+                                        {{ xref.name }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td><em>No external refs found!</em></td>
+                                </td>
+                            </tr>
+
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<div class="modal" id="profileModal" tabindex="-1" role="dialog" aria-labelledby="profileModalLabel">
+  <div class="modal-dialog" role="document" style="width:1000px;height:800px;">
+    <div class="modal-content">
+
+    </div>
+
+  </div>
+</div>
+
+
+
+    {% endif %}
+</div>
+
+</div>
+
+    {% endblock %}
+</div>
+{% block extrajs %}
+<script src="{{ url_for('static', filename='js/Chart.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/hammer.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chartjs-plugin-zoom.min.js') }}"></script>
+<script>
+$(function () {
+  $("#go_table").stupidtable();
+  $("#predicted_go_table").stupidtable();
+  $("#interpro_table").stupidtable();
+  $("#cazyme_table").stupidtable();
+  $("#ecc_hits_table").stupidtable();
+  $("#coexpression_table").stupidtable();
+
+  $('[data-toggle="tooltip"]').tooltip();
+  $('a[data-target=#profileModal]').click(function(ev) {
+    ev.preventDefault();
+    var target = $(this).attr("href");
+
+    // load the url and show modal on success
+    $("#profileModal .modal-content").load(target, function() {
+         $("#profileModal").modal("show");
+    });
+});
+$("#go_toggle").click(function(ev) {
+    ev.preventDefault();
+    $(".parent_term").toggle();
+});
+
+$("#navbar-side a").on('click', function(event) {
+
+  // Make sure this.hash has a value before overriding default behavior
+  if (this.hash !== "") {
+
+    // Prevent default anchor click behavior
+    event.preventDefault();
+
+    // Store hash
+    var hash = this.hash;
+
+    // Using jQuery's animate() method to add smooth page scroll
+    // The optional number (800) specifies the number of milliseconds it takes to scroll to the specified area
+    $('html, body').animate({
+      scrollTop: $(hash).offset().top - 55
+    }, 800, function(){
+
+    // Add hash (#) to URL when done scrolling (default click behavior)
+      window.location.hash = hash;
+    });
+
+  } // End if
+
+});
+
+})
+
+{% import "macros/chartjs.html" as chartjs %}
+{% if expression_profiles|count > 0 %}
+        {% for profile in expression_profiles %}
+            {% if loop.first %}
+                {{ chartjs.expression_profile("expression-profile", url_for('expression_profile.expression_profile_plot_json', profile_id=profile.id), enable_zoom="enable_zoom", enable_pan="enable_pan") }}
+            {% endif %}
+        {% endfor %}
+{% endif %}
+
+</script>
+
+{% endblock %}

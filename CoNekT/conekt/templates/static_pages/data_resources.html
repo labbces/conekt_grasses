@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    CoNekT Bioenergy - Data Resources
+{% endblock %}
+
+{% block container %}
+<div class="top-pad">
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+        <li class="active"><strong>Data Resources</strong></li>
+    </ol>
+       
+    <h1 class="banner-green">Data Resources</h1>
+    <div class="row">
+        <div class="col-lg-2 col-md-2 col-sm-4 hidden-xs"><a href="https://phytozome-next.jgi.doe.gov/" target="_blank"><img alt="phytozone picture" class="rounded" style="width: 100%; height: auto; margin-top: 20px;"  src="{{ url_for('static', filename='img/data_resources/phytozone_250x250.png') }}"></a>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-4 hidden-xs"><a href="https://www.ncbi.nlm.nih.gov/" target="_blank"><img alt="ncbi picture" class="rounded" style="width: 100%; height: auto; margin-top: 20px;" src="{{ url_for('static', filename='img/data_resources/ncbi_logo_250x250.png') }}"></a>
+        </div>
+        <div class="col-lg-2 col-md-2 col-sm-4 hidden-xs"><a href="https://solgenomics.net/" target="_blank"><img alt="solgenomics picture" class="rounded" style="width: 100%; height: auto; margin-top: 20px;" src="{{ url_for('static', filename='img/data_resources/sg_logo_250x250.png') }}"></a>
+        </div> 
+        <div class="col-lg-2 col-md-2 col-sm-4 hidden-xs"><a href="https://figshare.com/projects/Sugarcane_Pan-transcriptome/130586" target="_blank"><img alt="figshare picture" class="rounded" style="width: 100%; height: auto; margin-top: 20px;" src="{{ url_for('static', filename='img/data_resources/figshare_250x250.png') }}"></a>
+        </div> 
+    </div>  
+    
+</div>
+
+    
+{% endblock %}

@@ -1,0 +1,152 @@
+{% extends 'admin/my_base.html' %}
+
+{% block body %}
+{% if form %}
+<h1>Add Species</h1>
+<div class="row">
+    <div class="col-lg-8 col-md-8 col-sm-6 col-xs-12">
+        <p>Use the panel below to add a new species</p>
+        <form method="POST"  action="{{ url_for('admin_controls.add_species') }}"  role="form" enctype="multipart/form-data">
+            {{ form.csrf_token }}
+            <div class="form-group">
+                <label>{{ form.name.label }}</label>
+                {{form.name(class_="form-control", placeholder="Species Name") }}
+            </div>
+            <div class="form-group">
+                <label>{{ form.code.label }}</label>
+                {{form.code(class_="form-control", placeholder="three letter code")}}
+            </div>
+            <div class="form-group">
+                <label>{{ form.data_type.label }}</label><br />
+                {% for option in form.data_type %}
+                    <div class="radio-inline">
+                        <label>
+                        {{ option }}
+                        {{ option.label }}
+                        </label>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="form-group">
+                <label>{{ form.color.label }}</label>
+                {{form.color(class_="form-control jscolor", placeholder="CDCDCD", value="CDCDCD") }}
+            </div>
+            <div class="form-group">
+                <label>{{ form.highlight.label }}</label>
+                {{form.highlight(class_="form-control jscolor", placeholder="DDDDDD", value="DDDDDD") }}
+            </div>
+
+            <div class="form-group">
+                <label>{{ form.description.label }} (supports markdown)</label>
+                {{form.description(class_="form-control", placeholder="") }}
+            </div>
+
+            <br />
+            <div class="form-group">
+                <p>Add FASTA file containing all CDSs, with the gene name in the header. Note that uploading compressed (gzip) files is supported.</p>
+                <label class="btn btn-default" for="fasta_cds" id="my-file-button-cds">
+                    {{ form.fasta_cds(style="display:none;", onchange="")}}
+                    <span id="file-selector-text-cds">Select Fasta File</span>
+                </label>
+            </div>
+
+            <div class="form-group">
+                <p>Add FASTA file containing all RNAs, with the gene name in the header. Note that uploading compressed (gzip) files is supported.</p>
+                <label class="btn btn-default" for="fasta_rna" id="my-file-button-rna">
+                    {{ form.fasta_rna(style="display:none;", onchange="")}}
+                    <span id="file-selector-text-rna">Select Fasta File</span>
+                </label>
+            </div>
+
+            <!-- adding Source and Literature -->
+
+            <br />
+            <p>Add the source and genome/transcriptome version for this species</p>
+            <div class="form-group">
+                <label>{{ form.source.label }} </label>
+                {{form.source(class_="form-control", placeholder="Source") }}
+            </div>
+
+            <!-- adding Genome Version -->
+            <div class="form-group">
+                <label>{{ form.genome_version.label }}</label>
+                {{form.genome_version(class_="form-control", placeholder="Sviridis_v2_1") }}
+            </div>
+            
+            <div class="form-group">
+                <label>{{ form.literature.label }}</label><br />
+                {% for option in form.literature %}
+                    <div class="radio-inline" name="literature_form" id="literature_form">
+                        <label>
+                        {{ option }}
+                        {{ option.label }}
+                        </label>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <div id="literature">
+                <p>Please, add the best article that contains the species data</p>
+
+                <div class="form-group">
+                    <label>{{ form.doi.label }}</label>
+                    {{form.doi(class_="form-control", placeholder="DOI") }}
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-success pull-right">Add species</button>
+
+        </form>
+    </div>
+    <div class="col-lg-4 col-md-4 col-sm-6 col-xs-12">
+        <div class="panel panel-default">
+            <div class="panel-heading"><strong>Help</strong></div>
+            <div class="panel-body">
+                Adds a new species to the database. Make sure the fasta file contains only the gene name in the header,
+                and that name matches other types of data that will be added later (GO, InterPro, ...).
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block tail %}
+<script src="{{ url_for('static', filename='js/jscolor.min.js') }}"></script>
+<script>
+$(function() {
+    $("#fasta_cds").change(function() {
+        $('#file-selector-text-cds').html($(this).val().replace(/^.*\\/, '') + ' selected');$('#my-file-button-cds').toggleClass('btn-default btn-success');
+    });
+});
+
+$(function() {
+    $("#fasta_rna").change(function() {
+        $('#file-selector-text-rna').html($(this).val().replace(/^.*\\/, '') + ' selected');$('#my-file-button-rna').toggleClass('btn-default btn-success');
+    });
+});
+
+$(function() {
+    $("#literature").hide();
+});
+
+$(function() {
+    $('input[name="literature"]').change(function() {
+        var selectedOption = $(this).val();
+        console.log(selectedOption)
+        
+        if (selectedOption === "yes") {
+            $("#literature").show();
+        } else if (selectedOption === "no") {
+            $("#literature").hide();
+        }
+
+    });
+});
+
+
+</script>
+{{ super() }}
+{% endblock%}

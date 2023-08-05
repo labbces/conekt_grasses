@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if networks %}
+        {% if species %}
+            {{ species.name }} networks
+        {% else %}
+            Network overview
+        {% endif %}
+    {% else %}
+        No network found !
+    {% endif %}
+{% endblock %}
+
+{% block container %}
+<div class="top-pad">
+
+    {% if networks %}
+    {% if species %}
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+        <li><a href="{{ url_for('species.species_overview') }}">Species</a></li>
+        <li><em><a href="{{ url_for('species.species_view', species_id=species.id) }}">{{ species.name }}</a></em></li>
+        <li class="active"><strong>Network Overview</strong></li>
+    </ol>
+    {% else %}
+     <ol class="breadcrumb">
+        <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+        <li class="active"><strong>Network Overview</strong></li>
+    </ol>
+    {% endif%}
+    <h1>Network Overview</h1>
+     <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    {% if g.debug %}<th>ID</th>{% endif %}
+                    <th>Species</th>
+                    <th>Description</th>
+                    <th>Score</th>
+                    <th>Probe count</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for n in networks  %}
+                <tr>
+                    {% if g.debug %}<td>{{ n.id }}</td>{% endif %}
+                    <td><em><a href="{{ url_for('species.species_view', species_id=n.species.id) }}">{{ n.species.name }}</a></em></td>
+                    <td>{{ n.description }}</td>
+                    <td>{{ n.edge_type }}</td>
+                    <td>{{ n.probe_count }}</td>
+                    <td><a href="{{ url_for('expression_network.expression_network_export', method_id=n.id) }}" download="network_{{n.id}}.tab">Download</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extrajs %}
+{% endblock %}

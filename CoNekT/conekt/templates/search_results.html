@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block title%}
+    {{ keyword }} search results
+{% endblock %}
+
+{% block container %}
+<div class="top-pad">
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+        <li><a href="{{ url_for('main.features') }}">Search</a></li>
+        <li>Results</li>
+        <li class="active"><strong>{{ keyword }}</strong></li>
+    </ol>
+
+    {% if advanced %}
+        <h1>Advanced Search Results</h1>
+        {% if sequences|length > 199 %}
+        <div class="alert alert-info">
+            <strong>Info!</strong> Advanced search results are limited to <strong>200</strong> items. Try a <strong>more specific</strong> term query to narrow down search results.
+        </div>
+        {% endif %}
+    {% else %}
+        <h1>Search results for: <strong>{{ keyword }}</strong></h1>
+        {% if ((sequences|length > 49) or (go|length > 49) or (interpro|length > 49) or (families|length > 49) or (profiles|length > 49)) %}
+        <div class="alert alert-info">
+            <strong>Info!</strong> Results are limited to <strong>50</strong> items per category. Try a <strong>more specific</strong> term or use the
+            <strong><a href="{{url_for('search.advanced')}}">advanced search</a></strong> to get more accurate results.
+        </div>
+        {% endif %}
+    {% endif %}
+    <div class="row">
+    {% if sequences %}
+    {% if advanced %}
+        <div class="col-lg-12">
+    {% else %}
+        <div class="col-md-6 col-sm-12">
+    {% endif %}
+        <div class="panel panel-default">
+            <div class="panel-heading">Found <strong>{{ sequences|length }}</strong> sequences</div>
+            {% if advanced %}
+            <div>
+            {% else %}
+            <div class="panel-scroll">
+            {% endif %}
+            <div class="table-responsive">
+                <table class="table">
+                    <tbody>
+                        {% for s in sequences %}
+                            <tr>
+                                <td><a href="{{ url_for('sequence.sequence_view', sequence_id=s.id)}}">{{ s.name }}</a></td>
+                                <td>{%- if s.aliases -%}{{ s.aliases|truncate(20) }}{% endif %}</td>
+                                <td>{%- if s.description -%}{{ s.description|truncate(60) }}{% endif %}</a></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if go %}
+    <div class="col-md-4 col-sm-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">Found <strong>{{ go|length }}</strong> GO terms</div>
+             <div class="panel-scroll">
+             <div class="table-responsive">
+                <table class="table">
+                    <tbody>
+                    {% for g in go %}
+                        <tr><td><a href="{{ url_for('go.go_view', go_id=g.id)}}">{{ g.label }}</a>: {{ g.name }}</td></tr>
+                    {% endfor %}
+                    </tbody>
+                    </table>
+                 </div>
+             </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if interpro %}
+    <div class="col-md-4 col-sm-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">Found <strong>{{ interpro|length }}</strong> InterPro domains</div>
+            <div class="panel-scroll">
+             <div class="table-responsive">
+                <table class="table">
+                    <tbody>
+                        {% for i in interpro %}
+                            <tr><td><a href="{{ url_for('interpro.interpro_view', interpro_id=i.id)}}">{{ i.label }}</a>: {{ i.description }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+             </div>
+             </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if families %}
+    <div class="col-md-4 col-sm-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">Found <strong>{{ families|length }}</strong> families</div>
+            <div class="panel-scroll">
+             <div class="table-responsive">
+                <table class="table">
+                    <tbody>
+                        {% for f in families %}
+                        <tr><td><a href="{{ url_for('family.family_view', family_id=f.id)}}" class="qtip_tooltip qtip_dynamic_tooltip" qtip_href="{{ url_for('family.family_tooltip', family_id=f.id) }}">{{ f.name }}</a>: {{ f.method.method }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+             </div>
+             </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if profiles %}
+    <div class="col-md-6 col-sm-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">Found <strong>{{ profiles|length }}</strong> expression profiles</div>
+            <div class="panel-scroll">
+             <div class="table-responsive">
+                <table class="table">
+                    <tbody>
+                        {% for p in profiles %}
+                            <tr>
+                                <td><a href="{{ url_for('expression_profile.expression_profile_view', profile_id=p.id)}}">{{ p.probe }}</a></td>
+                                {% if p.sequence %}
+                                    <td>{{ p.sequence.name }}</td>
+                                    <td>{%- if p.sequence.aliases -%}{{ p.sequence.aliases|truncate(20) }}{% endif %}</td>
+                                    <td>{%- if p.sequence.description -%}{{ p.sequence.description|truncate(60) }}{% endif %}</td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+             </div>
+             </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if not (sequences or go or interpro or families or profiles) %}
+    <div class="col-md-12">
+        <p>No results found for <strong>{{ keyword }}</strong>, try a more general term or the <a href="{{ url_for('search.advanced') }}">advanced search</a>.</p>
+    </div>
+    {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extrajs %}
+
+{% endblock %}

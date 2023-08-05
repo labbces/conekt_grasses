@@ -1,0 +1,259 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if results%}
+        Enriched Clusters
+    {% else %}
+        Search Enriched Clusters
+    {% endif %}
+{% endblock %}
+
+{% block container %}
+{% import 'macros/cluster_actions.html' as ca %}
+<div class="top-pad">
+
+
+    {% if results%}
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+        <li><a href="{{ url_for('main.features') }}">Tools</a></li>
+        <li>Enriched Clusters</li>
+        <li class="active"><strong>Results</strong></li>
+    </ol>
+    <h1>Search results</h1>
+    <div class="table-responsive">
+        <table class="table table-striped" id="results_table">
+            <thead>
+            <tr>
+                {% if g.debug %}<th data-sort="int"><span class="sort-icon"></span>ID</th>{% endif %}
+                <th data-sort="string-ins"><span class="sort-icon"></span>Species</th>
+                <th data-sort="string-ins"><span class="sort-icon"></span>Method</th>
+                <th data-sort="string-ins"><span class="sort-icon"></span>Name</th>
+                <th data-sort="float"><span class="sort-icon"></span>Enrichment <span class="text-muted">(log2)</span></th>
+                <th data-sort="float"><span class="sort-icon"></span>% <span class="text-muted">(in cluster)</span></th>
+                <th data-sort="float"><span class="sort-icon"></span>p-Value</th>
+                <th data-sort="float"><span class="sort-icon"></span>Corrected p-value</th>
+                <th>Action</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for r in results %}
+                    {% for c in r.clusters %}
+                    <tr>
+                        {% if g.debug %}<td>{{ c.cluster_id }}</td>{% endif %}
+                        <td><em>{{ c.cluster.method.network_method.species.name }}</em></td>
+                        <td>{{ c.cluster.method.method }}</td>
+                        <td><a href="{{ url_for('expression_cluster.expression_cluster_view', cluster_id=c.cluster_id) }}"
+                               class="qtip_tooltip"
+                               qtip_href="{{ url_for('expression_cluster.cluster_tooltip', cluster_id=c.cluster_id) }}">{{ c.cluster.name }}</a></td>
+                        <td>{{ c.enrichment|round(2) }}</td>
+                        <td>{{ (c.cluster_count*100/c.cluster_size)|round(2) }}% <span class="text-muted">({{c.cluster_count}}/{{c.cluster_size}})</span> </td>
+                        <td>{{ c.p_value|round(5) }}</td>
+                        <td>{{ c.corrected_p_value|round(5) }}</td>
+                        <td>
+                            {{ ca.cluster_actions(c.cluster_id) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </p>
+            {% endfor %}
+            </tbody>
+        </table>
+        <a id="DownloadTable" href="#" class="btn btn-primary">Download table</a><br /><br />
+    </div>
+    {% elif form %}
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+        <li><a href="{{ url_for('main.features') }}">Tools</a></li>
+        <li class="active"><strong>Enriched Clusters</strong></li>
+    </ol>
+    <h1>Enriched Clusters</h1>
+    <p>Co-expression clusters enriched for certain GeneOntology terms can be found using the form below.</p>
+        <div class="row">
+            <div class="col-md-6 col-md-offset-1 col-xs-8">
+                <div class="panel panel-primary">
+                    <div class="panel-heading"><strong>Search options</strong></div>
+                    <div class="panel-body">
+                        <form method="POST"  action="{{ url_for('search.search_enriched_clusters') }}"  role="form">
+                            {{ form.csrf_token }}
+                            <label><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='go') }}" data-target="#helpModal">GO</abbr></label>
+                            {{form.go_term(class_="form-control typeahead update_count") }}<br />
+                            <label>Cluster Method</label>
+                            {{form.method(class_="form-control update_count") }}<br />
+                            <div class="checkbox-group">
+                            <label>{{form.check_enrichment(checked=False, class_="update_count") }} <span class="title">Enrichment</span> </label><br />
+                            {{form.min_enrichment(class_="form-control update_count") }}<br />
+                            </div>
+                            <div class="checkbox-group">
+                            <label>{{form.check_p(checked=False, class_="update_count") }} <span class="title">p-Value</span></label><br />
+                            {{form.max_p(class_="form-control update_count") }}<br />
+                            </div>
+                            <div class="checkbox-group">
+                            <label>{{form.check_corrected_p(checked=True, class_="update_count") }} <span class="title"><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='fdr') }}" data-target="#helpModal">Corrected p-value</abbr></span></label><br />
+                            {{form.max_corrected_p(class_="form-control update_count") }}<br />
+                            </div>
+                            <hr />
+                            <div class="checkbox-group">
+                            <label>{{form.enable_clade_enrichment(checked=False, class_="update_count") }} <span class="title">Enable Clade/Phylostrata Enrichment</span></label><br />
+                            {{form.clade(class_="form-control update_count") }}<br />
+                            </div>
+                            <hr />
+                            <div class="pull-right">
+                            {% if example and example.go_term %}
+                                <button class="btn btn-default" id="load_example">Load example</button>
+                            {% endif %}
+                                <button class="btn btn-default" id="count_button">Count</button>
+                                <button type="submit" class="btn btn-primary" data-toggle="modal" data-target="#loaderModal" >Show clusters</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 col-xs-4">
+                <div class="panel panel-default">
+                    <div class="panel-heading"><strong>Help</strong></div>
+                    <div class="panel-body">
+                        <ul>
+                            <li>Enter the <strong>GO term</strong> that needs to be enriched in a cluster</li>
+                            <li>Select the <strong>clusters</strong> to search</li>
+                            <li>Set the parameters. Checkboxes enable/disable certain filters. (Recommended: enable corrected p-value and keep this below 0.05)</li>
+                            <li>Click <strong>Find clusters</strong></li>
+                            <br />
+                            <li>To limit results to clusters which are enriched for genes from a certain clade/phylostrata, check the box <strong>Enable Clade/Phylostrata enrichment</strong> and
+                            select the desired clade from the list.</li>
+                            <br />
+                            <li>Using the <strong>Count</strong> button you can check how many clusters meet the current criteria.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extrajs %}
+<script src="{{ url_for('static', filename='js/typeahead.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/table2CSV.js') }}" > </script>
+{% if form %}
+<script>
+    $(function() {
+        function update_count() {
+            post_data = {
+                        'method': $('#method').val(),
+                        'go_term': $('#go_term').val(),
+
+                        'check_enrichment':  $('#check_enrichment').is(":checked"),
+                        'check_p': $('#check_p').is(":checked"),
+                        'check_corrected_p': $('#check_corrected_p').is(":checked"),
+
+                        'min_enrichment':  $('#min_enrichment').val(),
+                        'max_p': $('#max_p').val(),
+                        'max_corrected_p': $('#max_corrected_p').val(),
+
+                        'enable_clade_enrichment': $('#enable_clade_enrichment').is(":checked"),
+                        'clade': $('#clade').val()
+                    }
+            $.ajax({
+                type: "POST",
+                url: "{{ url_for('search.count_enriched_clusters') }}",
+                contentType: 'application/json;charset=UTF-8',
+                data : JSON.stringify(post_data, null, '\t'),
+                success: function(data) {
+                    $('#count_button').text('Count (' + data.count + ')');
+                }
+            });
+        }
+
+        $("#count_button").click(function( ev) {
+            ev.preventDefault();
+            update_count();
+        });
+
+    });
+</script>
+
+
+{% endif %}
+<script>
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+    $("#results_table").stupidtable();
+
+    function update_checks( element ) {
+         if (element.prop( "checked" )) {
+            element.closest( ".checkbox-group" ).find(".title").removeClass("text-muted");
+            element.closest( ".checkbox-group" ).find(":text").prop('disabled', false);
+            element.closest( ".checkbox-group" ).find("select").prop('disabled', false);
+        } else {
+            element.closest( ".checkbox-group" ).find(".title").addClass("text-muted");
+            element.closest( ".checkbox-group" ).find(":text").prop('disabled', true);
+            element.closest( ".checkbox-group" ).find("select").prop('disabled', true);
+        }
+    }
+
+    $( ":checkbox" ).each( function () {
+        update_checks( $( this) );
+    });
+    $( ":checkbox" ).click( function() {
+        update_checks( $( this) );
+    });
+
+    var go = new Bloodhound({
+      datumTokenizer: Bloodhound.tokenizers.whitespace,
+      queryTokenizer: Bloodhound.tokenizers.whitespace,
+      prefetch: '{{url_for('search.search_typeahead_prefetch_go')}}',
+      remote: {
+            url:'{{url_for('search.search_typeahead_go', term='%QUERY')}}',
+            wildcard: '%25QUERY'
+        }
+    });
+
+
+    $('.typeahead').typeahead({
+        minLength: 3,
+        highlight: true
+    },
+    {
+      name: 'go',
+      display: 'value',
+      source: go,
+      limit: 10,
+      templates: {
+          empty: [
+            '<div class="tt-suggestion"><p class="text-muted"><em>',
+              'unable to find any GO terms that match the current query',
+            '</em></p></div>'
+          ].join('\n'),
+          suggestion: function(data) {return '<div>' + data.label + ' : <em>' + data.value + '</em></div>'}
+          }
+    });
+
+    var csv_data = $("#results_table").table2CSV({delivery:'value'});
+    csv_data = csv_data.replace(/,"Action"\n/,'\n');
+    csv_data = csv_data.replace(/,"\s+"\n/gi,'\n');
+    csv_data = csv_data.replace(/,"\s+"$/gi,'\n');
+
+    $("#DownloadTable").attr('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(csv_data));
+    $("#DownloadTable").attr('download', "table.csv");
+
+    {% if form and example and example.go_term %}
+        $('#load_example').click(function (ev) {
+            ev.preventDefault();
+            {% for key, value in example.items() %}
+                $('#{{key}}').val("{{value}}");
+            {% endfor %}
+            $('#check_enrichment').prop('checked', false);
+            $('#check_p').prop('checked', false);
+            $('#check_corrected_p').prop('checked', true);
+            $('#enable_clade_enrichment').prop('checked', false);
+
+            update_checks($('#check_enrichment'));
+            update_checks($('#check_p'));
+            update_checks($('#check_corrected_p'));
+            update_checks($('#enable_clade_enrichment'));
+        });
+    {% endif %}
+});
+</script>
+{% endblock %}

@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    CoNekT Bioenergy : Co-expression Network Toolkit for Bioenergy Plants
+{% endblock %}
+
+{% block container %}
+<div class="top-pad">
+    <ol class="breadcrumb">
+        <li class="active">Home</li>
+    </ol>
+
+    <div class="row">
+        <div class="col-lg-12">
+
+            <div style="overflow:hidden">
+                <img src="{{ url_for('static', filename='img/logo_conektbioenergy_red.png') }}" style="float:center;margin-right:25px;margin-top:-5px;margin-bottom:20px" />
+                </br><div><h1>A platform derived from <b><a href="https://conekt.sbs.ntu.edu.sg/">CoNeKT</a></b> dedicated to the visualization and analysis of co-expression and co-function networks of bioenergy plants.</h1>
+                    {% if g.msg %}
+                    <div><span class="global-message"><strong>{{ g.msg_title|safe }}: </strong>{{ g.msg|safe }}</span></div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+        <div class="col-lg-12">
+            <div id="new-alert" class="alert alert-info alert-dismissible" role="alert" style="display: none">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <strong>New ?</strong> Check out our CoNekT's features <a href="{{ url_for('main.features') }}">here</a> ! </div>
+            <div class="panel panel-default" style="background-color: #DFF0D8">
+                <div class="panel-body">
+                    <form  role="search" method="post" id="search-form-main" name="search-form-main" action="{{ url_for('search.simple') }}">
+                        {{ g.search_form.csrf_token }}
+                        <div>
+                            <div class="from-group input-group">
+                                {{ g.search_form.terms(class_="form-control", placeholder="Search") }}
+                                <div class="input-group-btn"><button type="submit" class="btn btn-primary" value="Search" data-toggle="modal" data-target="#loaderModal">Search</button></div>
+                            </div>
+                            {% if keyword_examples %}
+                            <span>e.g.
+                                {% for ke in keyword_examples %}
+                                <a href="{{ url_for('search.search_single_keyword', keyword=ke) }}">{{ ke }}</a>,
+                                {% endfor %}
+                                ...</span>
+                            {% endif %}
+
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-lg-12">
+          <div class="panel panel-default">
+          <div id="featureCarousel" class="carousel slide" data-ride="carousel">
+            <!-- Indicators -->
+            <ol class="carousel-indicators">
+              <li data-target="#featureCarousel" data-slide-to="0" class="active"></li>
+              <li data-target="#featureCarousel" data-slide-to="1"></li>
+              <li data-target="#featureCarousel" data-slide-to="2"></li>
+              <li data-target="#featureCarousel" data-slide-to="3"></li>
+              <li data-target="#featureCarousel" data-slide-to="4"></li>
+              <li data-target="#featureCarousel" data-slide-to="5"></li>
+            </ol>
+
+            <!-- Wrapper for slides -->
+            <div class="carousel-inner">
+              <div class="item active">
+                <div class="carousel-div">
+                    <div class="row">
+                        <div class="col-xs-2"><div style="margin-top:30px"><span style="color:#fff;font-size:36px;background-color:#0b8b0b;border-radius:4px;padding:10px"><i class="fa fa-search" ></i></span></div></div>
+                        <div class="col-xs-10">
+                            <h3>Quickly retrieve genes</h3>
+                            <p>Use our <a href="{{ url_for('search.advanced') }}">Search</a> function {% if g.blast_enabled -%}or <a href="{{ url_for('blast.blast_main') }}">BLAST</a>{%- endif %} to quickly find genes of interest.</p>
+                        </div>
+                    </div>
+                </div>
+              </div>
+
+              <div class="item">
+                <div class="carousel-div">
+                    <h3>Expression profiles and expression specificity</h3>
+                    <p>See in which tissues and conditions a gene of interest is expressed or find genes <a href="{{ url_for('search.search_specific_profiles') }}">specifically expressed</a> in a certain tissue/condition.</p>
+                </div>
+              </div>
+
+              <div class="item">
+                <div class="carousel-div">
+                    <h3>Co-expression networks</h3>
+                    <p>Browse co-expression networks based on thousands of publicly available RNA-Seq samples! <a href="{{ url_for('search.search_enriched_clusters') }}">Find clusters</a> of co-expressed genes enriched for certain functions.</p>
+                </div>
+              </div>
+
+              <div class="item">
+                <div class="carousel-div">
+                    <h3>Co-expression clusters</h3>
+                    <p>Browse co-expression networks based on thousands of publicly available RNA-Seq samples! <a href="{{ url_for('search.search_enriched_clusters') }}">Find cluster</a> of co-expressed genes enriched for certain functions.</p>
+                </div>
+              </div>
+
+              <div class="item">
+                <div class="carousel-div">
+                    <h3>Analyse custom gene sets</h3>
+                    <p>Create <a href="{{ url_for('heatmap.heatmap_main') }}">heatmap</a> and <a href="{{ url_for('profile_comparison.profile_comparison_main') }}">expression profiles</a> for user defined sets of genes. Build a <a href="{{ url_for('custom_network.custom_network_main') }}">custom co-expression network</a> for a set of selected genes.</p>
+                </div>
+              </div>
+
+              <div class="item">
+                <div class="carousel-div">
+                    <div class="col-xs-2"><div style="margin-top:30px"><span style="color:#fff;font-size:36px;background-color:#0b8b0b;border-radius:4px;padding:10px"><i class="fa fa-github"></i></span></div></div>
+                    <div class="col-xs-10">
+                        <h3>CoNekT is open-source</h3>
+                        <p>Head to <a href="https://github.molgen.mpg.de/proost/CoNekT">GitHub</a> for a copy of the source if you want to host your own version with in-house data or other species!</p>
+                    </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Left and right controls -->
+            <a class="left carousel-control" href="#featureCarousel" data-slide="prev">
+              <span class="glyphicon glyphicon-chevron-left"></span>
+              <span class="sr-only">Previous</span>
+            </a>
+            <a class="right carousel-control" href="#featureCarousel" data-slide="next">
+              <span class="glyphicon glyphicon-chevron-right"></span>
+              <span class="sr-only">Next</span>
+            </a>
+          </div>
+        </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-lg-6 col-md-6 col-sm-12">
+            <div class="panel panel-success"  style="height:300px; overflow-y:scroll">
+              <div class="panel-heading">News</div>
+              <div class="panel-body">
+                  {% for n in news %}
+                  <div>
+                      <p>{{ n.message_markup }}</p>
+                      <p class="text-muted text-right">by {{ n.posted_by }} (<strong>{{n.posted_formatted}}</strong>)</p>
+                      {% if not loop.last %}
+                        <hr />
+                      {% endif %}
+                  </div>
+                  {% else %}
+                      <p><em>No news messages found</em></p>
+                  {% endfor %}
+              </div>
+            </div>
+        </div>
+        {% if g.twitter_handle %}
+        <div class="col-lg-6 col-md-6 col-sm-12">
+            <div class="panel panel-default" style="height:300px; overflow-y:scroll">
+                <a class="twitter-timeline" href="https://twitter.com/{{g.twitter_handle}}">Tweets by {{g.twitter_handle}}</a> <script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+</div>
+{% endblock %}
+
+{% block extrajs %}
+<script src="{{ url_for('static', filename='js/js.cookie.js') }}"></script>
+<script>
+    $(document).ready(function() {
+        // check cookie
+        var visited = Cookies.get('visited');
+
+        if (visited == null) {
+            $('#new-alert').show();
+        }
+
+        // set cookie
+        Cookies.set('visited', 'yes', { expires: 1000 });
+    });
+</script>
+{% endblock %}

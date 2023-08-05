@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if tree %}
+        {{ tree.label }} details
+    {% else %}
+        Tree Methods
+    {% endif %}
+{% endblock %}
+
+{% block container %}
+{% import 'macros/pagination.html' as macro %}
+<div class="top-pad">
+
+    {% if trees %}
+        <ol class="breadcrumb">
+            <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+            <li class="active"><strong  >Trees</strong></li>
+        </ol>
+        <h1><strong><em>Tree Methods</em></strong></h1>
+
+        <div class="table-responsive">
+            <table class="table" style="margin-bottom:100px;" id="methods_table">
+                <thead>
+                    <tr>
+                        {% if g.debug %}<th data-sort="int"><span class="sort-icon"></span>ID</th>{% endif %}
+                        <th data-sort="string-ins"><span class="sort-icon"></span>Name</th>
+                        <th data-sort="string-ins"><span class="sort-icon"></span>based on</th>
+                        <!--<th data-sort="int"><span class="sort-icon"></span>count</th>-->
+                    </tr>
+                </thead>
+                <tbody>
+                {% for tm in trees  %}
+                    <tr>
+                        {% if g.debug %}<td>{{ tm.id }}</td>{% endif %}
+                        <td>{{ tm.description }}</td>
+                        <td>{{ tm.gf_method.method }}</td>
+                        <!--<td>NOT IMPLEMENTED</td>-->
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+         </div>
+
+    {% elif tree %}
+        <ol class="breadcrumb">
+            <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+            <li><a href="{{ url_for('tree.trees_overview') }}">Trees</a></li>
+            <li>View</li>
+            <li><strong>{{ tree.label }}</strong></li>
+        </ol>
+     <h1>{{ tree.label }}: <strong>{{ tree.method.description }}</strong></h1>
+     <p>Tree for gene family <a href="{{ url_for('family.family_view', family_id=tree.family.id) }}">{{ tree.family.name }}</a>.
+         <span class="pull-right">View expression as heatmap: <a href="{{ url_for('heatmap.heatmap_comparative_tree', tree_id=tree.id, option='raw') }}">raw</a> <span class="text-muted">|</span> <a href="{{ url_for('heatmap.heatmap_comparative_tree', tree_id=tree.id, option='row') }}">row-normalized</a></span></p>
+    {% if tree.phyloxml %}
+    <div class="row">
+        <div class="col-lg-12">
+            <div id="phyd3" style="height:600px">
+                <div id="chart-loader" style="widht:800px;height:600px"></div>
+            </div>
+	    <p>(The heatmaps are normalized by row. <strong style="color:#fff08e">Light yellow</strong> cells indicate no/low expression, <strong style="color:#000682">dark blue</strong> cells show the maximum expression. <strong>White</strong> cells lacking a border are missing values.)</p>	
+            <hr />
+        </div>
+
+        <div class="col-sm-4">
+            <div class="btn-group dropup">
+                <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                Download Tree <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a href="{{ url_for('tree.newick', tree_id=tree.id) }}" download>Newick</a></li>
+                    <li><a href="{{ url_for('tree.phyloxml', tree_id=tree.id) }}" download>PhyloXML</a></li>
+                    <li class="divider"></li>
+                    <li><a href="{{ url_for('tree.ascii_tree', tree_id=tree.id) }}" download>ASCII</a></li>
+                    <li class="divider"></li>
+                    <li class="dropdown-header">Image</li>
+                    <li><a href="#" id="linkSVG">SVG</a></li>
+                    <li><a href="#" id="linkPNG">PNG</a></li>
+
+                </ul>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="form-group">
+                <div class="checkbox">
+                    <label>
+                      <input id="dynamicHide" type="checkbox" checked="checked"> Dynamic node hiding
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="form-group">
+                <div class="checkbox">
+                    <label>
+                      <input id="phylogram" type="checkbox" checked="checked"> Show phylogram
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+
+    <div class="alert alert-warning">
+      <strong>PhyloXML data empty. Cannot draw tree!</strong> This indicates trees included in the database haven't been
+        reconciled yet.
+    </div>
+
+    {% endif %}
+    <br /><br />
+    {{ macro.pagination('Sequences',
+        url_for('tree.tree_sequences', tree_id=tree.id),
+        tree.count,
+        url_for('tree.tree_sequences_table', tree_id=tree.id),
+        'tree'
+    ) }}
+
+    {{ macro.pagination('Associations', url_for('tree.tree_associations', tree_id=tree.id), association_count, url_for('tree.tree_associations_table', tree_id=tree.id), 'association') }}
+
+    {% endif %}
+</div>
+
+</div>
+{% endblock %}
+
+{% block extrajs %}
+    {% if trees %}
+        <script>
+            $(function () {
+                $("#methods_table").stupidtable();
+            });
+        </script>
+    {% elif tree and tree.phyloxml %}
+        <script src="{{ url_for('static', filename='js/d3.v3.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/phyd3.min.js') }}"></script>
+        <script>
+            $(function () {
+                $("#chart-loader").html(get_loader_svg('chart-loader_leafy'));
+                init_planet_loader('chart-loader_leafy');
+                        var opts = {
+                            dynamicHide: true,
+                            height: 600,
+                            invertColors: false,
+                            lineupNodes: true,
+                            showDomains: false,
+                            showDomainNames: false,
+                            showDomainColors: false,
+                            showGraphs: true,
+                            showGraphLegend: true,
+                            showSupportValues: false,
+                            maxDecimalsSupportValues: 1,
+                            showLengthValues: false,
+                            maxDecimalsLengthValues: 3,
+                            showLength: false,
+                            showNodeNames: true,
+                            showNodesType: "all",
+                            showPhylogram: false,
+                            showTaxonomy: false,
+                            showFullTaxonomy: true,
+                            showSequences: false,
+                            showTaxonomyColors: true,
+                            backgroundColor: "#ffffff",
+                            foregroundColor: "#000000",
+                            popupWidth: 300,
+                        };
+                d3.xml("{{ url_for('tree.phyloxml', tree_id=tree.id) }}", "application/xml", function(xml) {
+                    d3.select("#phyd3").text(null);
+                    var tree = phyd3.phyloxml.parse(xml);
+                    phyd3.phylogram.build("#phyd3", tree, opts);
+                });
+            });
+        </script>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if token %}
+        BLAST Results
+    {% else %}
+        BLAST Search
+    {% endif %}
+{% endblock %}
+
+{% block container %}
+<div class="top-pad">
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+        <li><a href="{{ url_for('main.features') }}">Search</a></li>
+        <li class="active"><strong>BLAST</strong></li>
+    </ol>
+    <h1>BLAST</h1>
+    {% if token %}
+
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="panel panel-default">
+                    <div class="panel-heading">Results</div>
+                    <div class="panel-body">
+                        <p>Job id: <a href="{{ url_for('blast.blast_results', token=token) }}">{{ token }}</a> <span class="text-muted">(results will expire after one week)</span></p>
+                        <div id="waiting_indicator">
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
+                                    <span>Waiting for results...</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="results" style="display: none">
+                         <div class="table-responsive">
+                            <table class="table table-separated" style="margin-bottom:100px;" id="results_table">
+                                <thead>
+                                    <tr>
+                                        <th  data-sort="string-ins"><span class="sort-icon"></span>Hit</th>
+                                        <th  data-sort="float"><span class="sort-icon"></span>Percent identity</th>
+                                        <th  data-sort="int"><span class="sort-icon"></span>Alignment length</th>
+                                        <th  data-sort="int"><span class="sort-icon"></span>Mismatches</th>
+                                        <th  data-sort="int"><span class="sort-icon"></span>Gaps</th>
+                                        <th  data-sort="float"><span class="sort-icon"></span>E-value</th>
+                                        <th  data-sort="float"><span class="sort-icon"></span>Bitscore</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="results_table_body">
+                                </tbody>
+                                </table>
+                             </div>
+                        </div>
+                        <div id="warning" class="alert alert-warning" role="alert" style="display:none">
+                            <p>No hits found in the database</p>
+                        </div>
+                        <div id="error" class="alert alert-danger" role="alert" style="display:none">
+                            <p id="error_message"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    {% else %}
+    <p><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='blast') }}" data-target="#helpModal">BLAST</abbr> allows you to quickly find sequences in PlaNet that are similar to
+    an input sequence.</p>
+        <div class="row">
+            <div class="col-md-8 col-sm-6 col-xs-12">
+                <div class="panel panel-primary">
+                    <div class="panel-heading"><strong>Enter sequence</strong></div>
+                    <div class="panel-body">
+                        <form method="POST"  action="{{ url_for('blast.blast_main') }}"  role="form">
+                            {{ form.csrf_token }}
+                            <label><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='blast') }}" data-target="#helpModal">Blast Type</abbr></label>
+                            {{form.blast_type(class_="form-control") }}<br />
+                            <label>Query sequence</label>
+                            {{form.fasta(class_="form-control") }}<br />
+                            <div class="pull-right">
+                            {% if example and example.fasta %}
+                            <button class="btn btn-default" id="load_example">Load example</button>
+                            {% endif %}
+                            <button type="submit" class="btn btn-primary">BLAST sequence</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-12">
+                <div class="panel panel-default">
+                    <div class="panel-heading"><strong>Help</strong></div>
+                    <div class="panel-body">
+                        If your input sequence is an amino acids sequence, <strong>blastp</strong> is required. Nucleotide sequences can
+                        be used to search the database in combination with <strong>blastn</strong>.
+                        <br/>
+                        <br/>
+                        <ul>
+                            <li>Select the appropriate BLAST version. <strong>blastp</strong> for amino acid, <strong>blastn</strong> for nucleotide input</li>
+                            <li>Paste the <strong>sequence</strong> in the text-box</li>
+                            <li>Click <strong>BLAST sequence</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    {% endif %}
+
+
+</div>
+{% endblock %}
+
+{% block extrajs %}
+{% if token %}
+<script>
+    $(function() {
+        function check_results() {
+            $.getJSON( "{{ url_for('blast.blast_results_json', token=token) }}", function( data ) {
+
+              if (data['status'] === 'waiting') {
+                setTimeout(check_results, 2000);
+              } else if (data['status'] === 'done') {
+                $('#waiting_indicator').hide();
+
+                if (data['data'].length === 0) {
+                    $('#warning').show();
+                } else {
+                    data['data'].forEach(function( hit ) {
+                        $("#results_table_body")
+                            .append($('<tr>')
+                                .append($('<td>')
+                                    .append($('<a>')
+                                        .attr('href', '{{url_for('sequence.sequence_find', sequence_name='')}}' + hit['hit'])
+                                        .text(hit['hit']))
+                                    )
+                                .append($('<td>').text(hit['percent_identity']))
+                                .append($('<td>').text(hit['alignment_length']))
+                                .append($('<td>').text(hit['num_mismatch']))
+                                .append($('<td>').text(hit['num_gaps']))
+                                .append($('<td>').text(hit['e_value']))
+                                .append($('<td>').text(hit['bit_score']))
+                            );
+                    });
+                    $("#results_table").stupidtable();
+
+                    $('#results').show();
+                }
+
+              }  else if (data['status'] === 'error') {
+
+                $('#waiting_indicator').hide();
+                $('#error_message').text(data['message']);
+                $('#error').show();
+              }
+
+            });
+
+
+        }
+        check_results();
+    });
+</script>
+{% else %}
+    {% if example and example.fasta %}
+        <script>
+        $(function() {
+            $('#load_example').click(function (ev) {
+                ev.preventDefault();
+                {% for key, value in example.items() %}
+                    $('#{{key}}').val("{{value}}");
+                {% endfor %}
+            });
+        });
+        </script>
+    {% endif %}
+{% endif %}
+{% endblock %}

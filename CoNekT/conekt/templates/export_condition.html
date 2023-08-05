@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Export Condition
+{% endblock %}
+
+{% block container %}
+<div class="top-pad">
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+        <li><a href="{{ url_for('main.features') }}">Tools</a></li>
+        <li class="active"><strong>Export expression levels</strong></li>
+    </ol>
+    <h1>Export expression levels</h1>
+    <p>Export <strong>all</strong> expressed genes in a certain condition/tissue.</p>
+    <div class="row">
+         <div class="col-md-8 col-sm-6 col-xs-12">
+            <div class="panel panel-primary">
+                <div class="panel-heading"><strong>Options</strong></div>
+                <div class="panel-body">
+                    <form method="POST"  action="{{ url_for('expression_profile.export_expression_levels') }}"  role="form" id="fileDownloadForm">
+                        <div class="row">
+                            <div class="col-xs-12">
+                                {{form.csrf_token}}
+                                <label for="{{ form.species.id }}" class="control-label">{{ form.species.label }}</label> {{form.species(class_="form-control") }}<br />
+                                <label for="{{ form.methods.id }}" class="control-label">{{ form.methods.label }}</label> {{form.methods(class_="form-control", disabled=True) }}<br />
+                                <label for="{{ form.conditions.id }}" class="control-label">{{ form.conditions.label }}</label> {{form.conditions(class_="form-control", disabled=True) }}<br />
+                                <div class="pull-right">
+                                    <button type="submit" class="btn btn-primary">Export genes</button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-sm-6 col-xs-12">
+            <div class="panel panel-default">
+                <div class="panel-heading"><strong>Help</strong></div>
+                <div class="panel-body">
+                    <ul>
+                        <li>This tool allows you to export the expression level of all genes in a certain condition/tissue.</li>
+                        <li>First select the <strong>species</strong>, then the type of profile (<strong>method</strong>)
+                            and finally the desired <strong>condition/tissue</strong>. Click <strong>Export genes</strong> and wait for the download to start.</li>
+                        <li><strong>Note:</strong> This process might take a few minutes, don't close the browser window while waiting for the request to process.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+</div>
+{% endblock %}
+
+{% block extrajs %}
+<script>
+$(function() {
+    $("#fileDownloadForm").submit( function( event ) {
+        event.preventDefault();
+
+        $.ajax({
+            url: $(this).prop('action'),
+            timeout:600000, //10 min timeout
+            type: "POST",
+            dataType: 'text',
+            data: $(this).serialize(),
+            beforeSend: function( xhr ) {
+                $("#leafy_loader_text").html("Preparing your data, this can take a couple minutes. Please wait ...<br /> The download will start automatically...");
+                $("#loaderModal").modal("show");
+            },
+            success: function(data) {
+               $("#leafy_loader_text").html("Your Download is ready ! ");
+
+                pdata = JSON.parse(data);
+
+                var element = document.createElement('a');
+                element.setAttribute('href', pdata.url);
+                element.setAttribute('download', 'expression.tab');
+
+                document.body.appendChild(element);
+                element.click();
+                document.body.removeChild(element);
+
+               $("#leafy_loader_text").append($("<a/>").attr('href', pdata.url).attr('download', 'expression.tab').attr('id', 'download_ready_link').text("Click here"))
+               .append($("<span> if the download doesn't start automatically.</span>"));
+               $("#leafy_loader_close_btn").show();
+            }
+        });
+    })
+});
+
+$(function () {
+
+    var formdata;
+    var selectedSpecies = [];
+
+    var populate_species = function(data) {
+        $('#species').find('option').remove();
+        $.each(data, function () {
+            $('#species').append($("<option />").val(this.id).text(this.name));
+        });
+        $('#species').trigger('change');
+    };
+
+    var populate_methods = function(data) {
+        $('#methods').find('option').remove();
+        $.each(data, function () {
+            $('#methods').append($("<option />").val(this.id).text(this.description));
+        });
+
+        if ($('#methods').find('option').length > 0) {
+            $('#methods').prop('disabled', false);
+        } else {
+            $('#methods').prop('disabled', 'disabled');
+            $('#methods').append($("<option />").val(0).text("Not available"));
+            $('#conditions').find('option').remove();
+            $('#conditions').prop('disabled', 'disabled');
+            $('#conditions').append($("<option />").val(0).text("Not available"));
+        }
+        $('#methods').trigger('change');
+    }
+
+    var populate_conditions = function(data) {
+        $('#conditions').find('option').remove();
+        $.each(data, function () {
+            $('#conditions').append($("<option />").val(this).text(this));
+        });
+
+        if ($('#conditions').find('option').length > 0) {
+            $('#conditions').prop('disabled', false);
+        } else {
+            $('#conditions').prop('disabled', 'disabled');
+            $('#conditions').append($("<option />").val(0).text("Not available"));
+        }
+
+        $('#conditions').trigger('change');
+    }
+
+    $('#species').change(function(ev) {
+        var valueSelected = this.value;
+         $.each(formdata, function () {
+
+          if (this.id == valueSelected) {
+            selectedSpecies = this;
+            populate_methods(this.methods);
+          }
+
+         });
+    });
+
+    $('#methods').change(function(ev) {
+        var valueSelected = this.value;
+         $.each(selectedSpecies.methods, function () {
+
+          if (this.id == valueSelected) {
+            populate_conditions(this.conditions);
+          }
+
+         });
+    });
+
+    $.getJSON("{{ url_for('search.search_specific_profiles_json') }}", function(json) {
+      formdata = json;
+      populate_species(formdata);
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,418 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if form %}
+        Compare specificity
+    {% else %}
+        {{ labels.left_species }} {{ labels.left_condition }} vs {{ labels.right_species }} {{ labels.right_condition }}
+    {% endif %}
+{% endblock %}
+
+{% block container %}
+<div class="top-pad">
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+        <li><a href="{{ url_for('main.features') }}">Tools</a></li>
+        <li class="active"><strong>Compare Specific Profiles</strong></li>
+    </ol>
+    <h1>Compare Specificity</h1>
+    <p>Find out which genes are expressed specifically in species and/or conditions and have homologs expressed in a
+       different species and/or condition.</p>
+    {% if form %}
+        <div class="row equal">
+            <div class="col-md-8 col-sm-12 col-xs-12">
+                <div class="panel panel-primary">
+                    <div class="panel-heading"><strong>Options</strong></div>
+                    <div class="panel-body">
+                        <form method="POST"  action="{{ url_for('specificity_comparison.specificity_comparison_main') }}"  role="form">
+                            {{ form.csrf_token }}
+                            <div class="row">
+                            <div class="col-sm-12 col-xs-12">
+                                <label>Gene Families</label>
+                                {{form.family_method(class_="form-control")}}
+                                <br />
+                                <label>{{form.use_interpro()}} Use InterPro <span class="text-muted">(instead of gene families)</span></label>
+                                <br /><br />
+                            </div>
+                            <div class="col-md-6 col-sm-12 col-xs-12">
+                            <label>Species A</label>
+                            {{form.speciesa(class_="form-control")}}<br/>
+                            <label>Method</label>
+                            {{form.methodsa(class_="form-control", disabled=True)}}<br/>
+                            <label>Condition</label>
+                            {{form.conditionsa(class_="form-control", disabled=True)}}<br/>
+                            <label><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='spm') }}" data-target="#helpModal">SPM</abbr> cutoff :</label>
+                            {{form.cutoffa(class_="form-control", **{'data-provide':"slider",
+                                                                    'data-slider-id':"cutoffSlider",
+                                                                    'data-slider-min':"0.5",
+                                                                    'data-slider-max':"1",
+                                                                    'data-slider-step': "0.01",
+                                                                    'data-slider-value': "0.85"})}}<br/>
+                            <span class="text-muted">Genes found: <em id="left_count">0</em></span><br />
+                            </div>
+                            <div class="col-md-6 col-sm-12 col-xs-12">
+                            <label>Species B</label>
+                            {{form.speciesb(class_="form-control")}}<br/>
+                            <label>Method</label>
+                            {{form.methodsb(class_="form-control", disabled=True)}}<br/>
+                            <label>Condition</label>
+                            {{form.conditionsb(class_="form-control", disabled=True)}}<br/>
+                            <label><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='spm') }}" data-target="#helpModal">SPM</abbr> cutoff :</label>
+                            {{form.cutoffb(class_="form-control", **{'data-provide':"slider",
+                                                                    'data-slider-id':"cutoffSlider",
+                                                                    'data-slider-min':"0.5",
+                                                                    'data-slider-max':"1",
+                                                                    'data-slider-step': "0.01",
+                                                                    'data-slider-value': "0.85"})}}<br/>
+                            <span class="text-muted">Genes found: <em id="right_count">0</em></span><br />
+                            </div>
+                            <br />
+                            </div>
+                            <br />
+                            <button type="submit" class="btn btn-primary pull-right" data-toggle="modal" data-target="#loaderModal">Compare specificity</button>
+                        </form>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-sm-12 col-xs-12">
+            <div class="panel panel-default">
+                <div class="panel-heading"><strong>Help</strong></div>
+                <div class="panel-body">
+                    <ul>
+                        <li>First select which <strong>gene families</strong> to use for the comparison.</li>
+                        <li>Select the <strong>species and conditions</strong> to compare. <span class="text-muted">(Note that different methods might have different
+                    conditions associated with them)</span></li>
+                        <li>Set the desired <strong>SPM cutoff</strong> <span class="text-muted">(recommended: 0.85)</span></li>
+                        <li>On each side <em>Genes found</em> indicates how many genes will appear in the results for that selection. Adjust the settings accordingly.</li>
+                        <li>Finally, click <strong>Compare specificity</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    {% else %}
+    <h2 class="text-muted"><em>{{ labels.left_species }}</em> {{ labels.left_condition }} vs <em>{{ labels.right_species }}</em> {{ labels.right_condition }}</h2>
+        <div class="row">
+            <div class="col-lg-12">
+                <div id="venn" url="{{ url_for('static', filename='svg/venn.svg') }}"></div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="table-responsive">
+                    <table class="table table-striped table-separated" id="results">
+                        <thead>
+                            <tr>
+                                {% if use_interpro%}
+                                    <th data-sort="string-ins"><span class="sort-icon"></span>InterPro domain</th>
+                                {% else%}
+                                    <th data-sort="string-ins"><span class="sort-icon"></span>Gene Family</th>
+                                {% endif %}
+                                <th data-sort="string-ins"><span class="sort-icon"></span><em>{{ labels.left_species }}</em> {{ labels.left_condition }}</th>
+                                <th data-sort="string-ins"><span class="sort-icon"></span><em>{{ labels.right_species }}</em> {{ labels.right_condition }}</th>
+                                <th data-sort="string-ins"><span class="sort-icon"></span>Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for current_type in ['intersection', 'left', 'right'] %}
+                                {% for feat_id, td in table_data.items() if td.type == current_type %}
+                                    <tr>
+                                        {% if use_interpro%}
+                                            <td><a href="{{ url_for('interpro.interpro_view', interpro_id=feat_id) }}"
+                                                class="qtip_tooltip"
+                                                qtip_href="{{ url_for('interpro.interpro_tooltip', interpro_id=feat_id) }}">{{td.name}}</a></td>
+                                        {% else%}
+                                            <td><a href="{{ url_for('family.family_view', family_id=feat_id) }}"  class="qtip_tooltip qtip_dynamic_tooltip" qtip_href="{{ url_for('family.family_tooltip', family_id=feat_id) }}">{{td.name}}</a></td>
+                                        {% endif %}
+                                        <td>
+                                            {% for l in td.left_genes %}
+                                                <a href="{{ url_for('sequence.sequence_view', sequence_id=l.id) }}"
+                                                class="qtip_tooltip"
+                                                qtip_href="{{ url_for('sequence.sequence_tooltip', sequence_id=l.id) }}">{{l.name}}</a>{%- if l.low_abundance %} <span class="warning-message qtip_tooltip"
+                               qtip_href="{{ url_for('help.help_popup', topic='lowabundance') }}"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i></span>{%- endif -%}{%- if l.shortest_alias %} <span class="text-muted">({{ l.shortest_alias }})</span>{%- endif -%}{%- if not loop.last -%}, {%- endif -%}
+                                            {% else %}
+                                                <span class="text-muted text-center">-</span>
+                                            {% endfor %}
+                                        </td>
+                                        <td>
+                                            {% for r in td.right_genes %}
+                                                <a href="{{ url_for('sequence.sequence_view', sequence_id=r.id) }}"
+                                                class="qtip_tooltip"
+                                                qtip_href="{{ url_for('sequence.sequence_tooltip', sequence_id=r.id) }}">{{r.name}}</a>{%- if r.low_abundance %} <span class="warning-message qtip_tooltip"
+                               qtip_href="{{ url_for('help.help_popup', topic='lowabundance') }}"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i></span>{%- endif -%}{%- if r.shortest_alias %} <span class="text-muted">({{ r.shortest_alias }})</span>{%- endif -%}{%- if not loop.last -%}, {%- endif -%}
+                                            {% else %}
+                                                <span class="text-muted  text-center">-</span>
+                                            {% endfor %}
+                                        </td>
+                                        <td>
+                                            {{ td.type }}
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <td colspan="4"><em class="text-muted">No genes found matching those criteria </em></td>
+                                    </tr>
+                                {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <a href="#" class="btn btn-primary pull-right" id="DownloadTable">Download</a><br />
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extrajs %}
+<script src="{{ url_for('static', filename='js/bootstrap-slider.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/table2CSV.js') }}" > </script>
+{% if form %}
+<script>
+$(function () {
+
+
+    function update_count_left(method, cutoff, condition) {
+        post_data = {
+                    'method': method,
+                    'cutoff': cutoff,
+                    'condition': condition
+                }
+
+        $.ajax({
+            type: "POST",
+            url: "{{ url_for('search.count_specific_profiles') }}",
+            contentType: 'application/json;charset=UTF-8',
+            data : JSON.stringify(post_data, null, '\t'),
+            success: function(data) {
+                $('#left_count').text(data.count);
+            }
+        });
+    }
+
+    function update_count_right(method, cutoff, condition) {
+        post_data = {
+                    'method': method,
+                    'cutoff': cutoff,
+                    'condition': condition
+                }
+
+        $.ajax({
+            type: "POST",
+            url: "{{ url_for('search.count_specific_profiles') }}",
+            contentType: 'application/json;charset=UTF-8',
+            data : JSON.stringify(post_data, null, '\t'),
+            success: function(data) {
+                $('#right_count').text(data.count);
+            }
+        });
+    }
+
+
+
+    left_slider = $('#cutoffa').slider({
+        formatter: function(value) {
+            return 'Cutoff: ' + value;
+        }
+    }).on("slideStop", function(ev) {
+        update_count_left(
+          $('#methodsa').val(),
+          ev.value,
+          $('#conditionsa').val()
+        )
+    });
+
+    right_slider = $('#cutoffb').slider({
+        formatter: function(value) {
+            return 'Cutoff: ' + value;
+        }
+    }).on("slideStop", function(ev) {
+        update_count_right(
+          $('#methodsb').val(),
+          ev.value,
+          $('#conditionsb').val()
+        )
+    });
+
+    var formdata;
+    var selectedSpeciesa = [];
+    var selectedSpeciesb = [];
+
+    var populate_species = function(data) {
+        $('#speciesa').find('option').remove();
+        $.each(data, function () {
+            $('#speciesa').append($("<option />").val(this.id).text(this.name));
+        });
+        $('#speciesa').trigger('change');
+
+        $('#speciesb').find('option').remove();
+        $.each(data, function () {
+            $('#speciesb').append($("<option />").val(this.id).text(this.name));
+        });
+        if ($('#speciesb').find('option').length > 1) {
+            $('#speciesb').prop('selectedIndex', 1);
+        }
+        $('#speciesb').trigger('change');
+    };
+
+    var populate_methodsa = function(data) {
+        $('#methodsa').find('option').remove();
+        $.each(data, function () {
+            $('#methodsa').append($("<option />").val(this.id).text(this.description));
+        });
+
+        if ($('#methodsa').find('option').length > 0) {
+            $('#methodsa').prop('disabled', false);
+        } else {
+            $('#methodsa').prop('disabled', 'disabled');
+            $('#methodsa').append($("<option />").val(0).text("Not available"));
+        }
+        $('#methodsa').trigger('change');
+    }
+
+    var populate_methodsb = function(data) {
+        $('#methodsb').find('option').remove();
+        $.each(data, function () {
+            $('#methodsb').append($("<option />").val(this.id).text(this.description));
+        });
+
+        if ($('#methodsb').find('option').length > 0) {
+            $('#methodsb').prop('disabled', false);
+        } else {
+            $('#methodsb').prop('disabled', 'disabled');
+            $('#methodsb').append($("<option />").val(0).text("Not available"));
+        }
+        $('#methodsb').trigger('change');
+    }
+
+    var populate_conditionsa = function(data) {
+        $('#conditionsa').find('option').remove();
+        $.each(data, function () {
+            $('#conditionsa').append($("<option />").val(this).text(this));
+        });
+
+        if ($('#conditionsa').find('option').length > 0) {
+            $('#conditionsa').prop('disabled', false);
+        } else {
+            $('#conditionsa').prop('disabled', 'disabled');
+            $('#conditionsa').append($("<option />").val(0).text("Not available"));
+        }
+
+        $('#conditionsa').trigger('change');
+    }
+
+    var populate_conditionsb = function(data) {
+        $('#conditionsb').find('option').remove();
+        $.each(data, function () {
+            $('#conditionsb').append($("<option />").val(this).text(this));
+        });
+
+        if ($('#conditionsb').find('option').length > 0) {
+            $('#conditionsb').prop('disabled', false);
+        } else {
+            $('#conditionsb').prop('disabled', 'disabled');
+            $('#conditionsb').append($("<option />").val(0).text("Not available"));
+        }
+
+        $('#conditionsb').trigger('change');
+    }
+
+    $('#speciesa').change(function(ev) {
+        var valueSelected = this.value;
+         $.each(formdata, function () {
+
+          if (this.id == valueSelected) {
+            selectedSpeciesa = this;
+            populate_methodsa(this.methods);
+          }
+
+         });
+    });
+
+    $('#speciesb').change(function(ev) {
+        var valueSelected = this.value;
+         $.each(formdata, function () {
+
+          if (this.id == valueSelected) {
+            selectedSpeciesb = this;
+            populate_methodsb(this.methods);
+          }
+
+         });
+    });
+
+    $('#methodsa').change(function(ev) {
+        var valueSelected = this.value;
+         $.each(selectedSpeciesa.methods, function () {
+
+          if (this.id == valueSelected) {
+            populate_conditionsa(this.conditions);
+          }
+
+         });
+    });
+
+    $('#methodsb').change(function(ev) {
+        var valueSelected = this.value;
+         $.each(selectedSpeciesb.methods, function () {
+
+          if (this.id == valueSelected) {
+            populate_conditionsb(this.conditions);
+          }
+
+         });
+    });
+
+    $('#conditionsa').change(function(ev) {
+        update_count_left(
+          $('#methodsa').val(),
+          left_slider.slider('getValue'),
+          $('#conditionsa').val()
+        )
+    });
+
+    $('#conditionsb').change(function(ev) {
+        update_count_right(
+          $('#methodsb').val(),
+          right_slider.slider('getValue'),
+          $('#conditionsb').val()
+        )
+    });
+
+    $.getJSON("{{ url_for('search.search_specific_profiles_json') }}", function(json) {
+      formdata = json;
+      populate_species(formdata);
+    });
+
+
+
+});
+</script>
+{% else %}
+<script src="{{ url_for('static', filename='js/pablo.min.js') }}" > </script>
+<script>
+$(function() {
+     var svg_file  = $('#venn').attr( "url" );
+     svg_venn = Pablo.load(svg_file, function(){
+        this.appendTo($('#venn'));
+        this.addClass('center-block');
+        svg_venn.find('#left_value').firstChild().content("{{ counts.left }}");
+        svg_venn.find('#intersect_value').firstChild().content("{{ counts.intersection }}");
+        svg_venn.find('#right_value').firstChild().content("{{ counts.right }}");
+    });
+
+    $("#results").stupidtable();
+
+    var csv_data = $("#results").table2CSV({delivery:'value'});
+    csv_data = csv_data.replace(/\s+/g,' ');
+    csv_data = csv_data.replace(/" "/g,'"\n"');
+    csv_data = csv_data.replace(/" /g,'"');
+    csv_data = csv_data.replace(/ "/g,'"');
+    $("#DownloadTable").attr('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(csv_data));
+    $("#DownloadTable").attr('download', "table.csv");
+});
+</script>
+{% endif %}
+{% endblock %}

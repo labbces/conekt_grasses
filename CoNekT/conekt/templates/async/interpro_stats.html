@@ -1,0 +1,31 @@
+<div class="table-responsive">
+    <table class="table table-striped stupidtable">
+        <thead>
+            <tr>
+                <th data-sort="string-ins"><span class="sort-icon"></span>Label</th>
+                <th data-sort="string-ins"><span class="sort-icon"></span>Description</th>
+                <th data-sort="int"><span class="sort-icon"></span>Count</th>
+                <th data-sort="int"><span class="sort-icon"></span>Sequence count</th>
+                <th data-sort="int"><span class="sort-icon"></span>Species count</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for domain_id, domain_stat in interpro_stats.items() %}
+            <tr>
+                <td><a href="{{ url_for('interpro.interpro_view', interpro_id=domain_id) }}">{{ domain_stat.domain.label }}</a></td>
+                <td>{{ domain_stat.domain.description }}</td>
+                <td>{{ domain_stat.count }}</td>
+                <td>{{ domain_stat.sequence_count }}</td>
+                <td>{{ domain_stat.species_count }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td>
+                    <p><em>No associated domains for this item in the database.</em></p>
+                </td>
+                <td></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

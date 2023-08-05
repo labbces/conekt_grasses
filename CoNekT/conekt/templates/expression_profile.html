@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if profile %}
+        {% if  profile.sequence %}
+            {{ profile.sequence.name }} expression profile
+        {% else %}
+            {{ profile.probe }} expression profile
+        {% endif %}
+    {% else %}
+        No profile found!
+    {% endif %}
+{% endblock %}
+
+{% block container %}
+<div class="top-pad">
+
+    {% if profile %}
+    {% if  profile.sequence %}
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+        <li>Expression Profile</li>
+        <li class="active"><strong>{{ profile.sequence.name }}</strong></li>
+    </ol>
+    <h1>Expression profile for <strong><a href="{{url_for('sequence.sequence_view', sequence_id=profile.sequence.id)}}">{{ profile.sequence.name }}</a></strong> <small>({{ profile.probe }})</small></h1>
+    {% else %}
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+        <li>Expression Profile</li>
+        <li class="active"><strong>{{ profile.probe }}</strong></li>
+    </ol>
+    <h1>Expression profile for: <strong>{{ profile.probe }}</strong></h1>
+    {% endif %}
+
+    {% if profile.low_abundance %}
+    <br />
+    <span class="warning-message"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i> <strong>Attention:</strong> This gene has <strong><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='lowabundance') }}" data-target="#helpModal">low abundance</abbr></strong>.</span>
+    <br /><br />
+    {% endif %}
+
+    {% if  profile.sequence %}
+        {% if profile.sequence.aliases %}
+        <p><strong>Aliases : </strong>{{ profile.sequence.aliases }}</p>
+        {%endif%}
+        {% if profile.sequence.description %}
+        <p><strong>Description : </strong> {{ profile.sequence.description }}</p>
+        {% endif %}
+    {% endif %}
+
+
+    {% for s in profile.specificities %}
+    <span>{{ s.method.description }}: <strong>{{ s.condition }}</strong> (<abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='spm') }}" data-target="#helpModal">SPM</abbr>: {{ s.score|round(2) }},
+        <abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='entropy') }}" data-target="#helpModal">entropy</abbr>: {{ s.entropy|round(2) }}{%- if s.tau -%}, <abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='tau') }}" data-target="#helpModal">tau</abbr>: {{ s.tau|round(2) }}{% endif %})</span><br />
+    {% endfor %}
+
+
+    <br/>
+    <div class="row">
+        <div class="col-lg-12 col-md-12 col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <h2>All conditions</h2>
+                    <div class="pull-right">
+                        <a href="#" class="btn btn-default" id="enable_pan" data-toggle="tooltip" title="Toggle Pan"><i class="fa fa-arrows" aria-hidden="true"></i></a> <a href="#" class="btn btn-default" id="enable_zoom" data-toggle="tooltip" title="Toggle zoom"><i class="fa fa-search" aria-hidden="true"></i></a>
+                    </div>
+                    <div id="canvas-holder" class="center-block" style="height:600px; max-height:600px">
+                        <canvas id="chart-area" class="center-block" width="800" height="600"/>
+                    </div><br/>
+                    <div>
+                        <a href="{{ url_for('expression_profile.expression_profile_download_plot', profile_id=profile.id) }}" class="btn btn-primary pull-right" download="plot_{{profile.id}}.txt">Download</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% for t in tissues %}
+        <div class="col-lg-12 col-md-12 col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <h2>{{t.name}}</h2>
+                    {% if t.description %}
+                        <p>{{ t.description }}</p>
+                    {% endif %}
+                    <p><span class="text-muted"><strong>Note:</strong> <abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='spm') }}" data-target="#helpModal">SPM</abbr> calculations for this profile are done using
+                    the <strong>maximum</strong> value.</span></p>
+                    <div class="pull-right">
+                        <a href="#" class="btn btn-default" id="enable_pan-{{ t.id }}" data-toggle="tooltip" title="Toggle Pan"><i class="fa fa-arrows" aria-hidden="true"></i></a> <a href="#" class="btn btn-default" id="enable_zoom-{{ t.id }}" data-toggle="tooltip" title="Toggle zoom"><i class="fa fa-search" aria-hidden="true"></i></a>
+                    </div>
+                    <div id="canvas-holder-{{ t.id }}" class="center-block" style="height:600px; max-height:600px">
+                        <canvas id="chart-area-{{ t.id }}" class="center-block" width="800" height="600"/>
+                    </div><br/>
+                    <div>
+                        <a href="{{ url_for('expression_profile.expression_profile_download_tissue_plot', profile_id=profile.id, condition_tissue_id=t.id) }}" class="btn btn-primary pull-right" download="plot_{{profile.id}}.txt">Download</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+</div>
+{% endblock %}
+
+{% block extrajs %}
+    <script src="{{ url_for('static', filename='js/Chart.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/hammer.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chartjs-plugin-zoom.min.js') }}"></script>
+	<script>
+	{% import "macros/chartjs.html" as chartjs %}
+    {{ chartjs.expression_profile("chart-area", url_for('expression_profile.expression_profile_plot_json', profile_id=profile.id), enable_zoom="enable_zoom", enable_pan="enable_pan") }}
+    {% for t in tissues %}
+        {{ chartjs.expression_profile("chart-area-" + t.id|string, url_for('expression_profile.expression_profile_plot_tissue_json', profile_id=profile.id, condition_tissue_id=t.id), enable_zoom="enable_zoom-" + t.id|string, enable_pan="enable_pan-" + t.id|string) }}
+    {% endfor %}
+	</script>
+{% endblock %}
