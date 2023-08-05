@@ -1,0 +1,205 @@
+node {
+        content: data(best_name);
+        text-valign: center;
+        color: black;
+        background-color: data(color);
+        text-outline-width: 2;
+        text-outline-color: #EEE;
+}
+
+node[node_type = "query"] {
+        color: blue;
+        text-outline-width: 2;
+        text-outline-color: #EEE;
+}
+
+edge {
+        opacity: 0.7;
+        width: 1;
+        line-color: data(color);
+}
+
+node:active {
+    overlay-opacity: 0;
+    border-width:6px;
+    border-color:#AAD8FF;
+    border-opacity:0.5;
+}
+
+node:selected {
+        width: 50px;
+        height: 50px;
+        border-width:6px;
+        border-color:#AAD8FF;
+        border-opacity:0.5;
+        line-color: black;
+}
+
+node:unselected {
+        border-width:1px;
+        border-color:#888888;
+        border-opacity:0.5;
+}
+
+node:parent {
+    background-color: #AAD8FF;
+    background-opacity:0.2;
+}
+
+node#compound_node_two {
+    background-color: #AAFFD8;
+    background-opacity:0.2;
+}
+
+
+node.hidden {
+    visibility: hidden;
+}
+
+node.found {
+        width: 50px;
+        height: 60px;
+        text-outline-width: 2;
+        text-outline-color: #EEE;
+        color: #33F;
+}
+
+node.color {
+        background-color: data(color);
+}
+
+node.species_color {
+        background-color: data(species_color);
+}
+
+node.lc_color {
+        background-color: data(lc_color);
+}
+
+node.family_color {
+        background-color: data(family_color);
+}
+
+node.depth_color {
+        background-color: data(family_color);
+}
+
+node.neighbors {
+        background-color: mapData(neighbors, 0, 15, red, green);
+}
+
+node.depth_color {
+        background-color: mapData(depth, 0, 2, green, red);
+}
+
+node.family_clade_count {
+        background-color: mapData(family_clade_count, 1, 15, green, red);
+}
+
+node.family_clade_color {
+        background-color: data(family_clade_color);
+}
+
+node.cluster_color {
+        background-color: data(cluster_color);
+}
+
+node.spm_color {
+        background-color: data(spm_condition_color);
+}
+
+node.lc_shape {
+        shape: data(lc_shape);
+}
+
+node.family_clade_shape {
+        shape: data(family_clade_shape);
+}
+
+node.family_shape {
+        shape: data(family_shape);
+}
+
+node.shape {
+        shape: data(shape);
+}
+
+node.spm_shape {
+        shape: data(spm_condition_shape);
+}
+
+node.cluster_shape {
+        shape: data(cluster_shape);
+}
+
+edge:active {
+    overlay-opacity:0;
+    border-opacity:0;
+}
+
+edge:selected {
+        border-width:6px;
+        border-color:#AAD8FF;
+        border-opacity:0.5;
+        background-color:#77828C;
+        overlay-opacity:0.1;
+        overlay-padding: 3;
+}
+
+edge.color {
+        line-color: data(color);
+}
+
+edge[homology] {
+        line-style: dashed;
+}
+
+edge.depth_color {
+        line-color: mapData(depth, 0, 3, green, red);
+}
+
+edge.link_score {
+        line-color: mapData(link_score, 0, 30, green, red);
+}
+
+edge.link_pcc {
+        line-color: mapData(link_pcc, 0.5, 1, blue, red);
+}
+
+edge.hrr {
+        line-color: mapData(hrr, 1, 100, green, red);
+}
+
+edge.ecc_score {
+        line-color: mapData(ecc_score, 0, 1, red, green);
+}
+
+edge.ecc_width {
+        width: mapData(ecc_score, 0, 1, 1, 3);
+}
+
+edge.ecc_type {
+        line-color: mapData(edge_type, 0, 1, #00ccff, #ffcc00);
+}
+
+edge.ecc_pair_color {
+        line-color: data(ecc_pair_color);
+}
+
+edge.default {
+        opacity: 0.7;
+        width: 1;
+        line-color: data(color);
+}
+
+edge.default_width {
+        width: 1;
+}
+
+edge.depth {
+        width: mapData(depth, 0, 2, 3, 1);
+}
+
+edge.hidden {
+    visibility: hidden;
+}
