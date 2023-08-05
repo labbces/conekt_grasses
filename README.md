@@ -1,6 +1,20 @@
 # CoNekT Grasses
 
-## Quick Start
+## What is CoNekT Grasses?
+
+CoNekT Grasses derives from CoNekT, described in Proost *et al*. 2018. ( [https://doi.org/10.1093/nar/gky336](https://doi.org/10.1093/nar/gky336) )
+
+
+## Tutorials
+
+  * [The Basics](CoNekT/docs/build/tutorials/001_basics.md)
+  * [Expression profiles, heatmaps and specificity](CoNekT/docs/build/tutorials/002_expression_profiles.md)
+  * [Gene Families and Phylogenetic trees](CoNekT/docs/build/tutorials/003_gene_families_trees.md)
+  * [Comparing specificity](CoNekT/docs/build/tutorials/004_compare_specificity.md)
+  * [Coexpression Networks and Clusters](CoNekT/docs/build/tutorials/005_coexpression_networks_clusters.md)
+
+
+## Quick Start for developers
 
 CoNekT Grasses currently requires:
  * Python 3.8
@@ -26,6 +40,7 @@ Note that we changed the default Sphinx builder to use the Markdown parser. This
 extensions = ["myst_parser"]
 ```
 
+
 ## Developers
 
  * Dr. Renato Augusto Correa dos Santos
@@ -34,12 +49,14 @@ extensions = ["myst_parser"]
  * Arthur Shuzo Owtake Cardoso
  * Prof. Dr. Diego M. Riaño-Pachón (group leader)
 
+
 ## Collaborators
 
  * Felipe Vaz Peres
  * Jorge Muñoz
 
-## LICENSES
+
+## Licenses
 
  * [LabBCES LICENSE](LICENSE)
  * [Original CoNekT license (Dr. Sebastian Proost)](LICENSE_CoNekT.md)
