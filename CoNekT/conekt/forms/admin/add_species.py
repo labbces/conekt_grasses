@@ -18,9 +18,9 @@ class AddSpeciesForm(FlaskForm):
     description = TextAreaField('Description')
 
     # adding the source
-    source = SelectField('Source', coerce=str, choices=[('Phytozome','Phytozome'), ('SOL Genomics','SOL Genomics'), 
-                                                        ('MaizeGDB','MaizeGDB'), ('NCBI','NCBI'), ('TAIR','TAIR'), 
-                                                        ('LabBCES','LabBCES'), ('NGDC','NGDC'), ('ORCAE', 'ORCAE')])
+    source = SelectField('Source', coerce=str, choices=[('Phytozome','Phytozome'), 
+                                                        ('NCBI','NCBI'), ('CoGe','CoGe'),
+                                                        ('PLAZA','PLAZA'), ('LabBCES','LabBCES')])
 
     # adding literature information
     literature = RadioField('Add Literature?', choices=[('yes', 'Yes'), ('no', 'No')], default='no')
