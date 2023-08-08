@@ -1,6 +1,9 @@
 # Creating the Flask configuration file
 
+First, create a copy of the configuration template file. From the repo root, run:
+
 ```bash
+cd CoNekT/
 cp config.template.py config.py
 ```
 
@@ -29,7 +32,11 @@ In the config file the connection needs to be set up using :
     
 ## Setting up the database using the MySQL CLI
 
-First create a database. The character set and collate are important as sqlalchemy-migrate doesn't work with utf8mb4 (the default).
+First create a MySQL/MariaDB user with root:
+
+    CREATE USER conekt_grasses_admin@localhost IDENTIFIED BY 'E,~5*;{9f{p2VGp^';
+
+The character set and collate are important as sqlalchemy-migrate doesn't work with utf8mb4 (the default).
 
     CREATE DATABASE conekt_grasses_db CHARACTER SET latin1 COLLATE latin1_general_ci;
     
@@ -40,9 +47,10 @@ Give permissions to a user (conekt_grasses_admin in this example) to access the 
 
 # Running the database migrations
 
-Two commands are usually necessary, `initdb` (initialize the database) and `db init` (create a migration repository):
+Two commands are usually necessary, `initdb` (initialize the database) and `db init` (create a migration repository). From the repo root, run:
 
 ```bash
+cd CoNekT/
 flask initdb
 flask db init
 ```
