@@ -1,15 +1,3 @@
-# Creating the Flask configuration file
-
-First, create a copy of the configuration template file. From the repo root, run:
-
-```bash
-cd CoNekT/
-cp config.template.py config.py
-```
-
-Change settings in `config.py`. **Apart from configuring paths, also change the secret key and the admin password !**
-
-
 # Setting up MySQL/MariaDB for CoNekT Grasses
 
 Either use the libmysql library which needs to be installed on the machine using
@@ -44,12 +32,23 @@ Give permissions to a user (conekt_grasses_admin in this example) to access the 
 
     GRANT INDEX, CREATE, DROP, SELECT, UPDATE, DELETE, ALTER, EXECUTE, INSERT on conekt_grasses_db.* TO conekt_grasses_admin@localhost;
 
+# Creating the Flask configuration file
+
+First, create a copy of the configuration template file. From the repo root, run:
+
+```bash
+cd CoNekT/
+cp config.template.py config.py
+```
+
+Change settings in `config.py`. **Apart from configuring paths, also change the secret key and the admin password !**
 
 # Running the database migrations
 
 Two commands are usually necessary, `initdb` (initialize the database) and `db init` (create a migration repository). From the repo root, run:
 
 ```bash
+export FLASK_APP=run.py
 cd CoNekT/
 flask initdb
 flask db init
