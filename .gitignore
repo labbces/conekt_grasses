@@ -1,12 +1,12 @@
 .idea/
 
-/db/
-/venv/
-/virtualenv/
-/whooshee/
-/dist/
-/build/
-/migrations/
+/CoNekT/db/
+/CoNekT/venv/
+/CoNekT/virtualenv/
+/CoNekT/whooshee/
+/CoNekT/dist/
+/CoNekT/build/
+/CoNekT/migrations/
 
 tmp
 bin
@@ -15,7 +15,6 @@ include
 pip-selfcheck.json
 scripts
 
-/config.py
 /CoNekT/config.py
 
 /ftp
