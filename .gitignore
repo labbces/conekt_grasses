@@ -16,6 +16,7 @@ pip-selfcheck.json
 scripts
 
 /config.py
+/CoNekT/config.py
 
 /ftp
 /data/
