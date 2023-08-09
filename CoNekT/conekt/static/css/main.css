@@ -584,6 +584,7 @@ g.legend_node {
 ol.carousel-indicators {
     margin-bottom: 0px !important;
     bottom: 0px !important;
+    z-index: 2;
 }
 
 .carousel-indicators li {

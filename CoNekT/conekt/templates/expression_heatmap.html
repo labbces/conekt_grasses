@@ -132,6 +132,7 @@
                             <ul class="nav nav-tabs">
                                 <li class="active"><a href="#tab1default" data-toggle="tab">Default</a></li>
                                 <li><a href="#tab2default" data-toggle="tab">Comparative</a></li>
+                                <li><a href="#tab3default" data-toggle="tab">PO</a></li>
                             </ul>
                     </div>
                     <div>
@@ -168,6 +169,28 @@
                                                     {% if example2 and example2.comparable_probes %}
                                                         <button class="btn btn-default" id="load_example2">Load example</button>
                                                     {% endif %}
+                                                    <button type="submit" class="btn btn-primary" data-toggle="modal" data-target="#loaderModal">Generate heatmap</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade in" id="tab3default">
+                                <div class="panel-body">
+                                    <form method="POST"  action="{{ url_for('heatmap.heatmap_custom_pos') }}"  role="form">
+                                        <div class="row">
+                                            <div class="col-xs-12">
+                                                {{ form3.csrf_token }}
+                                                {{form3.species_id(class_="form-control") }}<br />
+                                                {{form3.pos(class_="form-control") }}<br />
+                                                {{form3.probes(class_="form-control") }}<br />
+                                                {{form3.options(class_="form-control") }}<br />
+                                                <div class="pull-right">
+                                                    <!-- The load exemple buttom is not filling with the examples -->
+                                                {% if example3 and example3.probes %}
+                                                    <button class="btn btn-default" id="load_example">Load example</button>
+                                                {% endif %}
                                                     <button type="submit" class="btn btn-primary" data-toggle="modal" data-target="#loaderModal">Generate heatmap</button>
                                                 </div>
                                             </div>
