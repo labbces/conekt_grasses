@@ -235,6 +235,74 @@ class ExpressionProfile(db.Model):
         return {'order': order, 'heatmap_data': output}
 
     @staticmethod
+    def get_po_heatmap(species_id, probes, pos, zlog=True, raw=False):
+        """
+        Returns a heatmap for a given species (species_id), a list of probes and a list of ontologies. It returns a dict with 'order'
+        the order of the experiments and 'heatmap' another dict with the actual data. Data is zlog transformed
+
+        :param species_id: species id (internal database id)
+        :param probes: a list of probes to include in the heatmap
+        :param pos: a list of po classes to include in the heatmap
+        :param zlog: enable zlog transformation (otherwise normalization against highest expressed condition)
+        """
+        profiles = ExpressionProfile.query.options(undefer('profile')).filter_by(species_id=species_id).\
+            filter(ExpressionProfile.probe.in_(probes)).all()
+
+        order = []
+
+        output = []
+
+        not_found = [p.lower() for p in probes]
+
+        for profile in profiles:
+            name = profile.probe
+            data = json.loads(profile.profile)
+            order = pos
+            experiments = data['data']['TPM']
+
+
+            with contextlib.suppress(ValueError):
+                not_found.remove(profile.probe.lower())
+
+            with contextlib.suppress(ValueError):
+                not_found.remove(profile.sequence.name.lower())
+            
+            values = {}
+            labels = []
+
+            for o in order:
+                for key, value in data['data']['PO_class'].items():
+                    if value == o:
+                        values[key] = data['data']['TPM'][key] 
+                        labels.append(key + " ("+ o +")")
+
+            row_max = max(list(values.values()))
+
+            for v in values:
+                if zlog:
+                    if values[v] == 0:
+                        values[v] = '-'
+                    else:
+                        try:
+                            values[v] = log(values[v], 2)
+                        except ValueError as _:
+                            print("Unable to calculate log()", values[v])
+                            values[v] = '-'
+                else:
+                    if row_max != 0 and not raw:
+                        values[v] = values[v]/row_max
+
+            output.append({"name": name,
+                           "values": values,
+                           "sequence_id": profile.sequence_id,
+                           "shortest_alias": profile.sequence.shortest_alias})
+
+        if len(not_found) > 0:
+            flash("Couldn't find profile for: %s" % ", ".join(not_found), "warning")
+
+        return {'labels':labels, 'order': order, 'heatmap_data': output}
+
+    @staticmethod
     def get_profiles(species_id, probes, limit=1000):
         """
         Gets the data for a set of probes (including the full profiles), a limit can be provided to avoid overly

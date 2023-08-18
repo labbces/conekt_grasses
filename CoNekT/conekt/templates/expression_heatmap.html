@@ -82,9 +82,15 @@
             <thead>
                 <tr>
                     <th>Gene</th>
-                    {% for o in order %}
-                    <th class="rotated"><div><span>{{ o.capitalize() }}</span></div></th>
-                    {% endfor %}
+                    {% if po %}
+                            {% for item in  labels %}
+                            <th class="rotated"><div><span>{{ item }}</span></div></th>
+                            {% endfor %}
+                    {% else %}
+                        {% for o in order %}
+                        <th class="rotated"><div><span>{{ o.capitalize() }}</span></div></th>
+                        {% endfor %}
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -97,9 +103,15 @@
                     {% else %}
                     <td><div><span>{{ p.name }}</span></div></td>
                     {% endif %}
-                    {% for o in order %}
-                    <td class="value">{% if p['values'][o] != '-' %}{{ p['values'][o]|round(2) }}{% else %}-{% endif %}</td>
-                    {% endfor %}
+                    {% if po %}
+                        {% for key, value in p['values'].items() %}
+                        <td class="value">{% if value != '-' %}{{ value|round(2) }}{% else %}-{% endif %}</td>
+                        {% endfor %}
+                    {% else %}
+                        {% for o in order %}
+                        <td class="value">{% if p['values'][o] != '-' %}{{ p['values'][o]|round(2) }}{% else %}-{% endif %}</td>
+                        {% endfor %}
+                    {% endif %}
                 </tr>
             {% endfor %}
             </tbody>
@@ -178,7 +190,7 @@
                             </div>
                             <div class="tab-pane fade in" id="tab3default">
                                 <div class="panel-body">
-                                    <form method="POST"  action="{{ url_for('heatmap.heatmap_custom_pos') }}"  role="form">
+                                    <form method="POST" id="form3" action="{{ url_for('heatmap.heatmap_custom_pos') }}"  role="form">
                                         <div class="row">
                                             <div class="col-xs-12">
                                                 {{ form3.csrf_token }}
@@ -187,9 +199,8 @@
                                                 {{form3.probes(class_="form-control") }}<br />
                                                 {{form3.options(class_="form-control") }}<br />
                                                 <div class="pull-right">
-                                                    <!-- The load exemple buttom is not filling with the examples -->
                                                 {% if example3 and example3.probes %}
-                                                    <button class="btn btn-default" id="load_example">Load example</button>
+                                                    <button class="btn btn-default" id="load_example3" type="button">Load example</button>
                                                 {% endif %}
                                                     <button type="submit" class="btn btn-primary" data-toggle="modal" data-target="#loaderModal">Generate heatmap</button>
                                                 </div>
@@ -257,44 +268,44 @@ $( document ).ready(function() {
 
     prepare_download();
 
-function tableTransform(objTable) {
-    if (typeof objTable != 'undefined') {
-        objTable.each(function () {
-            var $this = $(this);
-            var newrows = [];
-            $this.find("tbody tr, thead tr").each(function () {
-                var i = 0;
-                $(this).find("td, th").each(function () {
-                    i++;
-                    if (newrows[i] === undefined) {
-                        newrows[i] = $("<tr></tr>");
-                    }
-                    newrows[i].append($(this));
+    function tableTransform(objTable) {
+        if (typeof objTable != 'undefined') {
+            objTable.each(function () {
+                var $this = $(this);
+                var newrows = [];
+                $this.find("tbody tr, thead tr").each(function () {
+                    var i = 0;
+                    $(this).find("td, th").each(function () {
+                        i++;
+                        if (newrows[i] === undefined) {
+                            newrows[i] = $("<tr></tr>");
+                        }
+                        newrows[i].append($(this));
+                    });
+                });
+                $this.find("tr").remove();
+                $.each(newrows, function () {
+                    $this.append(this);
                 });
             });
-            $this.find("tr").remove();
-            $.each(newrows, function () {
-                $this.append(this);
+            //switch old th to td
+            objTable.find('th').wrapInner('<td />').contents().unwrap();
+            //move first tr into thead
+            var thead = objTable.find("thead");
+            var thRows = objTable.find("tr:first");
+            var copy = thRows.clone(true).appendTo("thead");
+            thRows.remove();
+            //switch td in thead into th
+            objTable.find('thead tr td').wrapInner('<th class="rotated" />').contents().unwrap();
+            //add tr back into tfoot
+            objTable.find('tfoot').append("<tr></tr>");
+            //add tds into tfoot
+            objTable.find('tbody tr:first td').each(function () {
+                objTable.find('tfoot tr').append("<td>&nbsp;</td>");
             });
-        });
-        //switch old th to td
-        objTable.find('th').wrapInner('<td />').contents().unwrap();
-        //move first tr into thead
-        var thead = objTable.find("thead");
-        var thRows = objTable.find("tr:first");
-        var copy = thRows.clone(true).appendTo("thead");
-        thRows.remove();
-        //switch td in thead into th
-        objTable.find('thead tr td').wrapInner('<th class="rotated" />').contents().unwrap();
-        //add tr back into tfoot
-        objTable.find('tfoot').append("<tr></tr>");
-        //add tds into tfoot
-        objTable.find('tbody tr:first td').each(function () {
-            objTable.find('tfoot tr').append("<td>&nbsp;</td>");
-        });
-        return false;
+            return false;
+        }
     }
-}
 
     $("#transpose").click(function(){
         $('.qtip_tooltip').qtip('destroy', true);
@@ -307,6 +318,41 @@ function tableTransform(objTable) {
 });
 </script>
 {% else %}
+<script>
+    $( document ).ready(function() {
+        var selectedSpecies = [];
+
+        function populate_pos(data) {
+            $('#pos').find('option').remove();
+            $.each(data, function () {
+                $('#pos').append($("<option />").val(this).text(this.charAt(0).toUpperCase() + this.slice(1)));
+            });
+
+            if ($('#pos').find('option').length > 0) {
+                $('#pos').prop('disabled', false);
+            } else {
+                $('#pos').prop('disabled', 'disabled');
+                $('#pos').append($("<option />").val(0).text("Not available"));
+            }
+        }
+
+        function loadSpeciesData(speciesId) {
+            $.getJSON("{{ url_for('heatmap.expression_profiles_json', species_id='valueSelected') }}".replace('valueSelected', speciesId), function(json) {
+                order = json["order"];
+                populate_pos(order);
+            });
+        }
+
+        var initialSpeciesId = $('select#species_id:last').val();
+        loadSpeciesData(initialSpeciesId);
+
+        $('select#species_id:last').change(function(ev) {
+            var valueSelected = this.value;
+            loadSpeciesData(valueSelected);
+        });
+    });
+</script>
+
 {% if example and example.probes %}
 <script>
 $(function() {
@@ -327,6 +373,19 @@ $(function() {
         ev.preventDefault();
         {% for key, value in example2.items() %}
             $('#{{key}}').val("{{value}}");
+        {% endfor %}
+    });
+});
+</script>
+{% endif %}
+
+{% if example3 and example3.probes %}
+<script>
+$(function() {
+    $('#load_example3').click(function (ev) {
+        ev.preventDefault();
+        {% for key, value in example3.items() %}
+            $('#form3 #{{key}}').val("{{value}}");
         {% endfor %}
     });
 });

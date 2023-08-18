@@ -38,16 +38,7 @@ class HeatmapPOForm(FlaskForm):
         self.species_id.choices = [(s.id, s.name) for s in Species.query.order_by(Species.name)]
 
     def populate_pos(self):
-        pos = []
-
-        #the self.species_id.data in line 44 is not working
-        for s in ExpressionProfile.query.filter_by(species_id=1).limit(1):
-            profile = json.loads(s.profile)
-
-            for p in profile['order']:
-                pos.append((p, p.capitalize()))
-                 
-        self.pos.choices = pos
+        self.pos.choices = [(0, "Select species first")]
 
     def populate_options(self):
         self.options.choices = [('raw', 'Raw'), ('zlog', 'zLog-ransformed'), ('rnorm', 'Row-normalized')]

@@ -1,5 +1,5 @@
 from flask import Blueprint, request, render_template, Response, redirect, flash, url_for
-
+from sqlalchemy.orm import undefer
 import json
 
 from conekt import cache
@@ -173,12 +173,12 @@ def heatmap_custom_comparable():
 def heatmap_custom_pos():
     form = HeatmapPOForm(request.form)
     form.populate_species()
-    form.populate_options()
     form.populate_pos()
+    form.populate_options()
 
     probes = request.form.get('probes').split()
     species_id = request.form.get('species_id')
-    pos = request.form.get('pos').split()
+    pos = request.form.getlist('pos')
 
     option = request.form.get('options')
 
@@ -196,12 +196,13 @@ def heatmap_custom_pos():
     # make probe list unique
     probes = list(set(probes))
     # TODO check if certain probes were not found and warn the user
-    current_heatmap = ExpressionProfile.get_heatmap(species_id, probes,
+    current_heatmap = ExpressionProfile.get_po_heatmap(species_id, probes, pos,
                                                     zlog=(option == 'zlog'),
                                                     raw=(option == 'raw'))
 
-    return render_template("expression_heatmap.html", order=current_heatmap['order'],
+    return render_template("expression_heatmap.html", order=current_heatmap['order'], po=True,
                            profiles=current_heatmap['heatmap_data'],
+                           labels=current_heatmap['labels'],
                            zlog=1 if option == 'zlog' else 0,
                            raw=1 if option == 'raw' else 0)
 
@@ -274,3 +275,12 @@ def heatmap_inchlib_json(cluster_id):
 @cache.cached()
 def heatmap_inchlib(cluster_id):
     return render_template("inchlib_heatmap.html", cluster_id=cluster_id)
+
+
+@heatmap.route('/profiles/<species_id>.json')
+@cache.cached()
+def expression_profiles_json(species_id):
+    current_profile = ExpressionProfile.query.options(undefer('profile')).get_or_404(species_id)
+    data = json.loads(current_profile.profile)
+
+    return Response(json.dumps(data), mimetype='application/json')
