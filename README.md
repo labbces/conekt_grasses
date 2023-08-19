@@ -19,6 +19,15 @@ CoNekT Grasses derives from CoNekT, described in Proost *et al*. 2018. ( [https:
 CoNekT Grasses currently requires:
  * Python 3.8
 
+Dependencies are usually installed using `apt` and `pip`:
+
+```bash
+apt install python3.8-venv
+python3.8 -m ensurepip --default-pip
+python3.8 -m pip install --upgrade pip setuptools wheel
+pip3.8 install virtualenv
+```
+
 To set up the environment from the root directory of the repository, run:
 
 ```bash
