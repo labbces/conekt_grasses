@@ -22,7 +22,7 @@ CoNekT Grasses currently requires:
 Dependencies are usually installed using `apt` and `pip`:
 
 ```bash
-apt install python3.8-venv
+apt install python3.8-venv python3.8-dev
 python3.8 -m ensurepip --default-pip
 python3.8 -m pip install --upgrade pip setuptools wheel
 pip3.8 install virtualenv
