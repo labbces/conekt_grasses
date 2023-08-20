@@ -1,9 +1,9 @@
 from flask import Blueprint, request, render_template, Response, redirect, flash, url_for
-
+from sqlalchemy.orm import undefer
 import json
 
 from conekt import cache
-from conekt.forms.heatmap import HeatmapForm, HeatmapComparableForm
+from conekt.forms.heatmap import HeatmapForm, HeatmapComparableForm, HeatmapPOForm
 from conekt.models.expression.coexpression_clusters import CoexpressionCluster
 from conekt.models.expression.profiles import ExpressionProfile
 from conekt.models.condition_tissue import ConditionTissue
@@ -57,6 +57,11 @@ def heatmap_main():
     form2 = HeatmapComparableForm(request.form)
     form2.populate_options()
 
+    form3 = HeatmapPOForm(request.form)
+    form3.populate_species()
+    form3.populate_options()
+    form3.populate_pos()
+
     # Fetch data for normal example, get five profiles from a species
     profiles = ExpressionProfile.query.filter(ExpressionProfile.sequence_id is not None).order_by(ExpressionProfile.species_id).limit(5).all()
 
@@ -87,9 +92,22 @@ def heatmap_main():
         'comparable_options': 'rnorm'
     }
 
-    return render_template("expression_heatmap.html", form=form, form2=form2,
+    # Fetch data for third example
+
+    example3 = {
+        'species_id': None,
+        'probes': None,
+        'options': 'zlog'
+    }
+
+    if len(profiles) > 0:
+        example3['species_id'] = profiles[0].species_id
+        example3['probes'] = ' '.join([p.sequence.name for p in profiles])
+
+    return render_template("expression_heatmap.html", form=form, form2=form2, form3=form3,
                            example=example,
-                           example2=example2)
+                           example2=example2,
+                           example3=example3)
 
 
 @heatmap.route('/results/default', methods=['POST'])
@@ -147,6 +165,44 @@ def heatmap_custom_comparable():
 
     return render_template("expression_heatmap.html", order=current_heatmap['order'],
                            profiles=current_heatmap['heatmap_data'],
+                           zlog=1 if option == 'zlog' else 0,
+                           raw=1 if option == 'raw' else 0)
+
+
+@heatmap.route('/results/pos', methods=['POST'])
+def heatmap_custom_pos():
+    form = HeatmapPOForm(request.form)
+    form.populate_species()
+    form.populate_pos()
+    form.populate_options()
+
+    probes = request.form.get('probes').split()
+    species_id = request.form.get('species_id')
+    pos = request.form.getlist('pos')
+
+    option = request.form.get('options')
+
+    if len(probes) == 0:
+        flash("No genes selected!", "warning")
+        return redirect(url_for('heatmap.heatmap_main'))
+
+    # also do search by gene ID
+    sequences = Sequence.query.filter(Sequence.name.in_(probes)).all()
+
+    for s in sequences:
+        for ep in s.expression_profiles:
+            probes.append(ep.probe)
+
+    # make probe list unique
+    probes = list(set(probes))
+    # TODO check if certain probes were not found and warn the user
+    current_heatmap = ExpressionProfile.get_po_heatmap(species_id, probes, pos,
+                                                    zlog=(option == 'zlog'),
+                                                    raw=(option == 'raw'))
+
+    return render_template("expression_heatmap.html", order=current_heatmap['order'], po=True,
+                           profiles=current_heatmap['heatmap_data'],
+                           labels=current_heatmap['labels'],
                            zlog=1 if option == 'zlog' else 0,
                            raw=1 if option == 'raw' else 0)
 
@@ -219,3 +275,12 @@ def heatmap_inchlib_json(cluster_id):
 @cache.cached()
 def heatmap_inchlib(cluster_id):
     return render_template("inchlib_heatmap.html", cluster_id=cluster_id)
+
+
+@heatmap.route('/profiles/<species_id>.json')
+@cache.cached()
+def expression_profiles_json(species_id):
+    current_profile = ExpressionProfile.query.options(undefer('profile')).get_or_404(species_id)
+    data = json.loads(current_profile.profile)
+
+    return Response(json.dumps(data), mimetype='application/json')
