@@ -257,7 +257,11 @@ class ExpressionProfile(db.Model):
         for profile in profiles:
             name = profile.probe
             data = json.loads(profile.profile)
-            order = pos
+            if pos:
+                order = pos
+            else:
+                order = data['order']
+                
             experiments = data['data']['TPM']
 
 

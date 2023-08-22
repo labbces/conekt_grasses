@@ -182,6 +182,8 @@ def heatmap_custom_pos():
 
     option = request.form.get('options')
 
+    print("aaaaaaaaa", pos)
+
     if len(probes) == 0:
         flash("No genes selected!", "warning")
         return redirect(url_for('heatmap.heatmap_main'))
