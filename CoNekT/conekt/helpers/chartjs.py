@@ -78,6 +78,9 @@ def prepare_profiles(profiles, normalize=False, xlabel='', ylabel='', peco=False
             expression_values = list(data['data']['TPM'].values())
 
         if normalize:
+            if expression_values == []:
+                expression_values = [0]
+                
             max_expression = max(expression_values)
             expression_values = [value/max_expression if max_expression > 0 else None for value in expression_values]
 
