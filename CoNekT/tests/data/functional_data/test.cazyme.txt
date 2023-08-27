@@ -1,3 +1,2 @@
-Family HMM	HMM length	Query ID	Query length	E-value (how similar to the family HMM)	Query start	Query end
 CBM10.hmm	20	Gene01	3419	10e-3	3000	3020	
 CBM11.hmm	30	Gene03	239	10e-4	50	80
