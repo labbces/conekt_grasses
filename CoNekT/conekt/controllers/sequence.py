@@ -76,8 +76,8 @@ def sequence_tooltip(sequence_id):
     return render_template('tooltips/sequence.html', sequence=current_sequence)
 
 
-@sequence.route('/modal/coding/<sequence_id>')
-def sequence_modal_coding(sequence_id):
+@sequence.route('/modal/coding/<sequence_id>/<rna>')
+def sequence_modal_coding(sequence_id, rna):
     """
     Returns the coding sequence in a modal
 
@@ -88,6 +88,15 @@ def sequence_modal_coding(sequence_id):
         .options(undefer('coding_sequence'))\
         .options(noload('xrefs'))\
         .get_or_404(sequence_id)
+    
+    name = current_sequence.name
+
+    if rna == 'true':
+        current_sequence = Sequence.query\
+            .filter_by(name=name, type='RNA')\
+            .options(undefer('coding_sequence'))\
+            .options(noload('xrefs'))\
+            .first()
 
     return render_template('modals/sequence.html', sequence=current_sequence, coding=True)
 
@@ -108,22 +117,32 @@ def sequence_modal_protein(sequence_id):
     return render_template('modals/sequence.html', sequence=current_sequence, coding=False)
 
 
-@sequence.route('/fasta/coding/<sequence_id>')
-def sequence_fasta_coding(sequence_id):
+@sequence.route('/fasta/coding/<sequence_id>/<rna>')
+def sequence_fasta_coding(sequence_id, rna):
     """
     Returns the coding sequence as a downloadable fasta file
 
     :param sequence_id: ID of the sequence
     :return: Response with the fasta file
     """
+
     current_sequence = Sequence.query\
         .options(undefer('coding_sequence'))\
         .options(noload('xrefs'))\
         .get_or_404(sequence_id)
 
+    name = current_sequence.name
+
+    if rna == 'true':
+        current_sequence = Sequence.query\
+            .filter_by(name=name, type='RNA')\
+            .options(undefer('coding_sequence'))\
+            .options(noload('xrefs'))\
+            .first()
+
     fasta = ">" + current_sequence.name + "\n" + current_sequence.coding_sequence + "\n"
     response = make_response(fasta)
-    response.headers["Content-Disposition"] = "attachment; filename=" + current_sequence.name + ".coding.fasta"
+    response.headers["Content-Disposition"] = "attachment; filename=" + current_sequence.name + ".cds.fasta"
     response.headers['Content-type'] = 'text/plain'
 
     return response

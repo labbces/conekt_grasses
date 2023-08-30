@@ -62,7 +62,7 @@
         {% endfor %}
         {%- if not loop.last -%},<br/> {% endif %}
         {% endfor %} {% else %}<em>No families found for this sequence</em>{% endif %}</p>
-    <p><strong>Sequence :</strong> <a href="{{ url_for('sequence.sequence_modal_coding', sequence_id=sequence.id) }}" data-target="#profileModal">coding</a> (<a href="{{ url_for('sequence.sequence_fasta_coding', sequence_id=sequence.id) }}">download</a>) {%- if sequence.type == 'protein_coding' -%}, <a href="{{ url_for('sequence.sequence_modal_protein', sequence_id=sequence.id) }}" data-target="#profileModal">protein</a> (<a href="{{ url_for('sequence.sequence_fasta_protein', sequence_id=sequence.id) }}">download</a>) {% endif %}</p>
+    <p><strong>Sequence :</strong> <a href="{{ url_for('sequence.sequence_modal_coding', sequence_id=sequence.id, rna='false') }}" data-target="#profileModal">cds</a> (<a href="{{ url_for('sequence.sequence_fasta_coding', sequence_id=sequence.id, rna='false') }}">download</a>), <a href="{{ url_for('sequence.sequence_modal_coding', sequence_id=sequence.id, rna='true') }}" data-target="#profileModal">rna</a> (<a href="{{ url_for('sequence.sequence_fasta_coding', sequence_id=sequence.id, rna='true') }}">download</a>) {%- if sequence.type == 'protein_coding' -%}, <a href="{{ url_for('sequence.sequence_modal_protein', sequence_id=sequence.id) }}" data-target="#profileModal">protein</a> (<a href="{{ url_for('sequence.sequence_fasta_protein', sequence_id=sequence.id) }}">download</a>) {% endif %}</p>
     </div>
 
     {% if expression_profiles|count > 0 %}
