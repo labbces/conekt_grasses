@@ -66,9 +66,9 @@ class Search:
         """
         terms = [t for t in term_string.upper().split() if len(t) > 3]
 
-        sequences_by_name = Sequence.query.filter(Sequence.name.in_(terms)).limit(50).all()
+        sequences_by_name = Sequence.query.filter(Sequence.name.in_(terms), Sequence.type == 'protein_coding').limit(50).all()
 
-        sequences_by_xref = Sequence.query.filter(Sequence.xrefs.any(XRef.name.in_(terms))).limit(50).all()
+        sequences_by_xref = Sequence.query.filter(Sequence.xrefs.any(XRef.name.in_(terms)), Sequence.type == 'protein_coding').limit(50).all()
 
         sequences = sequences_by_name + sequences_by_xref
 
@@ -108,7 +108,8 @@ class Search:
         """
         sequences = Sequence.query.filter(or_(Sequence.name.ilike(keyword+"%"),
                                               Sequence.description.ilike("%"+keyword+"%"),
-                                              Sequence.xrefs.any(name=keyword)
+                                              Sequence.xrefs.any(name=keyword), 
+                                              Sequence.type == 'protein_coding'
                                               )
                                           ).limit(50).all()
 
@@ -137,22 +138,23 @@ class Search:
         query = Sequence.query
 
         if gene_family_method_id > 0:
-            query = query.filter(Sequence.families.any(or_(*[
+            query = query.filter(Sequence.type == 'protein_coding', Sequence.families.any(or_(*[
                 and_(GeneFamily.method_id == gene_family_method_id, GeneFamily.name == name) for name in gene_families])))
 
         # Add species filter if necessary
         if species_id is not None and species_id in valid_species_ids:
-            query = query.filter(Sequence.species_id == species_id)
+            query = query.filter(Sequence.species_id == species_id, Sequence.type == 'protein_coding')
 
         if len(gene_list) > 0:
-            query = query.filter(or_(*[or_(Sequence.name == gene,
+            query = query.filter(or_(*[or_(Sequence.name == gene, 
+                                           Sequence.type == 'protein_coding',
                                            Sequence.xrefs.any(name=gene)) for gene in gene_list]))
 
         # Add terms filter if necessary
         if len(terms.strip()) > 5:
             if term_rules == 'exact':
                 # EXACT MATCH
-                query = query.filter(Sequence.description.ilike("%" + terms + "%"))
+                query = query.filter(Sequence.description.ilike("%" + terms + "%"), Sequence.type == 'protein_coding')
             else:
                 # Prepare whooshee search (remove short strings)
                 whooshee_search_terms = [t for t in re.sub('(\W|\d)+', ' ', terms).split() if len(t) > 3]
