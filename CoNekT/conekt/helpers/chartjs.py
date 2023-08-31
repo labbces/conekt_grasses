@@ -177,7 +177,17 @@ def prepare_avg_profiles(profiles, xlabel='', ylabel=''):
 
     for p in profiles:
         data = json.loads(p.profile)
-        expression_values = [mean(data['data'][label]) for label in labels]
+
+        processed_values = {}
+        for key, values in data["data"]["TPM"].items():
+            po_value = data["data"]["PO_class"][key]
+
+            if po_value not in processed_values:
+                processed_values[po_value] = []
+
+            processed_values[po_value].append(values)
+
+        expression_values = [mean(processed_values[label]) for label in labels]
 
         max_expression = max(expression_values)
         expression_values = [value/max_expression if max_expression != 0 else 0 for value in expression_values]
@@ -195,7 +205,7 @@ def prepare_avg_profiles(profiles, xlabel='', ylabel=''):
 
     output = {"type": "bar",
               "data": {
-                      "labels": list(data["order"]),
+                      "labels": list(label.capitalize() for label in data["order"]),
                       "counts": [None]*len(data["order"]),
                       "datasets": [
                           {
