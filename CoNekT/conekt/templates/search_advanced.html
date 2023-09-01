@@ -75,6 +75,24 @@
                                     </div>
                                 {% endfor %}
                                 </div>
+                                <hr />
+                                <div class="row">
+                                    <div class="col-xs-4 col-lg-2"><label>CAZYmes</label></div>
+                                </div>
+                                <div class="dynamic-form-cazyme">
+                                {% for cazyme in adv_sequence_form.cazymes %}
+                                    <div class="dynamic-entry">
+                                        <div class="input-group">
+                                        {{ cazyme.form.cazyme(class_="form-control typeahead-cazyme cazyme-input") }}
+                                        <span class="input-group-btn">
+                                            <button class="btn btn-success btn-add-cazyme" type="button">
+                                               <span class="glyphicon glyphicon-plus"></span>
+                                            </button>
+                                        </span>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                                </div>
                                 <br />
                                 <button type="submit" class="btn btn-primary pull-right" data-toggle="modal" data-target="#loaderModal">Find genes</button>
                             </form>
@@ -258,6 +276,84 @@ $(function () {
         });
 
         typeahead_init_interpro();
+
+		return false;
+	});
+
+/*BEGIN TYPEHEAD CAZYME*/
+
+    function typeahead_init_cazyme () {
+        var cazyme = new Bloodhound({
+          datumTokenizer: Bloodhound.tokenizers.whitespace,
+          queryTokenizer: Bloodhound.tokenizers.whitespace,
+          prefetch: '{{url_for('search.search_typeahead_prefetch_cazyme')}}',
+          remote: {
+                url:'{{url_for('search.search_typeahead_cazyme', term='%QUERY')}}',
+                wildcard: '%25QUERY'
+            }
+        });
+
+
+        $('.typeahead-cazyme').typeahead({
+            minLength: 3,
+            highlight: true
+        },
+        {
+          name: 'cazyme',
+          display: 'value',
+          source: cazyme,
+          limit: 10,
+            templates: {
+                empty: [
+                  '<div class="tt-suggestion"><p class="text-muted"><em>',
+                    'unable to find any CAZYme that match the current query',
+                  '</em></p></div>'
+                ].join('\n'),
+                suggestion: function(data) {return '<div>' + data.label + ' : <em>' + data.value + '</em></div>'}
+                }
+        });
+    };
+
+	typeahead_init_cazyme();
+
+
+    $(document).on('click', '.btn-add-cazyme', function(e)
+    {
+        e.preventDefault();
+
+        $('.typeahead-cazyme').typeahead('destroy');
+
+        var controlForm = $('.dynamic-form-cazyme'),
+            currentEntry = $(this).parents('.dynamic-entry:first'),
+            newEntry = $(currentEntry.clone()).appendTo(controlForm);
+
+        newEntry.find('input').val('');
+        controlForm.find('.dynamic-entry:not(:last) .btn-add-cazyme')
+            .removeClass('btn-add-cazyme').addClass('btn-remove-cazyme')
+            .removeClass('btn-success').addClass('btn-danger')
+            .html('<span class="glyphicon glyphicon-minus"></span>');
+
+        controlForm.find('.cazyme-input').each( function(i) {
+            $(this).attr('id', 'cazymes-' + i + '-cazyme');
+            $(this).attr('name', 'cazymes-' + i + '-cazyme');
+        });
+
+        typeahead_init_cazyme();
+
+    }).on('click', '.btn-remove-cazyme', function(e)
+    {
+    	e.preventDefault();
+
+        $('.typeahead-cazyme').typeahead('destroy');
+
+		$(this).parents('.dynamic-entry:first').remove();
+        var controlForm = $('.dynamic-form-cazyme');
+        controlForm.find('.cazyme-input').each( function(i) {
+            $(this).attr('id', 'cazymes-' + i + '-cazyme');
+            $(this).attr('name', 'cazymes-' + i + '-cazyme');
+        });
+
+        typeahead_init_cazyme();
 
 		return false;
 	});
