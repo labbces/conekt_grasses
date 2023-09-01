@@ -12,6 +12,7 @@ from conekt.models.expression.networks import ExpressionNetwork, ExpressionNetwo
 from conekt.models.gene_families import GeneFamily, GeneFamilyMethod
 from conekt.models.interpro import Interpro
 from conekt.models.go import GO
+from conekt.models.cazyme import CAZYme
 from conekt.models.relationships.cluster_similarity import CoexpressionClusterSimilarity
 from conekt.models.relationships.sequence_cluster import SequenceCoexpressionClusterAssociation
 from conekt.models.relationships.sequence_family import SequenceFamilyAssociation
@@ -714,6 +715,17 @@ class CoexpressionCluster(db.Model):
         sequence_ids = [s.id for s in self.sequences.all()]
 
         return GO.sequence_stats(sequence_ids)
+
+    @property
+    def cazyme_stats(self):
+        """
+        Get CAZYme statistics for the current cluster
+
+        :return: CAZYme statistics
+        """
+        sequence_ids = [s.id for s in self.sequences.all()]
+
+        return CAZYme.sequence_stats(sequence_ids)
 
     @property
     def family_stats(self):
