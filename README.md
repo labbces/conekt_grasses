@@ -31,10 +31,13 @@ pip3.8 install virtualenv
 To set up the environment from the root directory of the repository, run:
 
 ```bash
-virtualenv --python=python3.8 CoNekT/CoNekT/
-source CoNekT/CoNekT/bin/activate
+virtualenv --python=python3.8 CoNekT
+source CoNekT/bin/activate
 pip install -r requirements.txt
 ```
+
+Next step is to [build the datatase](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/connect_mysql.md).
+
 
 Documentation can be generated using Sphinx. To generate the documentation, run:
 
