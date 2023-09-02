@@ -5,6 +5,7 @@ from conekt.models.expression.profiles import ExpressionProfile
 from conekt.models.gene_families import GeneFamily
 from conekt.models.go import GO
 from conekt.models.interpro import Interpro
+from conekt.models.cazyme import CAZYme
 from conekt.models.expression.coexpression_clusters import CoexpressionCluster
 from conekt.models.relationships.cluster_go import ClusterGOEnrichment
 from conekt.models.relationships.cluster_clade import ClusterCladeEnrichment
@@ -64,17 +65,18 @@ class Search:
         :param term_string: space-separated strings to search for
         :return: dict with results per type
         """
-        terms = [t for t in term_string.upper().split() if len(t) > 3]
+        terms = [t for t in term_string.upper().split() if len(t) >= 3]
 
-        sequences_by_name = Sequence.query.filter(Sequence.name.in_(terms)).limit(50).all()
+        sequences_by_name = Sequence.query.filter(Sequence.name.in_(terms), Sequence.type == 'protein_coding').limit(50).all()
 
-        sequences_by_xref = Sequence.query.filter(Sequence.xrefs.any(XRef.name.in_(terms))).limit(50).all()
+        sequences_by_xref = Sequence.query.filter(Sequence.xrefs.any(XRef.name.in_(terms)), Sequence.type == 'protein_coding').limit(50).all()
 
         sequences = sequences_by_name + sequences_by_xref
 
         go = GO.query.filter(GO.label.in_(terms)).all()
         interpro = Interpro.query.filter(Interpro.label.in_(terms)).all()
-
+        cazyme = CAZYme.query.filter(CAZYme.family.in_(terms)).all()
+        
         families = GeneFamily.query.filter(func.upper(GeneFamily.name).in_(terms)).limit(50).all()
         profiles = ExpressionProfile.query.filter(ExpressionProfile.probe.in_(terms)).limit(50).all()
 
@@ -84,16 +86,18 @@ class Search:
         whooshee_search_terms = [t for t in re.sub('(\W|\d)+', ' ', term_string).split() if len(t) > 3]
         whooshee_search_string = ' '.join(whooshee_search_terms)
 
-        whooshee_sequences, whooshee_go, whooshee_interpro = [], [], []
+        whooshee_sequences, whooshee_go, whooshee_interpro, whooshee_cazyme = [], [], [], []
 
-        if all([len(t) == 0 for t in [sequences, go, interpro, families, profiles]]) and len(whooshee_search_string) > 3:
+        if all([len(t) == 0 for t in [sequences, go, interpro, cazyme,families, profiles]]) and len(whooshee_search_string) > 3:
             # didn't find a term by ID, try description
             whooshee_go = GO.query.whooshee_search(whooshee_search_string, limit=50).all()
             whooshee_sequences = Sequence.query.whooshee_search(whooshee_search_string, limit=50).all()
             whooshee_interpro = Interpro.query.whooshee_search(whooshee_search_string, limit=50).all()
+            whooshee_cazyme = CAZYme.query.whooshee_search(whooshee_search_string, limit=50).all()
 
         return {"go": (go + whooshee_go)[:50],
                 "interpro": (interpro + whooshee_interpro)[:50],
+                "cazyme": (cazyme + whooshee_cazyme)[:50],
                 "sequences": (sequences + whooshee_sequences)[:50],
                 "families": families,
                 "profiles": profiles}
@@ -108,7 +112,8 @@ class Search:
         """
         sequences = Sequence.query.filter(or_(Sequence.name.ilike(keyword+"%"),
                                               Sequence.description.ilike("%"+keyword+"%"),
-                                              Sequence.xrefs.any(name=keyword)
+                                              Sequence.xrefs.any(name=keyword), 
+                                              Sequence.type == 'protein_coding'
                                               )
                                           ).limit(50).all()
 
@@ -118,12 +123,17 @@ class Search:
 
         interpro = Interpro.query.filter(or_(Interpro.description.ilike("%"+keyword+"%"),
                                              Interpro.label == keyword)).limit(50).all()
+        
+        cazyme = CAZYme.query.filter(or_(CAZYme.activities.ilike("%"+keyword+"%"),
+                                             CAZYme.family == keyword, 
+                                             CAZYme.cazyme_class.ilike("%"+keyword+"%"))).limit(50).all()
 
         families = GeneFamily.query.filter(GeneFamily.name == keyword).limit(50).all()
         profiles = ExpressionProfile.query.filter(ExpressionProfile.probe == keyword).limit(50).all()
 
         return {"go": go,
                 "interpro": interpro,
+                "cazyme": cazyme,
                 "sequences": sequences,
                 "families": families,
                 "profiles": profiles}
@@ -131,28 +141,29 @@ class Search:
     @staticmethod
     def advanced_sequence_search(species_id, gene_list, terms, term_rules, gene_family_method_id, gene_families,
                                  go_terms, go_rules, interpro_domains,
-                                 interpro_rules, include_predictions=False):
+                                 interpro_rules, cazyme_families, include_predictions=False):
         valid_species_ids = [s.id for s in Species.query.all()]
 
         query = Sequence.query
 
         if gene_family_method_id > 0:
-            query = query.filter(Sequence.families.any(or_(*[
+            query = query.filter(Sequence.type == 'protein_coding', Sequence.families.any(or_(*[
                 and_(GeneFamily.method_id == gene_family_method_id, GeneFamily.name == name) for name in gene_families])))
 
         # Add species filter if necessary
         if species_id is not None and species_id in valid_species_ids:
-            query = query.filter(Sequence.species_id == species_id)
+            query = query.filter(Sequence.species_id == species_id, Sequence.type == 'protein_coding')
 
         if len(gene_list) > 0:
-            query = query.filter(or_(*[or_(Sequence.name == gene,
+            query = query.filter(or_(*[or_(Sequence.name == gene, 
+                                           Sequence.type == 'protein_coding',
                                            Sequence.xrefs.any(name=gene)) for gene in gene_list]))
 
         # Add terms filter if necessary
         if len(terms.strip()) > 5:
             if term_rules == 'exact':
                 # EXACT MATCH
-                query = query.filter(Sequence.description.ilike("%" + terms + "%"))
+                query = query.filter(Sequence.description.ilike("%" + terms + "%"), Sequence.type == 'protein_coding')
             else:
                 # Prepare whooshee search (remove short strings)
                 whooshee_search_terms = [t for t in re.sub('(\W|\d)+', ' ', terms).split() if len(t) > 3]
@@ -188,6 +199,9 @@ class Search:
                 query = query.filter(and_(*[Sequence.interpro_domains.any(description=t) for t in interpro_domains]))
             else:
                 query = query.filter(or_(*[Sequence.interpro_domains.any(description=t) for t in interpro_domains]))
+        
+        if cazyme_families is not None and len(cazyme_families) > 0:
+            query = query.filter(or_(*[Sequence.cazymes.any(family=t) for t in cazyme_families]))
 
         sequences = query.limit(200).all()
 

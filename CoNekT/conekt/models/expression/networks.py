@@ -541,7 +541,7 @@ class ExpressionNetwork(db.Model):
         :return: internal ID of the new network
         """
         # build conversion table for sequences
-        sequences = Sequence.query.filter_by(species_id=species_id).all()
+        sequences = Sequence.query.filter_by(species_id=species_id, type="protein_coding").all()
 
         sequence_dict = {}  # key = sequence name uppercase, value internal id
         for s in sequences:

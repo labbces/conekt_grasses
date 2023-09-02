@@ -13,6 +13,9 @@ class GOField(Form):
 class InterProField(Form):
     interpro_domain = StringField('interpro_domain')
 
+class CAZYmeField(Form):
+    cazyme = StringField('cazyme')
+
 
 class AdvancedSequenceSearchForm(FlaskForm):
     species = SelectField('species', coerce=int)
@@ -27,6 +30,8 @@ class AdvancedSequenceSearchForm(FlaskForm):
 
     interpro_rules = RadioField('interpro_rules', choices=[('all', 'All'), ('any', 'Any')], default='all')
     interpro_domains = FieldList(FormField(InterProField), min_entries=1)
+
+    cazymes = FieldList(FormField(CAZYmeField), min_entries=1)
 
     gene_family_method = SelectField('gene_family_method', coerce=int)
     gene_families = TextAreaField('gene_families', render_kw={'placeholder': 'Enter a list of gene family identifiers to filter'})

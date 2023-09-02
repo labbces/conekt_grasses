@@ -99,6 +99,25 @@
     </div>
     {% endif %}
 
+    {% if cazyme %}
+    <div class="col-md-4 col-sm-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">Found <strong>{{ cazyme|length }}</strong> CAZYmes </div>
+            <div class="panel-scroll">
+             <div class="table-responsive">
+                <table class="table">
+                    <tbody>
+                        {% for c in cazyme %}
+                            <tr><td><a href="{{ url_for('cazyme.cazyme_view', cazyme_id=c.id)}}">{{ c.family }}</a>: {{ c.cazyme_class }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+             </div>
+             </div>
+        </div>
+    </div>
+    {% endif %}
+
     {% if families %}
     <div class="col-md-4 col-sm-12">
         <div class="panel panel-default">

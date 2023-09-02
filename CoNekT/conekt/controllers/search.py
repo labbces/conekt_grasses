@@ -13,6 +13,7 @@ from conekt.models.expression.specificity import ExpressionSpecificityMethod, Ex
 from conekt.models.relationships.cluster_go import ClusterGOEnrichment
 from conekt.models.interpro import Interpro
 from conekt.models.go import GO
+from conekt.models.cazyme import CAZYme
 from conekt.models.search import Search
 from conekt.models.species import Species
 from conekt.models.sequences import Sequence
@@ -70,7 +71,7 @@ def simple():
         results = Search.whooshee_simple(g.search_form.terms.data)
 
         # If the result is unique redirect to the corresponding page
-        if len(results["sequences"]) + len(results["go"]) + \
+        if len(results["sequences"]) + len(results["go"]) + len(results["cazyme"]) +\
                 len(results["interpro"]) + len(results["families"]) + len(results["profiles"]) == 1:
 
             if len(results["sequences"]) == 1:
@@ -79,6 +80,8 @@ def simple():
                 return redirect(url_for('go.go_view', go_id=results["go"][0].id))
             elif len(results["interpro"]) == 1:
                 return redirect(url_for('interpro.interpro_view', interpro_id=results["interpro"][0].id))
+            elif len(results["cazyme"]) == 1:
+                return redirect(url_for('cazyme.cazyme_view', cazyme_id=results["cazyme"][0].id))
             elif len(results["families"]) == 1:
                 return redirect(url_for('family.family_view', family_id=results["families"][0].id))
             elif len(results["profiles"]) == 1:
@@ -88,6 +91,7 @@ def simple():
         return render_template("search_results.html", keyword=g.search_form.terms.data,
                                go=results["go"],
                                interpro=results["interpro"],
+                               cazyme=results["cazyme"],
                                sequences=results["sequences"],
                                families=results["families"],
                                profiles=results["profiles"])
@@ -121,12 +125,16 @@ def advanced():
         interpro_terms = [it.data['interpro_domain']
                           for it in adv_sequence_form.interpro_domains.entries if it.data['interpro_domain'] != ""]
 
+        cazymes = [c.data['cazyme']
+                  for c in adv_sequence_form.cazymes.entries if c.data['cazyme'] != ""]
+
         results = Search.advanced_sequence_search(species_id,
                                                   gene_ids.strip().split(),
                                                   terms, terms_rules,
                                                   gene_family_method_id, gene_families,
                                                   go_terms, go_rules,
-                                                  interpro_terms, interpro_rules, include_predictions=include_predictions)
+                                                  interpro_terms, interpro_rules,
+                                                  cazymes, include_predictions=include_predictions)
 
         return render_template("search_results.html", keyword="Advanced search results",
                                sequences=results, advanced=True)
@@ -388,6 +396,40 @@ def search_typeahead_prefetch_interpro():
     interpro = Interpro.query.filter(func.length(Interpro.description) < 7).order_by(func.length(Interpro.description)).all()
 
     return Response(json.dumps([{'value': i.description, 'tokens': i.description.split() + [i.label], 'label': i.label} for i in interpro]),
+                    mimetype='application/json')
+
+
+@search.route('/typeahead/cazyme/<term>.json')
+@cache.cached()
+def search_typeahead_cazyme(term):
+    """
+    Controller required for populating predictive search forms using typeahead.js.
+
+    :param term: partial search term
+    :return: JSON object compatible with typeahead.js
+    """
+    if len(term) > 7:
+        cazyme = CAZYme.query.filter(or_(CAZYme.cazyme_class.ilike("%" + term + "%"), CAZYme.family.ilike(term + "%"))).order_by(
+            func.length(CAZYme.cazyme_class)).all()
+    else:
+        cazyme = CAZYme.query.filter(CAZYme.family.ilike("%"+term+"%")).order_by(func.length(CAZYme.family)).all()
+
+    return Response(json.dumps([{'value': c.family, 'tokens': c.cazyme_class.split() + [c.family], 'label': c.cazyme_class} for c in cazyme]),
+                    mimetype='application/json')
+
+
+@search.route('/typeahead/cazyme/prefetch')
+@cache.cached()
+def search_typeahead_prefetch_cazyme():
+    """
+    Controller returning a small subset of GO terms (the short ones) to be used as the prefetched data for typeahead.js
+
+    :param term: partial search term
+    :return: JSON object compatible with typeahead.js
+    """
+    cazyme = CAZYme.query.filter(func.length(CAZYme.cazyme_class) < 7).order_by(func.length(CAZYme.family)).all()
+
+    return Response(json.dumps([{'value': c.family, 'tokens': c.cazyme_class.split() + [c.family], 'label': c.cazyme_class} for c in cazyme]),
                     mimetype='application/json')
 
 

@@ -187,6 +187,13 @@ def cluster_go_ajax(cluster_id):
 
     return render_template('async/go_stats.html', go_stats=current_cluster.go_stats)
 
+@expression_cluster.route('/ajax/cazyme/<cluster_id>')
+@cache.cached()
+def cluster_cazyme_ajax(cluster_id):
+    current_cluster = CoexpressionCluster.query.get(cluster_id)
+
+    return render_template('async/cazyme_stats.html', cazyme_stats=current_cluster.cazyme_stats)
+
 
 @expression_cluster.route('/ajax/family/<cluster_id>')
 @cache.cached()

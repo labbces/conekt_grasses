@@ -39,12 +39,7 @@ class CAZYme(db.Model):
         :param exclude_predicted: if True (default) predicted CAZYme labels will be excluded
         :return: dict with for each CAZYme linked with any of the input sequences stats
         """
-        query = SequenceCAZYmeAssociation.query.filter(SequenceCAZYmeAssociation.sequence_id.in_(sequence_ids))
-
-        if exclude_predicted:
-            query = query.filter(SequenceCAZYmeAssociation.predicted == 0)
-
-        data = query.all()
+        data = SequenceCAZYmeAssociation.query.filter(SequenceCAZYmeAssociation.sequence_id.in_(sequence_ids)).all()
 
         return CAZYme.__sequence_stats_associations(data)
 

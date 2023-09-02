@@ -200,6 +200,13 @@
     ) }}
 
     {{ ajax.ajax_table(
+        'CAZYmes',
+        url_for('expression_cluster.cluster_cazyme_ajax', cluster_id=cluster.id),
+        none,
+        'cazyme_ajax'
+    ) }}
+
+    {{ ajax.ajax_table(
         'Family Terms',
         url_for('expression_cluster.cluster_family_ajax', cluster_id=cluster.id),
         none,
