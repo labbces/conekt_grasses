@@ -36,10 +36,17 @@ source CoNekT/bin/activate
 pip install -r requirements.txt
 ```
 
-Next step is to [build the datatase](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/connect_mysql.md).
+Next steps:
+
+ * [Build the datatase](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/connect_mysql.md)
+ * [Add data to CoNekT Grasses](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/building_conekt.md)
+
+## Building documentation with Sphinx
 
 
-Documentation can be generated using Sphinx. To generate the documentation, run:
+Documentation can be generated using Sphinx.
+
+To generate the documentation, run:
 
 ```bash
 cd CoNekT/docs/
