@@ -165,21 +165,21 @@
 
             var arr = data.data.labels.slice();
 
-            arr.sort((a, b) => {
-                const partA = a.match(/\((.*?)\)$/)[1];
-                const partB = b.match(/\((.*?)\)$/)[1];
-                return partA.localeCompare(partB);
-            });
-
             data.data.datasets.forEach((e,i) => {
                 e.data.forEach((d,j) =>{
                     if(i == 0) arr[j] = [arr[j], d];      
                     else arr[j].push(d);
                 });
             });
+            
+            arr.sort((a, b) => {
+                const partA = a[0].match(/\((.*?)\)$/)[1];
+                const partB = b[0].match(/\((.*?)\)$/)[1];
+                return partA.localeCompare(partB);
+            });
 
             data.data.labels = arr.map(e => e[0]);
-            
+
             if(myChart) myChart.destroy();
 
             var ctx = document.getElementById("chart-line").getContext("2d");
