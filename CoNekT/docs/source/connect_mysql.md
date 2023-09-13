@@ -32,6 +32,8 @@ Give permissions to a user (conekt_grasses_admin in this example) to access the 
 
     GRANT INDEX, CREATE, DROP, SELECT, UPDATE, DELETE, ALTER, EXECUTE, INSERT on conekt_grasses_db.* TO conekt_grasses_admin@localhost;
 
+    GRANT FILE on *.* TO conekt_grasses_admin@localhost;
+
 # Creating the Flask configuration file
 
 First, create a copy of the configuration template file. From the repo root, run:
