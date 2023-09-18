@@ -180,6 +180,10 @@
 
             data.data.labels = arr.map(e => e[0]);
 
+            data.data.datasets.forEach((e,i)=>{
+                    e.data = arr.map(e => e[i + 1]);
+                });
+
             if(myChart) myChart.destroy();
 
             var ctx = document.getElementById("chart-line").getContext("2d");
