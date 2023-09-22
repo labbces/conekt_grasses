@@ -60,7 +60,7 @@ def add_expression_profiles():
 
             flash('Added expression profiles for species %d' % species_id, 'success')
         else:
-            flash('Empty file or no file provided, cannot add gene families', 'warning')
+            flash('Empty file or no file provided, cannot add expression profiles for species', 'warning')
         return redirect(url_for('admin.index'))
     else:
         if not form.validate():
