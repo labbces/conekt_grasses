@@ -27,6 +27,10 @@ First create a MySQL/MariaDB user with root:
 The character set and collate are important as sqlalchemy-migrate doesn't work with utf8mb4 (the default).
 
     CREATE DATABASE conekt_grasses_db CHARACTER SET latin1 COLLATE latin1_general_ci;
+
+If the database already exists, change the character set as:
+
+    ALTER DATABASE conekt_grasses_db COLLATE = 'latin1_general_ci';
     
 Give permissions to a user (conekt_grasses_admin in this example) to access the database:
 
