@@ -1,9 +1,5 @@
 # Setting up mod_wsgi with Apache
 
-Install apache and mod_wsgi for python 3
-
-    sudo apt-get install apache2  libapache2-mod-wsgi-py3
-    
 Copy `conekt.template.wsgi` to conekt.wsgi and add the correct paths. 
 
     WSGI_PATH = 'location of your app'
