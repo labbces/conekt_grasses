@@ -72,7 +72,6 @@ extensions = ["myst_parser"]
 ## Developers
 
  * Dr. Renato Augusto Correa dos Santos
- * David Texeira Ferraz
  * Bianca Santos Pastos
  * Arthur Shuzo Owtake Cardoso
  * Prof. Dr. Diego M. Riaño-Pachón (group leader)
@@ -82,6 +81,11 @@ extensions = ["myst_parser"]
 
  * Felipe Vaz Peres
  * Jorge Muñoz
+
+
+## Previous collaborators
+
+ * David Texeira Ferraz
 
 
 ## Licenses
