@@ -6,6 +6,7 @@ from utils.sequence import translate
 from utils.parser.fasta import Fasta
 
 from sqlalchemy.orm import undefer
+from sqlalchemy.dialects.mysql import LONGTEXT
 import operator
 import sys
 
@@ -17,9 +18,9 @@ class Sequence(db.Model):
     __tablename__ = 'sequences'
     id = db.Column(db.Integer, primary_key=True)
     species_id = db.Column(db.Integer, db.ForeignKey('species.id', ondelete='CASCADE'), index=True)
-    name = db.Column(db.String(50, collation=SQL_COLLATION), index=True)
+    name = db.Column(db.String(80, collation=SQL_COLLATION), index=True)
     description = db.Column(db.Text)
-    coding_sequence = db.deferred(db.Column(db.Text))
+    coding_sequence = db.deferred(db.Column(LONGTEXT))
     type = db.Column(db.Enum('protein_coding', 'TE', 'RNA', name='sequence_type'), default='protein_coding')
     is_mitochondrial = db.Column(db.SmallInteger, default=False)
     is_chloroplast = db.Column(db.SmallInteger, default=False)

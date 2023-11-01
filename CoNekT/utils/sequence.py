@@ -21,7 +21,7 @@ __CODONTABLE = {'ATA': 'I', 'ATC': 'I', 'ATT': 'I', 'ATG': 'M',
                 'TGC': 'C', 'TGT': 'C', 'TGA': '*', 'TGG': 'W'}
 
 
-def translate(sequence, trim=True, return_on_stop=True):
+def translate(sequence, trim=False, return_on_stop=True):
     """
     Translates a nucleotide (dna) sequence and returns the amino acid sequence
 
