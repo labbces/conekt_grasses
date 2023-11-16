@@ -415,7 +415,7 @@ class GeneFamily(db.Model):
         method = GeneFamilyMethod.add(description)
 
         gene_hash = {}
-        all_sequences = Sequence.query.all()
+        all_sequences = Sequence.query.filter_by(type='protein_coding').all()
 
         for sequence in all_sequences:
             gene_hash[sequence.name.lower()] = sequence

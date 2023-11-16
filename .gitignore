@@ -18,9 +18,9 @@ scripts
 /CoNekT/config.py
 
 /ftp
-/data/
 
 *.swp
+*.*cfg
 
 .coverage
 

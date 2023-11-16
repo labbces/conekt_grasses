@@ -19,7 +19,16 @@ CoNekT Grasses derives from CoNekT, described in Proost *et al*. 2018. ( [https:
 CoNekT Grasses currently requires:
  * Python 3.8
 
+To install Python 3.8 execute the following codes:
+
+```bash
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt-get update
+sudo apt-get install python3.8
+```
+
 Dependencies are usually installed using `apt` and `pip`:
+
 
 ```bash
 apt install python3.8-venv python3.8-dev
@@ -38,6 +47,7 @@ pip install -r requirements.txt
 
 Next steps:
 
+ * [Running tests](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/run_tests.md)
  * [Build the datatase](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/connect_mysql.md)
  * [Add data to CoNekT Grasses](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/building_conekt.md)
 
@@ -63,7 +73,6 @@ extensions = ["myst_parser"]
 ## Developers
 
  * Dr. Renato Augusto Correa dos Santos
- * David Texeira Ferraz
  * Bianca Santos Pastos
  * Arthur Shuzo Owtake Cardoso
  * Prof. Dr. Diego M. Riaño-Pachón (group leader)
@@ -73,6 +82,11 @@ extensions = ["myst_parser"]
 
  * Felipe Vaz Peres
  * Jorge Muñoz
+
+
+## Previous collaborators
+
+ * David Texeira Ferraz
 
 
 ## Licenses
