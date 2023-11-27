@@ -129,27 +129,28 @@
             $(".select.ontology").empty();
 
             data.data.labels.forEach((e, i) =>{
-                const match = e.match(/^(.*?)\((.*?)\)$/);
+                const match = e.match(/^(.*?)\((.*?)\/(.*?)\)$/);
+
                 if (match) {
                     const sample = match[1];
-                    const word = match[2];
+                    const sample_annotation_ontology_class = match[2] + "/" + match[3];
                     
-                    if (clas == "peco") data.data.labels[i] = sample + " ("+ abbreviate(word) +")";
+                    if (clas == "peco") data.data.labels[i] = sample + " ("+ abbreviate(sample_annotation_ontology_class) +")";
             
 
-                    if (!$(`input[value="${word}"]`).length) {
+                    if (!$(`input[value="${sample_annotation_ontology_class}"]`).length) {
                         const $itemDiv = $('<div>').addClass('item ' + clas);
 
                         $('<input>')
                             .attr('type', 'checkbox')
-                            .attr('value', word)
-                            .attr('id', word)
+                            .attr('value', sample_annotation_ontology_class)
+                            .attr('id', sample_annotation_ontology_class)
                             .prop('checked', true)
                             .appendTo($itemDiv);
 
                         $('<label>')
-                            .attr('for', word)
-                            .text(clas == "po"? word.charAt(0).toUpperCase() + word.slice(1): word.charAt(0).toUpperCase() + word.slice(1) + " (" + abbreviate(word) + ")")
+                            .attr('for', sample_annotation_ontology_class)
+                            .text(clas == "po"? sample_annotation_ontology_class.charAt(0).toUpperCase() + sample_annotation_ontology_class.slice(1): sample_annotation_ontology_class.charAt(0).toUpperCase() + sample_annotation_ontology_class.slice(1) + " (" + abbreviate(sample_annotation_ontology_class) + ")")
                             .css({
                                 'margin-left':'3px',
                                 'font-size': '12px',

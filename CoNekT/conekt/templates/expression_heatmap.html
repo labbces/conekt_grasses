@@ -323,11 +323,7 @@ $( document ).ready(function() {
         var selectedSpecies = [];
 
         function populate_pos(data) {
-            $('#pos').find('option').remove();
-            $.each(data, function () {
-                $('#pos').append($("<option />").val(this).text(this.charAt(0).toUpperCase() + this.slice(1)));
-            });
-
+            
             if ($('#pos').find('option').length > 0) {
                 $('#pos').prop('disabled', false);
             } else {

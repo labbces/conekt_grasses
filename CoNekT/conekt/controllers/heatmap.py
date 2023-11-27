@@ -12,6 +12,7 @@ from conekt.models.sequences import Sequence
 from conekt.models.trees import Tree
 from conekt.models.gene_families import GeneFamily
 from conekt.models.expression.cross_species_profile import CrossSpeciesExpressionProfile
+from conekt.models.ontologies import PlantOntology
 
 heatmap = Blueprint('heatmap', __name__)
 
@@ -59,8 +60,8 @@ def heatmap_main():
 
     form3 = HeatmapPOForm(request.form)
     form3.populate_species()
-    form3.populate_options()
     form3.populate_pos()
+    form3.populate_options()
 
     # Fetch data for normal example, get five profiles from a species
     profiles = ExpressionProfile.query.filter(ExpressionProfile.sequence_id is not None).order_by(ExpressionProfile.species_id).limit(5).all()
@@ -171,6 +172,7 @@ def heatmap_custom_comparable():
 
 @heatmap.route('/results/pos', methods=['POST'])
 def heatmap_custom_pos():
+
     form = HeatmapPOForm(request.form)
     form.populate_species()
     form.populate_pos()
@@ -178,11 +180,12 @@ def heatmap_custom_pos():
 
     probes = request.form.get('probes').split()
     species_id = request.form.get('species_id')
-    pos = request.form.getlist('pos')
+    
+    pos_ids = request.form.getlist('pos')
+    pos_ids = [eval(i) for i in pos_ids]
+    pos = [po.po_class for po in PlantOntology.query.filter(PlantOntology.id.in_(pos_ids)).distinct(PlantOntology.po_class).all()]
 
     option = request.form.get('options')
-
-    print("aaaaaaaaa", pos)
 
     if len(probes) == 0:
         flash("No genes selected!", "warning")
@@ -198,9 +201,13 @@ def heatmap_custom_pos():
     # make probe list unique
     probes = list(set(probes))
     # TODO check if certain probes were not found and warn the user
+
     current_heatmap = ExpressionProfile.get_po_heatmap(species_id, probes, pos,
                                                     zlog=(option == 'zlog'),
                                                     raw=(option == 'raw'))
+    
+    if current_heatmap['pos_not_found']:
+        flash("Couldn't find the following PO(s) for species: %s !!! Showing only available POs." % ", ".join(current_heatmap['pos_not_found']), "danger")
 
     return render_template("expression_heatmap.html", order=current_heatmap['order'], po=True,
                            profiles=current_heatmap['heatmap_data'],

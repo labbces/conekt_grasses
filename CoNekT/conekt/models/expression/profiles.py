@@ -192,7 +192,6 @@ class ExpressionProfile(db.Model):
             name = profile.probe
             data = json.loads(profile.profile)
             order = data['order']
-            experiments = data['data']['TPM']
 
             with contextlib.suppress(ValueError):
                 not_found.remove(profile.probe.lower())
@@ -245,25 +244,32 @@ class ExpressionProfile(db.Model):
         :param pos: a list of po classes to include in the heatmap
         :param zlog: enable zlog transformation (otherwise normalization against highest expressed condition)
         """
+
         profiles = ExpressionProfile.query.options(undefer('profile')).filter_by(species_id=species_id).\
             filter(ExpressionProfile.probe.in_(probes)).all()
 
         order = []
-
         output = []
-
         not_found = [p.lower() for p in probes]
+
+        pos_found = []
+        pos_not_found = []
 
         for profile in profiles:
             name = profile.probe
             data = json.loads(profile.profile)
+            
             if pos:
-                order = pos
+                [pos_found.append(po) for po in pos if (po in data['order']) and (po not in pos_found)]
+                [pos_not_found.append(po) for po in pos if (po not in data['order']) and (po not in pos_not_found)]
+                if pos_not_found and pos_found:
+                    order = pos_found
+                elif pos_not_found and (not pos_found):
+                    order = data['order']
+                else:
+                    order = pos_found
             else:
                 order = data['order']
-                
-            experiments = data['data']['TPM']
-
 
             with contextlib.suppress(ValueError):
                 not_found.remove(profile.probe.lower())
@@ -304,7 +310,7 @@ class ExpressionProfile(db.Model):
         if len(not_found) > 0:
             flash("Couldn't find profile for: %s" % ", ".join(not_found), "warning")
 
-        return {'labels':labels, 'order': order, 'heatmap_data': output}
+        return {'labels':labels, 'order': order, 'heatmap_data': output, 'pos_not_found': pos_not_found}
 
     @staticmethod
     def get_profiles(species_id, probes, limit=1000):
