@@ -70,10 +70,6 @@ def profile_comparison_main():
 
     if request.method == 'POST':
         species_id = request.form.get('species_id')
-        selected_species = Species.query.get(species_id)
-        #po_choices = [(sample_po.po_id, PlantOntology.query.get(sample_po.po_id).po_class) \
-        #              for sample_po in selected_species.po_associations.all()]
-        #form.po_ids.choices = list(set(po_choices))
         terms = request.form.get('probes').split()
         normalize = True if request.form.get('normalize') == 'y' else False
 
