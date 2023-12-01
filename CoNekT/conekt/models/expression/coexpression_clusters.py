@@ -276,7 +276,7 @@ class CoexpressionClusteringMethod(db.Model):
         :return: ID of new clustering method
         """
         # get all sequences from the database and create a dictionary
-        sequences = Sequence.query.all()
+        sequences = Sequence.query.filter_by(type='protein_coding').all()
 
         sequence_dict = {}
         for member in sequences:
