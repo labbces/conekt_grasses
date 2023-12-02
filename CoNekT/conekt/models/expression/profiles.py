@@ -249,25 +249,16 @@ class ExpressionProfile(db.Model):
             filter(ExpressionProfile.probe.in_(probes)).all()
 
         order = []
+        labels = []
         output = []
         not_found = [p.lower() for p in probes]
-
-        pos_found = []
-        pos_not_found = []
 
         for profile in profiles:
             name = profile.probe
             data = json.loads(profile.profile)
-            
-            if pos:
-                [pos_found.append(po) for po in pos if (po in data['order']) and (po not in pos_found)]
-                [pos_not_found.append(po) for po in pos if (po not in data['order']) and (po not in pos_not_found)]
-                if pos_not_found and pos_found:
-                    order = pos_found
-                elif pos_not_found and (not pos_found):
-                    order = data['order']
-                else:
-                    order = pos_found
+
+            if pos:                
+                order = pos
             else:
                 order = data['order']
 
@@ -278,7 +269,6 @@ class ExpressionProfile(db.Model):
                 not_found.remove(profile.sequence.name.lower())
             
             values = {}
-            labels = []
 
             for o in order:
                 for key, value in data['data']['PO_class'].items():
@@ -310,7 +300,7 @@ class ExpressionProfile(db.Model):
         if len(not_found) > 0:
             flash("Couldn't find profile for: %s" % ", ".join(not_found), "warning")
 
-        return {'labels':labels, 'order': order, 'heatmap_data': output, 'pos_not_found': pos_not_found}
+        return {'labels':labels, 'order': order, 'heatmap_data': output}
 
     @staticmethod
     def get_profiles(species_id, probes, limit=1000):

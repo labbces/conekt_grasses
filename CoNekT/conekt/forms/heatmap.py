@@ -29,19 +29,16 @@ class HeatmapComparableForm(FlaskForm):
         self.comparable_options.choices = [('raw', 'Raw'), ('rnorm', 'Row-normalized')]
 
 class HeatmapPOForm(FlaskForm):
-    species_id = SelectField('species', coerce=int)
-    pos = SelectMultipleField('pos', coerce=int)
+    species_id_po = SelectField('species', coerce=int)
+    pos = SelectMultipleField('pos', coerce=int, choices=[])
     probes = TextAreaField('probes', [InputRequired()])
 
     options = SelectField('options')
 
     def populate_species(self):
-        self.species_id.choices = [(0, "Select species")] + list(set([(sample_po.species_id, sample_po.species.name)
+        self.species_id_po.choices = [(0, "Select species")] + list(set([(sample_po.species_id, sample_po.species.name)
                             for sample_po in SamplePOAssociation.query.distinct(SamplePOAssociation.species_id).all()]))
-
-    def populate_pos(self):
-        self.pos.choices = list(set([(sample_po.po_id, sample_po.po_information.po_class)
-                            for sample_po in SamplePOAssociation.query.distinct(SamplePOAssociation.po_id).all()]))
 
     def populate_options(self):
         self.options.choices = [('raw', 'Raw'), ('zlog', 'zLog-ransformed'), ('rnorm', 'Row-normalized')]
+

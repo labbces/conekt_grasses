@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, Response, redirect, flash, url_for
+from flask import Blueprint, request, render_template, Response, redirect, flash, url_for, jsonify
 from sqlalchemy.orm import undefer
 import json
 
@@ -8,6 +8,7 @@ from conekt.models.expression.coexpression_clusters import CoexpressionCluster
 from conekt.models.expression.profiles import ExpressionProfile
 from conekt.models.condition_tissue import ConditionTissue
 from conekt.models.relationships.sequence_cluster import SequenceCoexpressionClusterAssociation
+from conekt.models.relationships.sample_po import SamplePOAssociation
 from conekt.models.sequences import Sequence
 from conekt.models.trees import Tree
 from conekt.models.gene_families import GeneFamily
@@ -60,7 +61,6 @@ def heatmap_main():
 
     form3 = HeatmapPOForm(request.form)
     form3.populate_species()
-    form3.populate_pos()
     form3.populate_options()
 
     # Fetch data for normal example, get five profiles from a species
@@ -175,11 +175,10 @@ def heatmap_custom_pos():
 
     form = HeatmapPOForm(request.form)
     form.populate_species()
-    form.populate_pos()
     form.populate_options()
 
     probes = request.form.get('probes').split()
-    species_id = request.form.get('species_id')
+    species_id = request.form.get('species_id_po')
     
     pos_ids = request.form.getlist('pos')
     pos_ids = [eval(i) for i in pos_ids]
@@ -205,9 +204,6 @@ def heatmap_custom_pos():
     current_heatmap = ExpressionProfile.get_po_heatmap(species_id, probes, pos,
                                                     zlog=(option == 'zlog'),
                                                     raw=(option == 'raw'))
-    
-    if current_heatmap['pos_not_found']:
-        flash("Couldn't find the following PO(s) for species: %s !!! Showing only available POs." % ", ".join(current_heatmap['pos_not_found']), "danger")
 
     return render_template("expression_heatmap.html", order=current_heatmap['order'], po=True,
                            profiles=current_heatmap['heatmap_data'],
@@ -293,3 +289,24 @@ def expression_profiles_json(species_id):
     data = json.loads(current_profile.profile)
 
     return Response(json.dumps(data), mimetype='application/json')
+
+@heatmap.route('/get_pos/<species_id>')
+def get_species_pos(species_id):
+    
+    po_info = SamplePOAssociation.query.filter_by(species_id=species_id).distinct().all()
+
+    poArray = []
+    po_ids = []
+
+    for po in po_info:
+        po_class = PlantOntology.query.get(po.po_id).po_class
+        if po.po_id in po_ids:
+            continue
+        else:
+            po_ids.append(po.po_id)
+        poObj = {}
+        poObj['id'] = po.po_id
+        poObj['class'] = po_class
+        poArray.append(poObj)
+    
+    return jsonify({'pos': poArray})
