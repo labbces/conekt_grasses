@@ -1,4 +1,4 @@
-# Adding GO term, InterPro domain and CAZymes descriptions definition
+# Adding GO term, InterPro domain and CAZymes definition
 
 Descriptions for GO terms, InterPro domains and CAZymes descriptions should be added before
 adding functional annotation. This step should be completed first. In
