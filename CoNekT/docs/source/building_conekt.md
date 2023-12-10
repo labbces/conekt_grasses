@@ -18,11 +18,11 @@ database. Make sure to read instructions on pages and this documentation to avoi
 Step-by-step instructions
 
   * [Adding GO term, InterPro domain and CAZymes definitions](building/001_GO_InterPro_CAZymes_domains.md)
-  * [Adding a new species and functional data](CoNekT/docs/source/building/002_species_functional_data.md)
-  * [Adding expression profiles and specificity](CoNekT/docs/source/building/003_expression_profiles.md)
-  * [Adding co-expession networks and clusters](CoNekT/docs/source/building/004_coexpression_network_cluster.md)
-  * [Adding comparative genomics data](CoNekT/docs/source/building/005_comparative_genomics.md)
-  * [Precomputing counts and more](CoNekT/docs/source/building/006_precomputing_counts_etc.md)
+  * [Adding a new species and functional data](building/002_species_functional_data.md)
+  * [Adding expression profiles and specificity](building/003_expression_profiles.md)
+  * [Adding co-expession networks and clusters](building/004_coexpression_network_cluster.md)
+  * [Adding comparative genomics data](building/005_comparative_genomics.md)
+  * [Precomputing counts and more](building/006_precomputing_counts_etc.md)
 
-  * [Controls](CoNekT/docs/source/building/007_controls.md)
-  * [CRUD](CoNekT/docs/source/building/008_crud.md)
+  * [Controls](building/007_controls.md)
+  * [CRUD](building/008_crud.md)
