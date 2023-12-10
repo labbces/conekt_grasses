@@ -17,7 +17,7 @@ database. Make sure to read instructions on pages and this documentation to avoi
 
 Step-by-step instructions
 
-  * Adding GO term and InterPro domain definitions
+  * Adding GO term, InterPro domain and CAZymes definitions(CoNekT/docs/source/building/001_GO_InterPro_CAZymes_domains.md)
   * Adding a new species and functional data
   * Adding expression profiles and specificity
   * Adding co-expession networks and clusters
