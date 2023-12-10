@@ -13,7 +13,6 @@ bin
 lib
 include
 pip-selfcheck.json
-scripts
 
 /CoNekT/config.py
 
