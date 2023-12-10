@@ -8,7 +8,7 @@ Make sure your server **doesn't time out requests**, some operations can take se
 
 To start building, go to the website, log in and (once logged in) click on the username (admin) in the top right corner. Select 'Admin Panel' from the drop-down menu.
 
-![Access admin panel](../images/admin_home.png "Access admin panel")
+![Access admin panel](/images/admin_home.png "Access admin panel")
 
 The Admin Panel will welcome you with a large warning. Deleting data, overwriting or changing entries here can ruin a carefully set up 
 database. Make sure to read instructions on pages and this documentation to avoid losing work. 
