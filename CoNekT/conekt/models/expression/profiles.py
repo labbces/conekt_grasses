@@ -192,7 +192,6 @@ class ExpressionProfile(db.Model):
             name = profile.probe
             data = json.loads(profile.profile)
             order = data['order']
-            experiments = data['data']['TPM']
 
             with contextlib.suppress(ValueError):
                 not_found.remove(profile.probe.lower())
@@ -245,25 +244,23 @@ class ExpressionProfile(db.Model):
         :param pos: a list of po classes to include in the heatmap
         :param zlog: enable zlog transformation (otherwise normalization against highest expressed condition)
         """
+
         profiles = ExpressionProfile.query.options(undefer('profile')).filter_by(species_id=species_id).\
             filter(ExpressionProfile.probe.in_(probes)).all()
 
         order = []
-
+        labels = []
         output = []
-
         not_found = [p.lower() for p in probes]
 
         for profile in profiles:
             name = profile.probe
             data = json.loads(profile.profile)
-            if pos:
+
+            if pos:                
                 order = pos
             else:
                 order = data['order']
-                
-            experiments = data['data']['TPM']
-
 
             with contextlib.suppress(ValueError):
                 not_found.remove(profile.probe.lower())
@@ -272,7 +269,6 @@ class ExpressionProfile(db.Model):
                 not_found.remove(profile.sequence.name.lower())
             
             values = {}
-            labels = []
 
             for o in order:
                 for key, value in data['data']['PO_class'].items():

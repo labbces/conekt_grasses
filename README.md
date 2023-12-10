@@ -42,6 +42,7 @@ To set up the environment from the root directory of the repository, run:
 ```bash
 virtualenv --python=python3.8 CoNekT
 source CoNekT/bin/activate
+sudo apt-get install python3.8-dev libmysqlclient-dev apache2 apache2-dev libapache2-mod-wsgi-py3
 pip install -r requirements.txt
 ```
 

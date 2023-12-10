@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, Response, redirect, flash, url_for
+from flask import Blueprint, request, render_template, Response, redirect, flash, url_for, jsonify
 from sqlalchemy.orm import undefer
 import json
 
@@ -8,10 +8,12 @@ from conekt.models.expression.coexpression_clusters import CoexpressionCluster
 from conekt.models.expression.profiles import ExpressionProfile
 from conekt.models.condition_tissue import ConditionTissue
 from conekt.models.relationships.sequence_cluster import SequenceCoexpressionClusterAssociation
+from conekt.models.relationships.sample_po import SamplePOAssociation
 from conekt.models.sequences import Sequence
 from conekt.models.trees import Tree
 from conekt.models.gene_families import GeneFamily
 from conekt.models.expression.cross_species_profile import CrossSpeciesExpressionProfile
+from conekt.models.ontologies import PlantOntology
 
 heatmap = Blueprint('heatmap', __name__)
 
@@ -60,7 +62,6 @@ def heatmap_main():
     form3 = HeatmapPOForm(request.form)
     form3.populate_species()
     form3.populate_options()
-    form3.populate_pos()
 
     # Fetch data for normal example, get five profiles from a species
     profiles = ExpressionProfile.query.filter(ExpressionProfile.sequence_id is not None).order_by(ExpressionProfile.species_id).limit(5).all()
@@ -171,18 +172,19 @@ def heatmap_custom_comparable():
 
 @heatmap.route('/results/pos', methods=['POST'])
 def heatmap_custom_pos():
+
     form = HeatmapPOForm(request.form)
     form.populate_species()
-    form.populate_pos()
     form.populate_options()
 
     probes = request.form.get('probes').split()
-    species_id = request.form.get('species_id')
-    pos = request.form.getlist('pos')
+    species_id = request.form.get('species_id_po')
+    
+    pos_ids = request.form.getlist('pos')
+    pos_ids = [eval(i) for i in pos_ids]
+    pos = [po.po_class for po in PlantOntology.query.filter(PlantOntology.id.in_(pos_ids)).distinct(PlantOntology.po_class).all()]
 
     option = request.form.get('options')
-
-    print("aaaaaaaaa", pos)
 
     if len(probes) == 0:
         flash("No genes selected!", "warning")
@@ -198,6 +200,7 @@ def heatmap_custom_pos():
     # make probe list unique
     probes = list(set(probes))
     # TODO check if certain probes were not found and warn the user
+
     current_heatmap = ExpressionProfile.get_po_heatmap(species_id, probes, pos,
                                                     zlog=(option == 'zlog'),
                                                     raw=(option == 'raw'))
@@ -286,3 +289,24 @@ def expression_profiles_json(species_id):
     data = json.loads(current_profile.profile)
 
     return Response(json.dumps(data), mimetype='application/json')
+
+@heatmap.route('/get_pos/<species_id>')
+def get_species_pos(species_id):
+    
+    po_info = SamplePOAssociation.query.filter_by(species_id=species_id).distinct().all()
+
+    poArray = []
+    po_ids = []
+
+    for po in po_info:
+        po_class = PlantOntology.query.get(po.po_id).po_class
+        if po.po_id in po_ids:
+            continue
+        else:
+            po_ids.append(po.po_id)
+        poObj = {}
+        poObj['id'] = po.po_id
+        poObj['class'] = po_class
+        poArray.append(poObj)
+    
+    return jsonify({'pos': poArray})

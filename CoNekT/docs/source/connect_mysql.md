@@ -1,7 +1,3 @@
-Install apache and mod_wsgi for python 3, and the libmysql library:
-
-    sudo apt-get install python3.8-dev libmysqlclient-dev apache2 apache2-dev libapache2-mod-wsgi-py3
-
 # Creating the Flask configuration file
 
 First, create a copy of the configuration template file. From the repo root, run:

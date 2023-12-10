@@ -12,6 +12,9 @@ class SamplePOAssociation(db.Model):
     species = db.relationship('Species', backref=db.backref('po_associations',
                                                               lazy='dynamic',
                                                               passive_deletes=True), lazy='joined')
+    po_information = db.relationship('PlantOntology', backref=db.backref('po_associations',
+                                                              lazy='dynamic',
+                                                              passive_deletes=True), lazy='joined')
 
     def __init__(self, sample_id, po_id):
         self.sample_id = sample_id

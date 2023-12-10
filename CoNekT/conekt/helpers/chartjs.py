@@ -55,20 +55,23 @@ def prepare_profiles(profiles, normalize=False, xlabel='', ylabel='', peco=False
     :return dict with plot compatible with Chart.js
     """
 
-    labels = []
+    samples = []
     datasets = []
+    sample_annotations = []
 
     if len(profiles) > 0:
         data = json.loads(profiles[0].profile)
 
         if peco:
-            labels = list(key for key in data['data']['TPM'].keys() if key in data['data']['PECO_class'].keys())
-            values = list(data['data']['PECO_class'].values())
+            samples = list(key for key in data['data']['TPM'].keys() if key in data['data']['PECO_class'].keys())
+            ontology_classes = list(data['data']['PECO_class'].values())
         else:
-            labels = list(data['data']['TPM'].keys())
-            values = list(data['data']['PO_class'].values())
+            samples = list(data['data']['TPM'].keys())
+            ontology_classes = list(data['data']['PO_class'].values())
 
-        labels_ontologies = [i + " (" + j + ")" for i, j in zip(labels, values)]
+        sample_annotations = list(data['data']['annotation'].values())
+
+        labels_samples = [f'{sample} ({sample_annotation}/{ontology_class})' for sample, ontology_class, sample_annotation in zip(samples, ontology_classes, sample_annotations)]
 
     for count, p in enumerate(profiles):
         data = json.loads(p.profile)
@@ -97,7 +100,7 @@ def prepare_profiles(profiles, normalize=False, xlabel='', ylabel='', peco=False
     output = {
         'type': 'line',
         'data': {
-            'labels': labels_ontologies,
+            'labels': labels_samples,
             'datasets': datasets
         },
         "options": {
