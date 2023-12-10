@@ -23,6 +23,6 @@ Step-by-step instructions
   * [Adding co-expession networks and clusters](CoNekT/docs/source/building/004_coexpression_network_cluster.md)
   * [Adding comparative genomics data](CoNekT/docs/source/building/005_comparative_genomics.md)
   * [Precomputing counts and more](CoNekT/docs/source/building/006_precomputing_counts_etc.md)
-  
+
   * [Controls](CoNekT/docs/source/building/007_controls.md)
   * [CRUD](CoNekT/docs/source/building/008_crud.md)
