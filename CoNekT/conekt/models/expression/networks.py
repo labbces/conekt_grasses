@@ -279,7 +279,7 @@ class ExpressionNetworkMethod(db.Model):
 class ExpressionNetwork(db.Model):
     __tablename__ = 'expression_networks'
     id = db.Column(db.Integer, primary_key=True)
-    probe = db.Column(db.String(50, collation=SQL_COLLATION), index=True)
+    probe = db.Column(db.String(80, collation=SQL_COLLATION), index=True)
     sequence_id = db.Column(db.Integer, db.ForeignKey('sequences.id', ondelete='CASCADE'), index=True)
     network = db.Column(db.Text)
     method_id = db.Column(db.Integer, db.ForeignKey('expression_network_methods.id', ondelete='CASCADE'), index=True)
