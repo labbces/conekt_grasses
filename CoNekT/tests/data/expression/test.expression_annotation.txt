@@ -1,16 +1,16 @@
-SampleID	ConditionDescription	Strandness	Layout	PO	PECO
-A	Tissue 01	strand specific	paired-end	PO:0025034
-B	Tissue 01	strand specific	paired-end	PO:0025034
-C	Tissue 01	strand specific	paired-end	PO:0025034
-D	Tissue 02	strand specific	paired-end	PO:0009005
-E	Tissue 02	strand specific	paired-end	PO:0009005
-F	Tissue 02	strand specific	paired-end	PO:0009005
-G	Tissue 03	strand specific	paired-end	PO:0009047	PECO:0007173
-H	Tissue 03	strand specific	paired-end	PO:0009047	PECO:0007173
-I	Tissue 03	strand specific	paired-end	PO:0009047	PECO:0007173
-J	Tissue 03	strand specific	paired-end	PO:0009047	PECO:0007174
-K	Tissue 03	strand specific	paired-end	PO:0009047	PECO:0007174
-L	Tissue 03	strand specific	paired-end	PO:0009047	PECO:0007174
-M	Tissue 03	strand specific	paired-end	PO:0009047  
-N	Tissue 03	strand specific	paired-end	PO:0009047  
-O	Tissue 03	strand specific	paired-end	PO:0009047 
+SampleID	DOI	ConditionDescription	Strandness	Layout	PO	PECO
+A	10.1093/nar/gky336	Tissue 01	strand specific	paired-end	PO:0025034
+B	10.1093/nar/gky336	Tissue 01	strand specific	paired-end	PO:0025034
+C	10.1093/nar/gky336	Tissue 01	strand specific	paired-end	PO:0025034
+D	10.1093/nar/gky336	Tissue 02	strand specific	paired-end	PO:0009005
+E	10.1093/nar/gky336	Tissue 02	strand specific	paired-end	PO:0009005
+F	10.1093/nar/gky336	Tissue 02	strand specific	paired-end	PO:0009005
+G	10.1093/nar/gky336	Tissue 03	strand specific	paired-end	PO:0009047	PECO:0007173
+H	10.1093/nar/gky336	Tissue 03	strand specific	paired-end	PO:0009047	PECO:0007173
+I	10.1186/s13040-022-00315-9	Tissue 03	strand specific	paired-end	PO:0009047	PECO:0007173
+J	10.1186/s13040-022-00315-9	Tissue 03	strand specific	paired-end	PO:0009047	PECO:0007174
+K	10.1186/s13040-022-00315-9	Tissue 03	strand specific	paired-end	PO:0009047	PECO:0007174
+L	10.1186/s13040-022-00315-9	Tissue 03	strand specific	paired-end	PO:0009047	PECO:0007174
+M	10.1186/s13040-022-00315-9	Tissue 03	strand specific	paired-end	PO:0009047  
+N	10.1186/s13040-022-00315-9	Tissue 03	strand specific	paired-end	PO:0009047  
+O	10.1186/s13040-022-00315-9	Tissue 03	strand specific	paired-end	PO:0009047 

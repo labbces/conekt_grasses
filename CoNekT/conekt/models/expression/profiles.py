@@ -3,6 +3,7 @@ from conekt.models.sequences import Sequence
 from conekt.models.condition_tissue import ConditionTissue
 from conekt.models.sample import Sample
 from conekt.models.ontologies import PlantOntology, PlantExperimentalConditionsOntology
+from conekt.models.relationships.sample_literature import SampleLitAssociation
 
 import json
 import contextlib
@@ -341,8 +342,8 @@ class ExpressionProfile(db.Model):
 
             for line in fin:
                 parts = line.strip().split('\t')
-                if len(parts) == 5:
-                    run, description, strandness, layout, po = parts
+                if len(parts) == 6:
+                    run, literature_doi, description, strandness, layout, po = parts
                     Sample.add(run, strandness, layout,
                                    description, species_id)
                     annotation[run] = {}
@@ -354,8 +355,9 @@ class ExpressionProfile(db.Model):
                         annotation[run]["po_class"] = po_details.po_class
                     else:
                         abort(400,f'Incorrect PO: {po}')
-                elif len(parts) == 6:
-                    run, description, strandness, layout, po, peco = parts
+                    SampleLitAssociation.add_sample_lit_association(run, literature_doi)
+                elif len(parts) == 7:
+                    run, literature_doi, description, strandness, layout, po, peco = parts
                     Sample.add(run, strandness, layout,
                                    description, species_id)
                     annotation[run] = {}
