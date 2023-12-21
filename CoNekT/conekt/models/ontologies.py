@@ -6,6 +6,7 @@ from conekt.models.relationships.sample_peco import\
     SamplePECOAssociation
 from conekt.models.relationships import sample_po, sample_peco
 import os
+from flask import flash
 
 SQL_COLLATION = 'NOCASE' if db.engine.name == 'sqlite' else ''
 
@@ -68,13 +69,19 @@ class PlantOntology(db.Model):
         sample = Sample.query.filter_by(sample_name=sample_name).first()
         po = PlantOntology.query.filter_by(po_term=po_term).first()
         species_id = sample.species_id
+
+        sample_po = SamplePOAssociation.query.filter_by(sample_id=sample.id, po_id=po.id).first()
         
-        association = {'sample_id': sample.id,
-                       'po_id': po.id,
-                       'species_id': species_id,
-                       'po_branch': po_branch}
-    
-        db.engine.execute(SamplePOAssociation.__table__.insert(), association)
+        if not sample_po:
+
+            association = {'sample_id': sample.id,
+                        'po_id': po.id,
+                        'species_id': species_id,
+                        'po_branch': po_branch}
+        
+            db.engine.execute(SamplePOAssociation.__table__.insert(), association)
+        else:
+            flash(f'Association between sample {sample.sample_name} and PO {po.po_class} already exists.', 'danger')
 
 
 class PlantExperimentalConditionsOntology(db.Model):
@@ -137,8 +144,13 @@ class PlantExperimentalConditionsOntology(db.Model):
         peco = PlantExperimentalConditionsOntology.query.filter_by(peco_term=peco_term).first()
         species_id = sample.species_id
 
-        association = {'sample_id': sample.id,
-                       'peco_id': peco.id,
-                       'species_id': species_id}
-    
-        db.engine.execute(SamplePECOAssociation.__table__.insert(), association)
+        sample_peco = SamplePECOAssociation.query.filter_by(sample_id=sample.id, peco_id=peco.id).first()
+
+        if not sample_peco:
+            association = {'sample_id': sample.id,
+                            'peco_id': peco.id,
+                            'species_id': species_id}
+
+            db.engine.execute(SamplePECOAssociation.__table__.insert(), association)
+        else:
+            flash(f'Association between sample {sample.sample_name} and PECO {peco.peco_class} already exists.', 'danger')

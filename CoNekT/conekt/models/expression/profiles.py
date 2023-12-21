@@ -343,27 +343,28 @@ class ExpressionProfile(db.Model):
                 parts = line.split('\t')
                 if len(parts) == 8:        
                     run, literature_doi, description, strandness, layout, po_anatomy, po_dev_stage, peco = parts
+                    peco = peco.rstrip()
                     Sample.add(run, strandness, layout,
                                     description, species_id)
                     annotation[run] = {}
                     annotation[run]["description"] = description
 
                     # 'po_anatomy' is mandatory
-                    if po_anatomy is not None:
+                    if po_anatomy:
                         annotation[run]["po_anatomy"] = po_anatomy
                         PlantOntology.add_sample_po_association(run, po_anatomy, "po_anatomy")
                         po_details = PlantOntology.query.filter(PlantOntology.po_term == po_anatomy).first()
                         annotation[run]["po_anatomy_class"] = po_details.po_class
-                    elif po_anatomy is None:
+                    else:
                         abort(400,f"The 'po_anatomy' of {run} sample is None (mandatory info)")
                     # 'po_dev_stage' is optional
-                    if po_dev_stage is not None:
+                    if po_dev_stage:
                         annotation[run]["po_dev_stage"] = po_dev_stage
                         PlantOntology.add_sample_po_association(run, po_dev_stage, "po_dev_stage")
                         po_details = PlantOntology.query.filter(PlantOntology.po_term == po_dev_stage).first()
                         annotation[run]["po_dev_stage_class"] = po_details.po_class
                     # 'peco' is optional
-                    if peco is not None:
+                    if peco:
                         annotation[run]["peco"] = peco
                         PlantExperimentalConditionsOntology.add_sample_peco_association(run, peco)
                         peco_details = PlantExperimentalConditionsOntology.query.filter(PlantExperimentalConditionsOntology.peco_term==peco).first()
