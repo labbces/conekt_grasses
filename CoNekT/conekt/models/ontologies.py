@@ -63,7 +63,7 @@ class PlantOntology(db.Model):
             print(e)
     
     @staticmethod
-    def add_sample_po_association(sample_name, po_term):
+    def add_sample_po_association(sample_name, po_term, po_branch):
 
         sample = Sample.query.filter_by(sample_name=sample_name).first()
         po = PlantOntology.query.filter_by(po_term=po_term).first()
@@ -71,7 +71,8 @@ class PlantOntology(db.Model):
         
         association = {'sample_id': sample.id,
                        'po_id': po.id,
-                       'species_id': species_id}
+                       'species_id': species_id,
+                       'po_branch': po_branch}
     
         db.engine.execute(SamplePOAssociation.__table__.insert(), association)
 
