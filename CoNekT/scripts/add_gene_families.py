@@ -3,7 +3,7 @@
 import argparse
 import psutil
 
-from sqlalchemy import create_engine, MetaData
+from sqlalchemy import create_engine
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import select
@@ -21,10 +21,6 @@ parser.add_argument('--description', type=str, metavar='Description',
                     required=True)
 
 args = parser.parse_args()
-
-# Testing with the following library versions:
-# * SQLAlchemy-2.0.23
-# * pymysql-1.1.0
 
 def print_memory_usage():
     # Get memory usage statistics
