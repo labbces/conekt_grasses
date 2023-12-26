@@ -254,6 +254,7 @@ class Interpro(db.Model):
 
                         new_domain = {"sequence_id": current_sequence.id,
                                       "interpro_id": current_domain.id,
+                                      "ipr_source_db": domain["ipr_source_db"],
                                       "start": domain["start"],
                                       "stop": domain["stop"]}
 
