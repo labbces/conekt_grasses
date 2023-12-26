@@ -14,3 +14,5 @@ def tau(values):
         return t
     else:
         return None
+
+def extended_tau():
