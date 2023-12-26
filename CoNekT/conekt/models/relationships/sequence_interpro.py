@@ -8,6 +8,7 @@ class SequenceInterproAssociation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sequence_id = db.Column(db.Integer, db.ForeignKey('sequences.id', ondelete='CASCADE'))
     interpro_id = db.Column(db.Integer, db.ForeignKey('interpro.id', ondelete='CASCADE'))
+    ipr_source_db = db.Column(db.String(255))
     start = db.Column(db.Integer, default=None)
     stop = db.Column(db.Integer, default=None)
 
