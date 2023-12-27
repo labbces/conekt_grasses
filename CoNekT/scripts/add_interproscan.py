@@ -17,9 +17,18 @@ parser.add_argument('--species', type=str, metavar='Svi',
                     dest='species_code',
                     help='The CoNekT Grasses species code',
                     required=True)
+parser.add_argument('--db_admin', type=str, metavar='DB admin',
+                    dest='db_admin',
+                    help='The database admin user',
+                    required=True)
+parser.add_argument('--db_name', type=str, metavar='DB name',
+                    dest='db_name',
+                    help='The database name',
+                    required=True)
 
 args = parser.parse_args()
 
+db_password = input("Enter the database password: ")
 
 class InterproDomainParser:
     def __init__(self):
@@ -131,8 +140,12 @@ def add_interpro_from_interproscan(filename, species_code, engine):
 
 interproscan_tsv = args.interproscan_file
 sps_code = args.species_code
+db_admin = args.db_admin
+db_name = args.db_name
 
-engine = create_engine("mysql+pymysql://conekt_grasses_admin_test_ipr:E,~5*;{9f{p2VGp^@localhost/conekt_grasses_db_test_ipr", echo=True)
+create_engine_string = "mysql+pymysql://"+db_admin+":"+db_password+"@localhost/"+db_name
+
+engine = create_engine(create_engine_string, echo=True)
 
 # Reflect an existing database into a new model
 Base = automap_base()

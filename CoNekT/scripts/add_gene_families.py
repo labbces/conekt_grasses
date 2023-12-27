@@ -19,8 +19,18 @@ parser.add_argument('--description', type=str, metavar='Description',
                     dest='description',
                     help='Description of the method as it should appear in CoNekT',
                     required=True)
+parser.add_argument('--db_admin', type=str, metavar='DB admin',
+                    dest='db_admin',
+                    help='The database admin user',
+                    required=True)
+parser.add_argument('--db_name', type=str, metavar='DB name',
+                    dest='db_name',
+                    help='The database name',
+                    required=True)
 
 args = parser.parse_args()
+
+db_password = input("Enter the database password: ")
 
 def print_memory_usage():
     # Get memory usage statistics
@@ -181,8 +191,12 @@ def add_families_from_orthofinder(filename, description, engine):
 
 orthogroups_file = args.orthogroups_file
 description = args.description
+db_admin = args.db_admin
+db_name = args.db_name
 
-engine = create_engine("mysql+pymysql://conekt_grasses_admin:E,~5*;{9f{p2VGp^@localhost/conekt_grasses_db", echo=True)
+create_engine_string = "mysql+pymysql://"+db_admin+":"+db_password+"@localhost/"+db_name
+
+engine = create_engine(create_engine_string, echo=True)
 
 # Reflect an existing database into a new model
 Base = automap_base()
