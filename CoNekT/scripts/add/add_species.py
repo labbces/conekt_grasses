@@ -166,6 +166,9 @@ def add_species(code, name, engine, data_type='genome',
                               highlight=highlight,
                               description=description,
                               source=source,
+                              sequence_count = 0,
+                              profile_count = 0,
+                              network_count = 0,
                               literature_id=literature_id,
                               genome_version=genome_version)
 
@@ -262,7 +265,7 @@ for line in species_file:
         literature_id = None
 
     # add species
-    species_id = add_species(code, name, engine, literature_id=literature_id, genome_version=genome_version)
+    species_id = add_species(code, name, engine, source=genome_source, literature_id=literature_id, genome_version=genome_version)
 
     # add sequences
     num_seq_added_cds = add_from_fasta(cds_file, species_id, sequence_type='protein_coding')
