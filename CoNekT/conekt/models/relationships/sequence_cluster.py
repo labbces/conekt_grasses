@@ -6,7 +6,7 @@ class SequenceCoexpressionClusterAssociation(db.Model):
     __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
-    probe = db.Column(db.String(50), index=True)
+    probe = db.Column(db.String(80), index=True)
     sequence_id = db.Column(db.Integer, db.ForeignKey('sequences.id', ondelete='CASCADE'))
     coexpression_cluster_id = db.Column(db.Integer, db.ForeignKey('coexpression_clusters.id', ondelete='CASCADE'))
 
