@@ -3,6 +3,8 @@
 import argparse
 import psutil
 import json
+import sys
+
 from collections import defaultdict
 
 from sqlalchemy import create_engine
@@ -32,10 +34,17 @@ parser.add_argument('--db_name', type=str, metavar='DB name',
                     dest='db_name',
                     help='The database name',
                     required=True)
+parser.add_argument('--db_password', type=str, metavar='DB password',
+                    dest='db_password',
+                    help='The database password',
+                    required=False)
 
 args = parser.parse_args()
 
-db_password = input("Enter the database password: ")
+if args.db_password:
+    db_password = args.db_password
+else:
+    db_password = input("Enter the database password: ")
 
 def print_memory_usage():
     # Get memory usage statistics
@@ -82,7 +91,7 @@ def read_expression_network_lstrap(network_file, species_code, description, engi
         sequence_dict[s.name.upper()] = s.id
 
     # Add network method first
-    new_network_method = ExpressionNetworkMethod(species_id, description, score_type)
+    new_network_method = ExpressionNetworkMethod(species_id=species_id, description=description, edge_type=score_type)
     new_network_method.hrr_cutoff = limit
     new_network_method.pcc_cutoff = pcc_cutoff
     new_network_method.enable_second_level = enable_second_level
@@ -159,7 +168,10 @@ def read_expression_network_lstrap(network_file, species_code, description, engi
     new_nodes = []
     for _, n in network.items():
         new_nodes.append(n)
-        session.add(ExpressionNetwork(n))
+        session.add(ExpressionNetwork(network=n["network"],
+                                      probe=n["probe"],
+                                      sequence_id=n["sequence_id"],
+                                      method_id=n["method_id"]))
         if len(new_nodes) > 400:
             session.commit()
             new_nodes = []
