@@ -286,7 +286,6 @@ def add_go_from_obo(filename, empty=True, compressed=False):
         with engine.connect() as conn:
             stmt = delete(GO)
             conn.execute(stmt)
-            exit(1)
 
     obo_parser = OBOParser()
     obo_parser.readfile(filename, compressed=compressed)
