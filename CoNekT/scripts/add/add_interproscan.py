@@ -25,10 +25,17 @@ parser.add_argument('--db_name', type=str, metavar='DB name',
                     dest='db_name',
                     help='The database name',
                     required=True)
+parser.add_argument('--db_password', type=str, metavar='DB password',
+                    dest='db_password',
+                    help='The database password',
+                    required=False)
 
 args = parser.parse_args()
 
-db_password = input("Enter the database password: ")
+if args.db_password:
+    db_password = args.db_password
+else:
+    db_password = input("Enter the database password: ")
 
 class InterproDomainParser:
     def __init__(self):
