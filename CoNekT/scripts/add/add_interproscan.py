@@ -13,7 +13,7 @@ parser.add_argument('--interproscan_tsv', type=str, metavar='species_interprosca
                     dest='interproscan_file',
                     help='The TSV file from InterProScan results',
                     required=True)
-parser.add_argument('--species', type=str, metavar='Svi',
+parser.add_argument('--species_code', type=str, metavar='Svi',
                     dest='species_code',
                     help='The CoNekT Grasses species code',
                     required=True)
