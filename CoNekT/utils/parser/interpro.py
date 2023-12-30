@@ -71,6 +71,7 @@ class DomainParser:
                 if len(parts) > 11:
                     gene = parts[0]
                     domain = {"id": parts[11],
+                              "ipr_source_db": parts[3],
                               "start": int(parts[6]),
                               "stop": int(parts[7])}
 
