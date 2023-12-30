@@ -29,8 +29,6 @@ class SampleLitAssociation(db.Model):
         if literature_item is None:
             literature_id = LiteratureItem.add(lit_doi)
             literature_item = LiteratureItem.query.filter_by(id=literature_id).first()
-
-        print(f'{literature_item} {literature_item.id} {literature_item.doi}\n\n\n\n\n\n\n\n\n')
         
         association = {'sample_id': sample.id,
                        'literature_id': literature_item.id}
