@@ -1,0 +1,3 @@
+#Species_name	Code	Source	Genome_Transcriptome_version	DOI	CDS_file	RNA_file
+Example specias	Sp1	example_data_source1	genome_v1	10.1093/nar/gky336	/media/renato/SSD1TB/Repositories/conekt_grasses/CoNekT/tests/data/test.cds.fasta	/media/renato/SSD1TB/Repositories/conekt_grasses/CoNekT/tests/data/test.rna.fasta
+Example species	Sp2	example_data_source2	genome_v3	10.1093/nar/gky336	/media/renato/SSD1TB/Repositories/conekt_grasses/CoNekT/tests/data/test2.cds.fasta	/media/renato/SSD1TB/Repositories/conekt_grasses/CoNekT/tests/data/test2.rna.fasta
