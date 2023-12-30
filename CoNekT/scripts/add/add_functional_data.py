@@ -322,9 +322,7 @@ if interpro_file:
 if go_file:
     functional_data_count+=1
 
-if functional_data_count > 0:
-    print("Added functional data to the database")
-else:
+if functional_data_count == 0:
     print("Must add at least one type of functional data (e.g., --interpro_xml)\
           to the database!")
     exit(1)
