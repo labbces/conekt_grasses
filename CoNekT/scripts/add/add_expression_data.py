@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import time
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.automap import automap_base
@@ -178,6 +179,8 @@ def add_sample_lit_association(sample_name, lit_doi, engine):
 
     if not literature_item:
         literature_item = add_literature(lit_doi, engine)
+        time.sleep(3)
+
         
     association = {'sample_id': sample.id,
                    'literature_id': literature_item.id}
@@ -262,6 +265,7 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
                 
             # Add literature-sample association
             add_sample_lit_association(run, literature_doi, engine)
+            annotation[run]["lit_doi"] = literature_doi
 
     #See the modifications in other parts of code
     order, colors = [], []
@@ -307,15 +311,17 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
                         'annotation': {},
                         'po_anatomy': {},
                         'po_anatomy_class': {},
-                        'PO_dev_stage': {},
+                        'po_dev_stage': {},
                         'po_dev_stage_class': {},
                         'peco': {},
-                        'peco_class': {},}
+                        'peco_class': {},
+                        'lit_doi': {}}
 
             for c, v in zip(colnames, values):
                 if c in annotation.keys():
                     profile['tpm'][c] = float(v)
                     profile['annotation'][c] = annotation[c]['description']
+                    profile['lit_doi'][c] = annotation[c]['lit_doi']
                     profile['po_anatomy'][c] = annotation[c]["po_anatomy"]
                     profile['po_anatomy_class'][c] = annotation[c]["po_anatomy_class"]
                     # not mandatory fields

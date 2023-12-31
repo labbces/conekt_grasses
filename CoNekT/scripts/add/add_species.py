@@ -5,6 +5,7 @@ import psutil
 import sys
 import gzip
 import operator
+import time
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.automap import automap_base
@@ -268,6 +269,7 @@ for line in species_file:
     # add literature
     if doi:
         literature_id = add_literature(doi, engine)
+        time.sleep(3)
     else:
         literature_id = None
 
