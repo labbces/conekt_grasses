@@ -20,21 +20,21 @@ def prepare_profiles_download(profiles, normalize=False):
     # initiate output array with header
     output = ['sample\tgene\ttpm\tpo\tpeco']
 
-    for key in data['data']['TPM'].keys():
+    for key in data['data']['tpm'].keys():
         for count, p in enumerate(profiles):
             profile = json.loads(p.profile)
             label = key
             gene = p.probe if p.sequence_id is None else p.sequence.name
-            tpm = profile['data']['TPM'][key]
-            po = profile['data']['PO'][key]
+            tpm = profile['data']['tpm'][key]
+            po = profile['data']['po'][key]
 
-            if key in profile['data']['PECO']:
-                peco = profile['data']['PECO'][key]
+            if key in profile['data']['peco']:
+                peco = profile['data']['peco'][key]
             else:
                 peco = 'null'
 
             if normalize:
-                max_tpm = max(data['data']['TPM'].values())
+                max_tpm = max(data['data']['tpm'].values())
                 tpm_normalized = tpm / max_tpm if max_tpm > 0 else 0
                 tpm = tpm_normalized
 
@@ -63,11 +63,11 @@ def prepare_profiles(profiles, normalize=False, xlabel='', ylabel='', peco=False
         data = json.loads(profiles[0].profile)
 
         if peco:
-            samples = list(key for key in data['data']['TPM'].keys() if key in data['data']['PECO_class'].keys())
-            ontology_classes = list(data['data']['PECO_class'].values())
+            samples = list(key for key in data['data']['tpm'].keys() if key in data['data']['peco_class'].keys())
+            ontology_classes = list(data['data']['peco_class'].values())
         else:
-            samples = list(data['data']['TPM'].keys())
-            ontology_classes = list(data['data']['PO_class'].values())
+            samples = list(data['data']['tpm'].keys())
+            ontology_classes = list(data['data']['po_class'].values())
 
         sample_annotations = list(data['data']['annotation'].values())
 
@@ -76,9 +76,9 @@ def prepare_profiles(profiles, normalize=False, xlabel='', ylabel='', peco=False
     for count, p in enumerate(profiles):
         data = json.loads(p.profile)
         if peco:
-            expression_values = list(data['data']['TPM'][key] for key in data['data']['TPM'].keys() if key in data['data']['PECO_class'].keys())
+            expression_values = list(data['data']['tpm'][key] for key in data['data']['tpm'].keys() if key in data['data']['peco_class'].keys())
         else:
-            expression_values = list(data['data']['TPM'].values())
+            expression_values = list(data['data']['tpm'].values())
 
         if normalize:
             if expression_values == []:
@@ -182,8 +182,8 @@ def prepare_avg_profiles(profiles, xlabel='', ylabel=''):
         data = json.loads(p.profile)
 
         processed_values = {}
-        for key, values in data["data"]["TPM"].items():
-            po_value = data["data"]["PO_class"][key]
+        for key, values in data["data"]["tpm"].items():
+            po_value = data["data"]["po_class"][key]
 
             if po_value not in processed_values:
                 processed_values[po_value] = []
@@ -294,7 +294,7 @@ def prepare_expression_profile(data, show_sample_count=False, xlabel='', ylabel=
     processed_values = {}
     po_list = []
 
-    for key, expression_values in data["data"]["TPM"].items():
+    for key, expression_values in data["data"]["tpm"].items():
         po_value = data["data"]["PO_class"][key]
 
         if po_value not in processed_values:

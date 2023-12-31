@@ -303,28 +303,28 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
         new_probes = []
         for line in fin:
             transcript, *values = line.rstrip().split()
-            profile = {'TPM': {},
+            profile = {'tpm': {},
                         'annotation': {},
-                        'PO_anatomy': {},
-                        'PO_anatomy_class': {},
+                        'po_anatomy': {},
+                        'po_anatomy_class': {},
                         'PO_dev_stage': {},
-                        'PO_dev_stage_class': {},
-                        'PECO': {},
-                        'PECO_class': {},}
+                        'po_dev_stage_class': {},
+                        'peco': {},
+                        'peco_class': {},}
 
             for c, v in zip(colnames, values):
                 if c in annotation.keys():
-                    profile['TPM'][c] = float(v)
+                    profile['tpm'][c] = float(v)
                     profile['annotation'][c] = annotation[c]['description']
-                    profile['PO_anatomy'][c] = annotation[c]["po_anatomy"]
-                    profile['PO_anatomy_class'][c] = annotation[c]["po_anatomy_class"]
+                    profile['po_anatomy'][c] = annotation[c]["po_anatomy"]
+                    profile['po_anatomy_class'][c] = annotation[c]["po_anatomy_class"]
                     # not mandatory fields
                     if 'po_dev_stage' in annotation[c]:
-                        profile['PO_dev_stage'][c] = annotation[c]["po_dev_stage"]
-                        profile['PO_dev_stage_class'][c] = annotation[c]["po_dev_stage_class"]
+                        profile['po_dev_stage'][c] = annotation[c]["po_dev_stage"]
+                        profile['po_dev_stage_class'][c] = annotation[c]["po_dev_stage_class"]
                     if 'peco' in annotation[c]:
-                        profile['PECO'][c] = annotation[c]["peco"]
-                        profile['PECO_class'][c] = annotation[c]["peco_class"]
+                        profile['peco'][c] = annotation[c]["peco"]
+                        profile['peco_class'][c] = annotation[c]["peco_class"]
 
 
             new_probe = {"species_id": species_id,

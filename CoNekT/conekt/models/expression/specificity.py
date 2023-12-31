@@ -81,9 +81,9 @@ class ExpressionSpecificityMethod(db.Model):
             profile_means = {}
             for t in tissues:
                 values = []
-                valid_conditions = [k for k in profile_data['data']['TPM'].keys() if k in condition_to_tissue and condition_to_tissue[k] == t]
+                valid_conditions = [k for k in profile_data['data']['tpm'].keys() if k in condition_to_tissue and condition_to_tissue[k] == t]
 
-                for k, v in profile_data['data']['TPM'].items():
+                for k, v in profile_data['data']['tpm'].items():
                     if k in valid_conditions:
                         if profile_data['data']['PO_class'][k] == t:
                             values = values + [v]
@@ -100,8 +100,8 @@ class ExpressionSpecificityMethod(db.Model):
 
             # determine spm score for each condition
             profile_specificities = []
-            profile_tau = tau([v for v in profile_data['data']['TPM'].values()])
-            profile_entropy = entropy_from_values([v for v in profile_data['data']['TPM'].values()])
+            profile_tau = tau([v for v in profile_data['data']['tpm'].values()])
+            profile_entropy = entropy_from_values([v for v in profile_data['data']['tpm'].values()])
 
             for t in tissues:
                 score = expression_specificity(t, profile_means)
