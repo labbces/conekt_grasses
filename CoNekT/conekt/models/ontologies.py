@@ -120,7 +120,6 @@ class PlantExperimentalConditionsOntology(db.Model):
                     parts = line.strip().split('\t')
                     if len(parts) == 5:
                         peco_id, peco_name, peco_defn = parts[0], parts[1], parts[2]
-                        print("'",peco_id,"'")
                         peco = PlantExperimentalConditionsOntology(peco_term=peco_id, peco_class=peco_name, peco_annotation=peco_defn)
                         db.session.add(peco)
                         i += 1
