@@ -374,6 +374,7 @@ class ExpressionProfile(db.Model):
                     return redirect(url_for('admin.add.expression_profiles.index'))
                 # Add literature-sample association
                 SampleLitAssociation.add_sample_lit_association(run, literature_doi)
+                annotation[run]["lit_doi"] = literature_doi
 
         #See the modifications in other parts of code
         order, colors = [], []
@@ -418,12 +419,14 @@ class ExpressionProfile(db.Model):
                             'po_dev_stage': {},
                             'po_dev_stage_class': {},
                             'peco': {},
-                            'peco_class': {},}
+                            'peco_class': {},
+                            'lit_doi': {}}
 
                 for c, v in zip(colnames, values):
                     if c in annotation.keys():
                         profile['tpm'][c] = float(v)
                         profile['annotation'][c] = annotation[c]['description']
+                        profile['lit_doi'][c] = annotation[c]['lit_doi']
                         profile['po_anatomy'][c] = annotation[c]["po_anatomy"]
                         profile['po_anatomy_class'][c] = annotation[c]["po_anatomy_class"]
                         # not mandatory fields
