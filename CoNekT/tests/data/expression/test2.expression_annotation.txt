@@ -1,0 +1,15 @@
+SampleID	DOI	ConditionDescription	Strandness	Layout	PO_anatomy	PO_dev_stage	PECO
+P	10.1093/nar/gky336	Tissue 01	strand specific	paired-end	PO:0025034	PO:0004500	
+Q	10.1093/nar/gky336	Tissue 01	strand specific	paired-end	PO:0025034	PO:0004500	
+R	10.1093/nar/gky336	Tissue 01	strand specific	paired-end	PO:0025034		
+S	10.1093/nar/gky336	Tissue 02	strand specific	paired-end	PO:0009005	PO:0007510	
+T	10.1093/nar/gky336	Tissue 02	strand specific	paired-end	PO:0009005	PO:0007510	
+U	10.1093/nar/gky336	Tissue 02	strand specific	paired-end	PO:0009005		
+V	10.1093/nar/gky336	Tissue 03	strand specific	paired-end	PO:0009047	PO:0007089	PECO:0007173
+W	10.1186/s13040-022-00315-9	Tissue 03	strand specific	paired-end	PO:0009047	PO:0007089	PECO:0007173
+X	10.1186/s13040-022-00315-9	Tissue 03	strand specific	paired-end	PO:0009047	PO:0007089	PECO:0007174
+Y	10.1186/s13040-022-00315-9	Tissue 03	strand specific	paired-end	PO:0009047		PECO:0007174
+Z	10.1186/s13040-022-00315-9	Tissue 03	strand specific	paired-end	PO:0009047		PECO:0007174
+AA	10.1186/s13040-022-00315-9	Tissue 03	strand specific	paired-end	PO:0009047		
+AB	10.1186/s13040-022-00315-9	Tissue 03	strand specific	paired-end	PO:0009047		
+AC	10.1186/s13040-022-00315-9	Tissue 03	strand specific	paired-end	PO:0009047		
