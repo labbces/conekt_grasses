@@ -136,6 +136,7 @@ class ExpressionSpecificity(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     profile_id = db.Column(db.Integer, db.ForeignKey('expression_profiles.id', ondelete='CASCADE'), index=True)
+    literature_id = db.Column(db.Integer, db.ForeignKey('literature.id', ondelete='CASCADE'))
     condition = db.Column(db.String(255), index=True)
     score = db.Column(db.Float, index=True)
     entropy = db.Column(db.Float, index=True)
