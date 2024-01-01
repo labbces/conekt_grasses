@@ -15,8 +15,11 @@ class ExpressionSpecificityMethod(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.Text)
     conditions = db.Column(db.Text)
+    data_type = db.Column(db.Enum('condition', 'po_anatomy',
+                                  'po_dev_stage', 'peco',
+                                  name='data_type'))
     species_id = db.Column(db.Integer, db.ForeignKey('species.id', ondelete='CASCADE'), index=True)
-
+    literature_id = db.Column(db.Integer, db.ForeignKey('literature.id', ondelete='CASCADE'))
     specificities = db.relationship('ExpressionSpecificity',
                                     backref='method',
                                     lazy='dynamic',
@@ -62,10 +65,10 @@ class ExpressionSpecificityMethod(db.Model):
         # detect all conditions
         for profile_id, profile in profiles:
             profile_data = json.loads(profile)
-            for condition, po in profile_data['data']['PO_class'].items():
+            for condition, po in profile_data['data']['po_anatomy_class'].items():
                 condition_to_tissue[condition] = po
 
-        tissues = list(sorted(set(profile_data['data']['PO_class'].values())))
+        tissues = list(sorted(set(profile_data['data']['po_anatomy_class'].values())))
 
         new_method.conditions = json.dumps(tissues)
 
@@ -85,7 +88,7 @@ class ExpressionSpecificityMethod(db.Model):
 
                 for k, v in profile_data['data']['tpm'].items():
                     if k in valid_conditions:
-                        if profile_data['data']['PO_class'][k] == t:
+                        if profile_data['data']['po_anatomy_class'][k] == t:
                             values = values + [v]
                 
                 profile_means[t] = mean(values)
@@ -136,7 +139,6 @@ class ExpressionSpecificity(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     profile_id = db.Column(db.Integer, db.ForeignKey('expression_profiles.id', ondelete='CASCADE'), index=True)
-    literature_id = db.Column(db.Integer, db.ForeignKey('literature.id', ondelete='CASCADE'))
     condition = db.Column(db.String(255), index=True)
     score = db.Column(db.Float, index=True)
     entropy = db.Column(db.Float, index=True)
