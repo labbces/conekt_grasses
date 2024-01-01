@@ -138,145 +138,66 @@ def entropy_from_values(values, num_bins=20):
     return entropy(hist)
 
 
-def calculate_annotation_specificities(species_code, description, engine):
-        """
-        Function calculates specific genes based on the expression.
+def calculate_specificities(species_code, description, engine):
+    """
+    Function calculates specific genes based on the expression.
 
-        :param species_id: internal species ID
-        :param description: description for the method to determine the specificity
-        :param remove_background: substracts the lowest value to correct for background noise
-        :return id of the new method
-        """
+    :param species_id: internal species ID
+    :param description: description for the method to determine the specificity
+    :return id of the new method
+    """
 
-        with engine.connect() as conn:
-            stmt = select(Species).where(Species.__table__.c.code == species_code)
-            species_id = conn.execute(stmt).first().id
+    with engine.connect() as conn:
+        stmt = select(Species).where(Species.__table__.c.code == species_code)
+        species_id = conn.execute(stmt).first().id
+
+    if not species_id:
+        print(f'Species not found in database: {species_code}')
+        exit(1)
     
-        if not species_id:
-            print(f'Species not found in database: {species_code}')
-            exit(1)
-        
-        new_method = ExpressionSpecificityMethod()
-        new_method.species_id = species_id
-        new_method.description = description
-        new_method.menu_order = 0
+    # get profile from the database (ORM free for speed)
+    with engine.connect() as conn:
+        stmt = select(ExpressionProfile.__table__.c.id,
+                        ExpressionProfile.__table__.c.profile)\
+                        .where(ExpressionProfile.__table__.c.species_id == species_id)
+        profiles = conn.execute(stmt).all()
 
-        # get profile from the database (ORM free for speed)
-        with engine.connect() as conn:
-            stmt = select(ExpressionProfile.__table__.c.id,
-                          ExpressionProfile.__table__.c.profile)\
-                          .where(ExpressionProfile.__table__.c.species_id == species_id)
-            profiles = conn.execute(stmt).all()
+    sample_literature_items = {}
+
+    for profile_id, profile in profiles:
+            profile_data = json.loads(profile)
+            sample_literature_items = set(sample_literature_items).union(set(profile_data['data']['lit_doi'].values()))
+
+    for lit_doi in sample_literature_items:
 
         # detect all sample annotations
         sample_annotations = {}
-        sample_literature_items = {}
 
-        for profile_id, profile in profiles:
-            profile_data = json.loads(profile)
-            sample_annotations = set(sample_annotations).union(set(profile_data['data']['annotation'].values()))
-            sample_literature_items = set(sample_literature_items).union(set(profile_data['data']['lit_doi'].values()))
-
-        new_method.conditions = json.dumps(list(sample_annotations))
-
-        session.add(new_method)
-        session.commit()
-
-        for lit_doi in sample_literature_items:
-
-            # detect specifities and add to the database
-            specificities = []
-
-            for profile_id, profile in profiles:
-
-                # prepare profile data for calculation
-                profile_data = json.loads(profile)
-
-                profile_values = {}
-
-                for k, v in profile_data['data']['tpm'].items():
-                    if profile_data['data']['lit_doi'][k] == lit_doi:
-                        profile_values[profile_data['data']['annotation'][k]] = v
-                
-                # determine spm score for each condition
-                profile_specificities = []
-                profile_tau = tau(profile_values.values())
-                profile_entropy = entropy_from_values(profile_values.values())
-
-                for sample_annotation in sample_annotations:
-                    score = expression_specificity(sample_annotation, profile_values)
-                    new_specificity = {
-                        'profile_id': profile_id,
-                        'condition': sample_annotation,
-                        'score': score,
-                        'entropy': profile_entropy,
-                        'tau': profile_tau,
-                        'literature_id': '',
-                        'method_id': new_method.id,
-                    }
-
-                    profile_specificities.append(new_specificity)
-
-                # sort conditions and add top one
-                profile_specificities = sorted(profile_specificities, key=lambda x: x['score'], reverse=True)
-
-                with engine.connect() as conn:
-                    stmt = select(LiteratureItem).where(LiteratureItem.__table__.c.doi == lit_doi)
-                    literature_id = conn.execute(stmt).first().id
-    
-                if not literature_id:
-                    print(f'Literature not found in database: {lit_doi}')
-                    exit(1)
-
-                profile_specificities[0]['literature_id'] = literature_id
-
-                specificities.append(profile_specificities[0])
-                session.add(ExpressionSpecificity(**profile_specificities[0]))
-
-                # write specificities to db if there are more than 400 (ORM free for speed)
-                if len(specificities) > 400:
-                    session.commit()
-                    specificities = []
-
-            # write remaining specificities to the db
-            session.commit()
-            return new_method.id
-
-
-"""TODO: calculate_ontology_specificities
-
-def calculate_ontology_specificities(species_code, description, ontology='po_anatomy', remove_background=False, use_max=True):
-        
         with engine.connect() as conn:
-            stmt = select(Species).where(Species.__table__.c.code == species_code)
-            species_id = conn.execute(stmt).first().id
-    
-        if not species_id:
-            print(f'Species not found in database: {species_code}')
+            stmt = select(LiteratureItem).where(LiteratureItem.__table__.c.doi == lit_doi)
+            literature_id = conn.execute(stmt).first().id
+
+        if not literature_id:
+            print(f'Literature not found in database: {lit_doi}')
             exit(1)
 
         new_method = ExpressionSpecificityMethod()
         new_method.species_id = species_id
         new_method.description = description
+        new_method.literature_id = literature_id
+        new_method.data_type = 'condition'
         new_method.menu_order = 0
 
-        sample_to_annotation = {}
-
-        # get profile from the database (ORM free for speed)
-        with engine.connect() as conn:
-            stmt = select(ExpressionProfile.__table__.c.id,
-                          ExpressionProfile.__table__.c.profile)\
-                          .where(ExpressionProfile.__table__.c.species_id == species_id)
-            profiles = conn.execute(stmt).all()
-
-        # detect all sample annotations
         for profile_id, profile in profiles:
             profile_data = json.loads(profile)
-            for sample, annotation in profile_data['data']['annotation'].items():
-                sample_to_annotation[sample] = annotation
+            for k, v in profile_data['data']['annotation'].items():
+                if profile_data['data']['lit_doi'][k] == lit_doi:
+                    sample_annotations = set(sample_annotations).union(set([profile_data['data']['annotation'][k]]))
 
-        sample_annotations = list(sorted(set(profile_data['data']['annotation'].values())))
-        new_method.conditions = json.dumps(sample_annotations)
+        if len(sample_annotations) < 2:
+            continue
+
+        new_method.conditions = json.dumps(list(sample_annotations))
 
         session.add(new_method)
         session.commit()
@@ -285,36 +206,33 @@ def calculate_ontology_specificities(species_code, description, ontology='po_ana
         specificities = []
 
         for profile_id, profile in profiles:
+
             # prepare profile data for calculation
             profile_data = json.loads(profile)
-            profile_means = {}
-            for t in sample_annotations:
-                values = []
 
-                for k, v in profile_data['data']['tpm'].items():
-                    if profile_data['data']['PO_class'][k] == t:
-                        values = values + [v]
-                
-                profile_means[t] = mean(values)
+            profile_annotation_values = {}
+            profile_annotation_means = {}
+
+            for k, v in profile_data['data']['tpm'].items():
+                if profile_data['data']['lit_doi'][k] == lit_doi:
+                    if profile_data['data']['annotation'][k] in profile_annotation_values.keys():
+                        profile_annotation_values[profile_data['data']['annotation'][k]].append(v)
+                    else:
+                        profile_annotation_values[profile_data['data']['annotation'][k]] = [v]
             
-                        # substract minimum value to remove background
-            # experimental code !
-            if remove_background:
-                minimum = min([v for k, v in profile_means.items()])
-
-                for k in profile_means.keys():
-                    profile_means[k] -= minimum
-
+            for k, v in profile_annotation_values.items():
+                profile_annotation_means[k] = mean(v)
+        
             # determine spm score for each condition
             profile_specificities = []
-            profile_tau = tau([v for v in profile_data['data']['tpm'].values()])
-            profile_entropy = entropy_from_values([v for v in profile_data['data']['tpm'].values()])
+            profile_tau = tau(profile_annotation_means.values())
+            profile_entropy = entropy_from_values(profile_annotation_means.values())
 
-            for t in tissues:
-                score = expression_specificity(t, profile_means)
+            for sample_annotation in profile_annotation_values.keys():
+                score = expression_specificity(sample_annotation, profile_annotation_means)
                 new_specificity = {
                     'profile_id': profile_id,
-                    'condition': t,
+                    'condition': sample_annotation,
                     'score': score,
                     'entropy': profile_entropy,
                     'tau': profile_tau,
@@ -327,17 +245,281 @@ def calculate_ontology_specificities(species_code, description, ontology='po_ana
             profile_specificities = sorted(profile_specificities, key=lambda x: x['score'], reverse=True)
 
             specificities.append(profile_specificities[0])
+            session.add(ExpressionSpecificity(**profile_specificities[0]))
 
             # write specificities to db if there are more than 400 (ORM free for speed)
             if len(specificities) > 400:
-                db.engine.execute(ExpressionSpecificity.__table__.insert(), specificities)
+                session.commit()
                 specificities = []
 
         # write remaining specificities to the db
-        db.engine.execute(ExpressionSpecificity.__table__.insert(), specificities)
-        return new_method.id
+        session.commit()
+    
+    for lit_doi in sample_literature_items:
 
-"""
+        # detect all sample po_anatomy annotations
+        po_anatomy_annotations = {}
+
+        with engine.connect() as conn:
+            stmt = select(LiteratureItem).where(LiteratureItem.__table__.c.doi == lit_doi)
+            literature_id = conn.execute(stmt).first().id
+
+        if not literature_id:
+            print(f'Literature not found in database: {lit_doi}')
+            exit(1)
+
+        new_method = ExpressionSpecificityMethod()
+        new_method.species_id = species_id
+        new_method.description = description
+        new_method.literature_id = literature_id
+        new_method.data_type = 'po_anatomy'
+        new_method.menu_order = 0
+
+        for profile_id, profile in profiles:
+            profile_data = json.loads(profile)
+            for k, v in profile_data['data']['po_anatomy'].items():
+                if profile_data['data']['lit_doi'][k] == lit_doi:
+                    po_anatomy_annotations = set(po_anatomy_annotations).union(set([profile_data['data']['po_anatomy'][k]]))
+
+        if len(po_anatomy_annotations) < 2:
+            continue
+
+        new_method.conditions = json.dumps(list(po_anatomy_annotations))
+
+        session.add(new_method)
+        session.commit()
+
+        # detect specifities and add to the database
+        specificities = []
+
+        for profile_id, profile in profiles:
+
+            # prepare profile data for calculation
+            profile_data = json.loads(profile)
+
+            profile_po_anatomy_values = {}
+            profile_po_anatomy_means = {}
+
+            for k, v in profile_data['data']['tpm'].items():
+                if profile_data['data']['lit_doi'][k] == lit_doi:
+                    if profile_data['data']['po_anatomy'][k] in profile_po_anatomy_values.keys():
+                        profile_po_anatomy_values[profile_data['data']['po_anatomy'][k]].append(v)
+                    else:
+                        profile_po_anatomy_values[profile_data['data']['po_anatomy'][k]] = [v]
+            
+            for k, v in profile_po_anatomy_values.items():
+                profile_po_anatomy_means[k] = mean(v)
+        
+            # determine spm score for each condition
+            profile_specificities = []
+            profile_tau = tau(profile_po_anatomy_means.values())
+            profile_entropy = entropy_from_values(profile_po_anatomy_means.values())
+
+            for sample_po_anatomy in profile_po_anatomy_values.keys():
+                score = expression_specificity(sample_po_anatomy, profile_po_anatomy_means)
+                new_specificity = {
+                    'profile_id': profile_id,
+                    'condition': sample_po_anatomy,
+                    'score': score,
+                    'entropy': profile_entropy,
+                    'tau': profile_tau,
+                    'method_id': new_method.id,
+                }
+
+                profile_specificities.append(new_specificity)
+
+            # sort conditions and add top one
+            profile_specificities = sorted(profile_specificities, key=lambda x: x['score'], reverse=True)
+
+            specificities.append(profile_specificities[0])
+            session.add(ExpressionSpecificity(**profile_specificities[0]))
+
+            # write specificities to db if there are more than 400 (ORM free for speed)
+            if len(specificities) > 400:
+                session.commit()
+                specificities = []
+
+        # write remaining specificities to the db
+        session.commit()
+    
+    for lit_doi in sample_literature_items:
+
+        # detect all sample po_dev_stage annotations
+        po_dev_stage_annotations = {}
+        
+        with engine.connect() as conn:
+            stmt = select(LiteratureItem).where(LiteratureItem.__table__.c.doi == lit_doi)
+            literature_id = conn.execute(stmt).first().id
+
+        if not literature_id:
+            print(f'Literature not found in database: {lit_doi}')
+            exit(1)
+
+        new_method = ExpressionSpecificityMethod()
+        new_method.species_id = species_id
+        new_method.description = description
+        new_method.literature_id = literature_id
+        new_method.data_type = 'po_dev_stage'
+        new_method.menu_order = 0
+
+        for profile_id, profile in profiles:
+            profile_data = json.loads(profile)
+            for k, v in profile_data['data']['po_dev_stage'].items():
+                if profile_data['data']['lit_doi'][k] == lit_doi:
+                    po_dev_stage_annotations = set(po_dev_stage_annotations).union(set([profile_data['data']['po_dev_stage'][k]]))
+
+        if len(po_dev_stage_annotations) < 2:
+            continue
+
+        new_method.conditions = json.dumps(list(po_dev_stage_annotations))
+
+        session.add(new_method)
+        session.commit()
+
+        # detect specifities and add to the database
+        specificities = []
+
+        for profile_id, profile in profiles:
+
+            # prepare profile data for calculation
+            profile_data = json.loads(profile)
+
+            profile_po_dev_stage_values = {}
+            profile_po_dev_stage_means = {}
+
+            for k, v in profile_data['data']['tpm'].items():
+                if profile_data['data']['lit_doi'][k] == lit_doi:
+                    if k in profile_data['data']['po_dev_stage'].keys():
+                        if profile_data['data']['po_dev_stage'][k] in profile_po_dev_stage_values.keys():
+                            profile_po_dev_stage_values[profile_data['data']['po_dev_stage'][k]].append(v)
+                        else:
+                            profile_po_dev_stage_values[profile_data['data']['po_dev_stage'][k]] = [v]
+            
+            for k, v in profile_po_dev_stage_values.items():
+                profile_po_dev_stage_means[k] = mean(v)
+        
+            # determine spm score for each condition
+            profile_specificities = []
+            profile_tau = tau(profile_po_dev_stage_means.values())
+            profile_entropy = entropy_from_values(profile_po_dev_stage_means.values())
+
+            for sample_po_dev_stage in profile_po_dev_stage_values.keys():
+                score = expression_specificity(sample_po_dev_stage, profile_po_dev_stage_means)
+                new_specificity = {
+                    'profile_id': profile_id,
+                    'condition': sample_po_dev_stage,
+                    'score': score,
+                    'entropy': profile_entropy,
+                    'tau': profile_tau,
+                    'method_id': new_method.id,
+                }
+
+                profile_specificities.append(new_specificity)
+
+            # sort conditions and add top one
+            profile_specificities = sorted(profile_specificities, key=lambda x: x['score'], reverse=True)
+
+            specificities.append(profile_specificities[0])
+            session.add(ExpressionSpecificity(**profile_specificities[0]))
+
+            # write specificities to db if there are more than 400 (ORM free for speed)
+            if len(specificities) > 400:
+                session.commit()
+                specificities = []
+
+        # write remaining specificities to the db
+        session.commit()
+    
+    for lit_doi in sample_literature_items:
+
+        # detect all sample peco annotations
+        peco_annotations = {}
+
+        with engine.connect() as conn:
+            stmt = select(LiteratureItem).where(LiteratureItem.__table__.c.doi == lit_doi)
+            literature_id = conn.execute(stmt).first().id
+
+        if not literature_id:
+            print(f'Literature not found in database: {lit_doi}')
+            exit(1)
+
+        new_method = ExpressionSpecificityMethod()
+        new_method.species_id = species_id
+        new_method.description = description
+        new_method.literature_id = literature_id
+        new_method.data_type = 'peco'
+        new_method.menu_order = 0
+
+        for profile_id, profile in profiles:
+            profile_data = json.loads(profile)
+            for k, v in profile_data['data']['peco'].items():
+                if profile_data['data']['lit_doi'][k] == lit_doi:
+                    peco_annotations = set(peco_annotations).union(set([profile_data['data']['peco'][k]]))
+        
+        if len(peco_annotations) < 2:
+            continue
+
+        new_method.conditions = json.dumps(list(peco_annotations))
+
+        session.add(new_method)
+        session.commit()
+
+        # detect specifities and add to the database
+        specificities = []
+
+        for profile_id, profile in profiles:
+
+            # prepare profile data for calculation
+            profile_data = json.loads(profile)
+
+            profile_peco_values = {}
+            profile_peco_means = {}
+
+            for k, v in profile_data['data']['tpm'].items():
+                if profile_data['data']['lit_doi'][k] == lit_doi:
+                    if k in profile_data['data']['peco'].keys():
+                        if profile_data['data']['peco'][k] in profile_peco_values.keys():
+                            profile_peco_values[profile_data['data']['peco'][k]].append(v)
+                        else:
+                            profile_peco_values[profile_data['data']['peco'][k]] = [v]
+            
+            for k, v in profile_peco_values.items():
+                profile_peco_means[k] = mean(v)
+        
+            # determine spm score for each condition
+            profile_specificities = []
+            profile_tau = tau(profile_peco_means.values())
+            profile_entropy = entropy_from_values(profile_peco_means.values())
+
+            for sample_peco in profile_peco_values.keys():
+                score = expression_specificity(sample_peco, profile_peco_means)
+                new_specificity = {
+                    'profile_id': profile_id,
+                    'condition': sample_peco,
+                    'score': score,
+                    'entropy': profile_entropy,
+                    'tau': profile_tau,
+                    'method_id': new_method.id,
+                }
+
+                profile_specificities.append(new_specificity)
+
+            # sort conditions and add top one
+            profile_specificities = sorted(profile_specificities, key=lambda x: x['score'], reverse=True)
+
+            specificities.append(profile_specificities[0])
+            session.add(ExpressionSpecificity(**profile_specificities[0]))
+
+            # write specificities to db if there are more than 400 (ORM free for speed)
+            if len(specificities) > 400:
+                session.commit()
+                specificities = []
+
+        # write remaining specificities to the db
+        session.commit()
+    
+    return new_method.id
+
         
 db_admin = args.db_admin
 db_name = args.db_name
@@ -366,6 +548,6 @@ species_code = args.species_code
 description = args.specificity_method_description
 
 # Run function(s) to calculate expression specificity
-calculate_annotation_specificities(species_code, description, engine)
+calculate_specificities(species_code, description, engine)
 
 session.close()
