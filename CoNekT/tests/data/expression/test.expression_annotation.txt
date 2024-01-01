@@ -1,16 +1,16 @@
-SampleID	DOI	ConditionDescription	Strandness	Layout	PO_anatomy	PO_dev_stage	PECO
-A	10.1093/nar/gky336	paper 1 cond 1 rep 1	strand specific	paired-end	PO:0025034	PO:0004500	
-B	10.1093/nar/gky336	paper 1 cond 1 rep 2	strand specific	paired-end	PO:0025034	PO:0004500	
-C	10.1093/nar/gky336	paper 1 cond 1 rep 3	strand specific	paired-end	PO:0025034		
-D	10.1093/nar/gky336	paper 1 cond 2 rep 1	strand specific	paired-end	PO:0009005	PO:0007510	
-E	10.1093/nar/gky336	paper 1 cond 2 rep 2	strand specific	paired-end	PO:0009005	PO:0007510	
-F	10.1093/nar/gky336	paper 1 cond 2 rep 3	strand specific	paired-end	PO:0009005		
-G	10.1093/nar/gky336	paper 1 cond 3 rep 1	strand specific	paired-end	PO:0009047	PO:0007089	PECO:0007173
-H	10.1093/nar/gky336	paper 1 cond 3 rep 2	strand specific	paired-end	PO:0009047	PO:0007089	PECO:0007173
-I	10.1186/s13040-022-00315-9	paper 2 cond 1 rep 1	strand specific	paired-end	PO:0009047	PO:0007089	PECO:0007173
-J	10.1186/s13040-022-00315-9	paper 2 cond 1 rep 2	strand specific	paired-end	PO:0009047	PO:0007089	PECO:0007174
-K	10.1186/s13040-022-00315-9	paper 2 cond 1 rep 3	strand specific	paired-end	PO:0009047		PECO:0007174
-L	10.1186/s13040-022-00315-9	paper 2 cond 1 rep 4	strand specific	paired-end	PO:0009047		PECO:0007174
-M	10.1186/s13040-022-00315-9	paper 2 cond 1 rep 5	strand specific	paired-end	PO:0009047		
-N	10.1186/s13040-022-00315-9	paper 2 cond 1 rep 6	strand specific	paired-end	PO:0009047		
-O	10.1186/s13040-022-00315-9	paper 2 cond 1 rep 7	strand specific	paired-end	PO:0009047		
+SampleID	DOI	ConditionDescription	Replicate	Strandness	Layout	PO_anatomy	PO_dev_stage	PECO
+A	10.1093/nar/gky336	cond 1	1	strand specific	paired-end	PO:0025034	PO:0004500	
+B	10.1093/nar/gky336	cond 1	2	strand specific	paired-end	PO:0025034	PO:0004500	
+C	10.1093/nar/gky336	cond 1	3	strand specific	paired-end	PO:0025034		
+D	10.1093/nar/gky336	cond 2	1	strand specific	paired-end	PO:0009005	PO:0007510	
+E	10.1093/nar/gky336	cond 2	2	strand specific	paired-end	PO:0009005	PO:0007510	
+F	10.1093/nar/gky336	cond 2	3	strand specific	paired-end	PO:0009005		
+G	10.1093/nar/gky336	cond 3	1	strand specific	paired-end	PO:0009047	PO:0007089	PECO:0007173
+H	10.1093/nar/gky336	cond 3	2	strand specific	paired-end	PO:0009047	PO:0007089	PECO:0007173
+I	10.1186/s13040-022-00315-9	cond 4	1	strand specific	paired-end	PO:0009047	PO:0007089	PECO:0007173
+J	10.1186/s13040-022-00315-9	cond 4	2	strand specific	paired-end	PO:0009047	PO:0007089	PECO:0007174
+K	10.1186/s13040-022-00315-9	cond 4	3	strand specific	paired-end	PO:0009047		PECO:0007174
+L	10.1186/s13040-022-00315-9	cond 4	4	strand specific	paired-end	PO:0009047		PECO:0007174
+M	10.1186/s13040-022-00315-9	cond 4	5	strand specific	paired-end	PO:0009047		
+N	10.1186/s13040-022-00315-9	cond 4	6	strand specific	paired-end	PO:0009047		
+O	10.1186/s13040-022-00315-9	cond 4	7	strand specific	paired-end	PO:0009047		
