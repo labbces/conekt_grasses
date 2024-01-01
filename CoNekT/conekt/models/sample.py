@@ -18,14 +18,16 @@ class Sample(db.Model):
     strandness = db.Column(db.Enum('unstranded', 'strand specific', name='RNA-Seq layout'), default='unstranded')
     layout = db.Column(db.Enum('paired-end', 'single-end', name='RNA-Seq layout'), default='single-end')
     description = db.Column(db.Text)
+    replicate = db.Column(db.Integer, default=1)
     species_id = db.Column(db.Integer, db.ForeignKey('species.id', ondelete='CASCADE'), index=True)
     
     def __init__(self, sample_name, strandness, layout, species_id,
-                 description):
+                 description, replicate):
         self.sample_name = sample_name
         self.strandness = strandness
         self.layout = layout
         self.description = description
+        self.replicate = replicate
         self.species_id = species_id
     
     def __repr__(self):
@@ -33,9 +35,10 @@ class Sample(db.Model):
 
     # adding sample information in the DB
     @staticmethod
-    def add(sample_name, strandness, layout, description, species_id):
+    def add(sample_name, strandness, layout, description, species_id, replicate=1):
 
-        new_sample = Sample(sample_name, strandness=strandness, layout=layout, description=description,
+        new_sample = Sample(sample_name, strandness=strandness, layout=layout,
+                            description=description, replicate=replicate,
                             species_id=species_id)
         
         sample = Sample.query.filter_by(sample_name=sample_name).first()
