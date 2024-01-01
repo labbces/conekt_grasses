@@ -47,7 +47,7 @@ class ExpressionProfile(db.Model):
         """
         processed_values = {}
         for key, expression_values in data["data"]["tpm"].items():
-            po_value = data["data"]["PO_class"][key]
+            po_value = data["data"]["po_anatomy_class"][key]
 
             if po_value not in processed_values:
                 processed_values[po_value] = []
@@ -339,15 +339,20 @@ class ExpressionProfile(db.Model):
             # get rid of the header
             _ = fin.readline()
             for line in fin:
-                # 8 parts (columns)
+                # 9 parts (columns)
                 parts = line.split('\t')
-                if len(parts) == 8:        
-                    run, literature_doi, description, strandness, layout, po_anatomy, po_dev_stage, peco = parts
+                if len(parts) == 9:        
+                    run, literature_doi,\
+                    description, replicate,\
+                    strandness, layout, po_anatomy,\
+                    po_dev_stage, peco = parts
                     peco = peco.rstrip()
                     Sample.add(run, strandness, layout,
-                                    description, species_id)
+                                    description, replicate,
+                                    species_id)
                     annotation[run] = {}
                     annotation[run]["description"] = description
+                    annotation[run]["replicate"] = replicate
 
                     # 'po_anatomy' is mandatory
                     if po_anatomy:
@@ -414,6 +419,7 @@ class ExpressionProfile(db.Model):
                 transcript, *values = line.rstrip().split()
                 profile = {'tpm': {},
                            'annotation': {},
+                           'replicate': {},
                             'po_anatomy': {},
                             'po_anatomy_class': {},
                             'po_dev_stage': {},
@@ -426,6 +432,7 @@ class ExpressionProfile(db.Model):
                     if c in annotation.keys():
                         profile['tpm'][c] = float(v)
                         profile['annotation'][c] = annotation[c]['description']
+                        profile['replicate'][c] = annotation[c]['replicate']
                         profile['lit_doi'][c] = annotation[c]['lit_doi']
                         profile['po_anatomy'][c] = annotation[c]["po_anatomy"]
                         profile['po_anatomy_class'][c] = annotation[c]["po_anatomy_class"]
