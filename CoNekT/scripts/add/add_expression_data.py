@@ -213,11 +213,12 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
         # get rid of the header
         _ = fin.readline()
         for line in fin:
-            # 8 parts (columns)
+            # 9 parts (columns)
             parts = line.split('\t')
-            if len(parts) == 8:        
+            if len(parts) == 9:        
                 run, literature_doi,\
-                description, strandness,\
+                description, replicate,\
+                strandness,\
                 layout, po_anatomy,\
                 po_dev_stage, peco = parts
                 peco = peco.rstrip()
@@ -226,11 +227,13 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
                            strandness=strandness,
                            layout=layout,
                            description=description,
+                           replicate=replicate,
                            species_id=species_id))
                 session.commit()
 
                 annotation[run] = {}
                 annotation[run]["description"] = description
+                annotation[run]["replicate"] = replicate
 
                 # 'po_anatomy' is mandatory
                 if po_anatomy:
@@ -309,6 +312,7 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
             transcript, *values = line.rstrip().split()
             profile = {'tpm': {},
                         'annotation': {},
+                        'replicate': {},
                         'po_anatomy': {},
                         'po_anatomy_class': {},
                         'po_dev_stage': {},
@@ -321,6 +325,7 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
                 if c in annotation.keys():
                     profile['tpm'][c] = float(v)
                     profile['annotation'][c] = annotation[c]['description']
+                    profile['replicate'][c] = annotation[c]['replicate']
                     profile['lit_doi'][c] = annotation[c]['lit_doi']
                     profile['po_anatomy'][c] = annotation[c]["po_anatomy"]
                     profile['po_anatomy_class'][c] = annotation[c]["po_anatomy_class"]
