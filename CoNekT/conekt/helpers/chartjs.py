@@ -26,7 +26,7 @@ def prepare_profiles_download(profiles, normalize=False):
             label = key
             gene = p.probe if p.sequence_id is None else p.sequence.name
             tpm = profile['data']['tpm'][key]
-            po = profile['data']['po'][key]
+            po = profile['data']['po_anatomy'][key]
 
             if key in profile['data']['peco']:
                 peco = profile['data']['peco'][key]
@@ -67,7 +67,7 @@ def prepare_profiles(profiles, normalize=False, xlabel='', ylabel='', peco=False
             ontology_classes = list(data['data']['peco_class'].values())
         else:
             samples = list(data['data']['tpm'].keys())
-            ontology_classes = list(data['data']['po_class'].values())
+            ontology_classes = list(data['data']['po_anatomy_class'].values())
 
         sample_annotations = list(data['data']['annotation'].values())
 
@@ -183,7 +183,7 @@ def prepare_avg_profiles(profiles, xlabel='', ylabel=''):
 
         processed_values = {}
         for key, values in data["data"]["tpm"].items():
-            po_value = data["data"]["po_class"][key]
+            po_value = data["data"]["po_anatomy_class"][key]
 
             if po_value not in processed_values:
                 processed_values[po_value] = []
@@ -295,7 +295,7 @@ def prepare_expression_profile(data, show_sample_count=False, xlabel='', ylabel=
     po_list = []
 
     for key, expression_values in data["data"]["tpm"].items():
-        po_value = data["data"]["PO_class"][key]
+        po_value = data["data"]["po_anatomy_class"][key]
 
         if po_value not in processed_values:
             processed_values[po_value] = []
