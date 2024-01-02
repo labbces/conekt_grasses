@@ -15,8 +15,8 @@ class PlantOntology(db.Model):
     __tablename__ = 'plant_ontology'
     id = db.Column(db.Integer, primary_key=True)
     po_term = db.Column(db.String(10, collation=SQL_COLLATION), unique=True)
-    po_class = db.Column(db.String(50, collation=SQL_COLLATION), unique=True)
-    po_annotation = db.Column(db.String(500, collation=SQL_COLLATION))
+    po_class = db.Column(db.String(80, collation=SQL_COLLATION), unique=True)
+    po_annotation = db.Column(db.Text)
 
     def __init__(self, po_term, po_class, po_annotation):
         self.po_term = po_term
