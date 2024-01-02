@@ -163,7 +163,7 @@ def add_sample_peco_association(sample_name, peco_term):
         session.add(association)
         session.commit()
 
-def add_sample_lit_association(sample_name, lit_doi, engine):
+def add_sample_lit_association(sample_name, lit_doi, species_id, engine):
         
     # Not checking sample existence
     # because it is already done in add_sample_po_association
@@ -181,9 +181,9 @@ def add_sample_lit_association(sample_name, lit_doi, engine):
         literature_item = add_literature(lit_doi, engine)
         time.sleep(3)
 
-        
     association = {'sample_id': sample.id,
-                   'literature_id': literature_item.id}
+                   'literature_id': literature_item.id,
+                   'species_id': species_id}
     
     session.add(SampleLitAssociation(**association))
     session.commit()
@@ -267,7 +267,7 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
                 exit(1)
                 
             # Add literature-sample association
-            add_sample_lit_association(run, literature_doi, engine)
+            add_sample_lit_association(run, literature_doi, species_id, engine)
             annotation[run]["lit_doi"] = literature_doi
 
     #See the modifications in other parts of code
