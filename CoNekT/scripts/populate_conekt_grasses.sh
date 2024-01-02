@@ -94,11 +94,11 @@ echo "Populating CoNekT Grasses with expression specificities"
 $SCRIPTS_DIR/build/calculate_specificities.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
  --db_password $DB_PASSWORD\
- --species_code Sp1 --description "Testing annotation specificity 1"
+ --species_code Sp1
 
 # Test species 2
 $SCRIPTS_DIR/build/calculate_specificities.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
  --db_password $DB_PASSWORD\
- --species_code Sp2 --description "Testing annotation specificity 2"
+ --species_code Sp2
 

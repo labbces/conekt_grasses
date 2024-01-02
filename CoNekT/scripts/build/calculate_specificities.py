@@ -17,10 +17,6 @@ parser.add_argument('--species_code', type=str, metavar='Svi',
                     dest='species_code',
                     help='The species code as used in CoNekT Grasses',
                     required=True)
-parser.add_argument('--description', type=str, metavar='Description',
-                    dest='specificity_method_description',
-                    help='Description of the specificity as it should appear in CoNekT Grasses',
-                    required=True)
 parser.add_argument('--db_admin', type=str, metavar='DB admin',
                     dest='db_admin',
                     help='The database admin user',
