@@ -119,7 +119,7 @@ def profile_comparison_main():
                                          ylabel='TPM' + (' (normalized)' if normalize == 1 else ''), category='peco')
 
         # Get table in base64 format for download
-        data = base64.encodebytes(prepare_profiles_download(profiles[:50], normalize).encode('utf-8'))
+        data = base64.encodebytes(prepare_profiles_download(profiles[:50], doi, normalize).encode('utf-8'))
 
         return render_template("expression_profile_comparison.html",
                                po_anatomy_profiles=json.dumps(po_anatomy_profile_chart),
