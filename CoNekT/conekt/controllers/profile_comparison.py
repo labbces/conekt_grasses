@@ -64,7 +64,7 @@ def profile_comparison_cluster(cluster_id, normalize=0):
 @profile_comparison.route('/', methods=['GET', 'POST'])
 def profile_comparison_main():
     """
-    Profile comparison tool, accepts a species, a list of probes, and plots the profiles for the selected
+    Profile comparison tool, accepts a species, a paper, a list of probes, and plots the profiles for the selected
     """
     form = ProfileComparisonForm(request.form)
     form.populate_form()
@@ -72,6 +72,7 @@ def profile_comparison_main():
     if request.method == 'POST':
         species_id = request.form.get('species_id')
         terms = request.form.get('probes').split()
+        literature_id = request.form.get('literature_id')
         normalize = True if request.form.get('normalize') == 'y' else False
 
         probes = terms
@@ -88,6 +89,9 @@ def profile_comparison_main():
 
         # get max 51 profiles, only show the first 50 (the extra one is fetched to throw the warning)
         profiles = ExpressionProfile.get_profiles(species_id, probes, limit=51)
+
+        literature = LiteratureItem.query.get(literature_id)
+        doi = literature.doi
 
         not_found = [p.lower() for p in probes]
         for p in profiles:
@@ -107,11 +111,11 @@ def profile_comparison_main():
                   'warning')
 
         # Get json object for chart
-        po_anatomy_profile_chart = prepare_profiles(profiles[:50], normalize,
+        po_anatomy_profile_chart = prepare_profiles(profiles[:50], doi, normalize,
                                          ylabel='TPM' + (' (normalized)' if normalize == 1 else ''))
-        po_dev_stage_profile_chart = prepare_profiles(profiles[:50], normalize,
+        po_dev_stage_profile_chart = prepare_profiles(profiles[:50], doi, normalize,
                                          ylabel='TPM' + (' (normalized)' if normalize == 1 else ''), category='po_dev_stage')
-        peco_profile_chart = prepare_profiles(profiles[:50], normalize,
+        peco_profile_chart = prepare_profiles(profiles[:50], doi, normalize,
                                          ylabel='TPM' + (' (normalized)' if normalize == 1 else ''), category='peco')
 
         # Get table in base64 format for download

@@ -6,7 +6,7 @@ from conekt.models.species import Species
 
 class ProfileComparisonForm(FlaskForm):
     species_id = SelectField('Species', coerce=int)
-    literature = SelectField('Literature', coerce=int, choices=[])
+    literature_id = SelectField('Literature', coerce=int, choices=[])
     probes = TextAreaField('probes', [InputRequired()])
     normalize = BooleanField('Normalize plots?')
 

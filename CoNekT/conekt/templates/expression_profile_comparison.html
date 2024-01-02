@@ -71,7 +71,7 @@
                         <form method="POST"  action="{{ url_for('profile_comparison.profile_comparison_main') }}"  role="form">
                             {{ form.csrf_token }}
                             {{form.species_id(class_="form-control") }}<br />
-                            {{form.literature(class_="form-control") }}<br />
+                            {{form.literature_id(class_="form-control") }}<br />
                             {{form.probes(class_="form-control") }}<br />
                             <div class="input-group">{{ form.normalize.label }}&nbsp;&nbsp;{{form.normalize(checked=True) }}</div>
                             <div class="pull-right">
@@ -113,7 +113,7 @@
     
     <script>
         let species_select = document.getElementById('species_id');
-        let literature_select = document.getElementById('literature');
+        let literature_select = document.getElementById('literature_id');
         
         species_select.onchange = function() {
             species_id = species_select.value;

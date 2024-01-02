@@ -43,7 +43,7 @@ def prepare_profiles_download(profiles, normalize=False):
     return '\n'.join(output)
 
 
-def prepare_profiles(profiles, normalize=False, xlabel='', ylabel='', peco=False):
+def prepare_profiles(profiles, doi, normalize=False, xlabel='', ylabel='', category='po_anatomy'):
     """
     Function to convert a list of NetworkProfiles to a dict compatible with chart.js
 
@@ -62,23 +62,29 @@ def prepare_profiles(profiles, normalize=False, xlabel='', ylabel='', peco=False
     if len(profiles) > 0:
         data = json.loads(profiles[0].profile)
 
-        if peco:
-            samples = list(key for key in data['data']['tpm'].keys() if key in data['data']['peco_class'].keys())
-            ontology_classes = list(data['data']['peco_class'].values())
+        if category == 'peco':
+            samples = list(key for key in data['data']['tpm'].keys() if (key in data['data']['peco_class'].keys()) and (data['data']['lit_doi'][key] == doi))
+            ontology_classes = list(val for key, val in data['data']['peco_class'].items() if key in samples)
+        elif category == 'po_dev_stage':
+            samples = list(key for key in data['data']['tpm'].keys() if (key in data['data']['po_dev_stage'].keys()) and (data['data']['lit_doi'][key] == doi))
+            ontology_classes = list(val for key, val in data['data']['po_dev_stage'].items() if key in samples)
         else:
-            samples = list(data['data']['tpm'].keys())
-            ontology_classes = list(data['data']['po_anatomy_class'].values())
+            samples = list(key for key in data['data']['tpm'].keys() if (key in data['data']['po_anatomy'].keys()) and (data['data']['lit_doi'][key] == doi))
+            ontology_classes = list(val for key, val in data['data']['po_anatomy_class'].items() if key in samples)
+        
+        sample_annotations = list(val for key, val in data['data']['annotation'].items() if key in samples)
+        sample_replicates = list(val for key, val in data['data']['replicate'].items() if key in samples)
 
-        sample_annotations = list(data['data']['annotation'].values())
-
-        labels_samples = [f'{sample} ({sample_annotation}/{ontology_class})' for sample, ontology_class, sample_annotation in zip(samples, ontology_classes, sample_annotations)]
+        labels_samples = [f'{sample} ({sample_annotation} - rep {str(replicate)}/{ontology_class})' for sample, replicate, ontology_class, sample_annotation in zip(samples, sample_replicates, ontology_classes, sample_annotations)]
 
     for count, p in enumerate(profiles):
         data = json.loads(p.profile)
-        if peco:
-            expression_values = list(data['data']['tpm'][key] for key in data['data']['tpm'].keys() if key in data['data']['peco_class'].keys())
+        if category == 'peco':
+            expression_values = list(val for key, val in data['data']['tpm'].items() if (key in data['data']['peco_class'].keys()) and (data['data']['lit_doi'][key] == doi))
+        if category == 'po_dev_stage':
+            expression_values = list(val for key, val in data['data']['tpm'].items() if (key in data['data']['po_dev_stage_class'].keys()) and (data['data']['lit_doi'][key] == doi))
         else:
-            expression_values = list(data['data']['tpm'].values())
+            expression_values = list(val for key, val in data['data']['tpm'].items() if (key in data['data']['po_anatomy_class'].keys()) and (data['data']['lit_doi'][key] == doi))
 
         if normalize:
             if expression_values == []:
