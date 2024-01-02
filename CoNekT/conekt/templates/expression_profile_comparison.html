@@ -352,8 +352,11 @@
             {% for key, value in example.items() %}
                 $('#{{key}}').val("{{value}}");
             {% endfor %}
-        });
-        
+
+            let species_select = document.getElementById('species_id');
+            species_select.dispatchEvent(new Event('change'));
+
+        });        
     });
     </script>
     {% endif %}
