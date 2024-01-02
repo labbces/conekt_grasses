@@ -378,7 +378,7 @@ class ExpressionProfile(db.Model):
                     flash(f'Unexpected number of columns in annotation file ({line})', 'danger')
                     return redirect(url_for('admin.add.expression_profiles.index'))
                 # Add literature-sample association
-                SampleLitAssociation.add_sample_lit_association(run, literature_doi)
+                SampleLitAssociation.add_sample_lit_association(run, literature_doi, species_id)
                 annotation[run]["lit_doi"] = literature_doi
 
         #See the modifications in other parts of code
