@@ -8,7 +8,7 @@
 <div class="top-pad">
 
 
-    {% if profiles %}
+    {% if po_anatomy_profiles %}
     <ol class="breadcrumb">
         <li><a href="{{ url_for('main.screen') }}">Home</a></li>
         <li><a href="{{ url_for('main.features') }}">Tools</a></li>
@@ -41,8 +41,13 @@
     </div>
 
     <div class="select">
-        <div class="po"><input type="checkbox" value="po" id="po" checked><label for="po" style="margin-left:3px; font-size:12px; color: #575555; font-weight: 100;">PO</label></div>
+        <div class="po_anatomy"><input type="checkbox" value="po_anatomy" id="po_anatomy" checked><label for="po_anatomy" style="margin-left:3px; font-size:12px; color: #575555; font-weight: 100;">PO Anatomy</label></div>
+        {% if not po_dev_stage_profiles|length %}
+        <div class="po_dev_stage"><input type="checkbox" value="po_dev_stage" id="po_dev_stage"><label for="po_dev_stage" style="margin-left:3px; font-size:12px; color: #575555; font-weight: 100;">PO Dev Stage</label></div>
+        {% endif %}
+        {% if not peco_profiles|length %}
         <div class="peco"><input type="checkbox" value="peco" id="peco"><label for="peco" style="margin-left:3px; font-size:12px; color: #575555; font-weight: 100;">PECO</label></div>
+        {% endif %}
     </div>
     <div class="select ontology"></div>
 
@@ -70,6 +75,7 @@
                         <form method="POST"  action="{{ url_for('profile_comparison.profile_comparison_main') }}"  role="form">
                             {{ form.csrf_token }}
                             {{form.species_id(class_="form-control") }}<br />
+                            {{form.literature_id(class_="form-control") }}<br />
                             {{form.probes(class_="form-control") }}<br />
                             <div class="input-group">{{ form.normalize.label }}&nbsp;&nbsp;{{form.normalize(checked=True) }}</div>
                             <div class="pull-right">
@@ -108,8 +114,31 @@
     <script src="{{ url_for('static', filename='js/Chart.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/hammer.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/chartjs-plugin-zoom.min.js') }}"></script>
-    
-    {% if profiles %}
+    <script>
+        let species_select = document.getElementById('species_id');
+        let literature_select = document.getElementById('literature_id');
+        
+        species_select.onchange = function() {
+            species_id = species_select.value;
+            
+            fetch("{{ url_for('profile_comparison.get_sample_lit', species_id='species_id') }}".replace('species_id', species_id)).then(function(response) {
+                response.json().then(function(data) {
+                    
+                    let optionHTML = '';
+                   
+                    for (let literature of data.literatures) {
+                        optionHTML += '<option value="' + literature.id + '">' + literature.publication_detail + '</option>';
+                    }
+        
+                    literature_select.innerHTML = optionHTML;
+        
+                })
+            })
+        }
+    </script>
+
+
+    {% if po_anatomy_profiles %}
         <script>
         var myChart;
         
@@ -150,7 +179,7 @@
 
                         $('<label>')
                             .attr('for', sample_annotation_ontology_class)
-                            .text(clas == "po"? sample_annotation_ontology_class.charAt(0).toUpperCase() + sample_annotation_ontology_class.slice(1): sample_annotation_ontology_class.charAt(0).toUpperCase() + sample_annotation_ontology_class.slice(1) + " (" + abbreviate(sample_annotation_ontology_class) + ")")
+                            .text(clas == "po_anatomy"? sample_annotation_ontology_class.charAt(0).toUpperCase() + sample_annotation_ontology_class.slice(1): sample_annotation_ontology_class.charAt(0).toUpperCase() + sample_annotation_ontology_class.slice(1) + " (" + abbreviate(sample_annotation_ontology_class) + ")")
                             .css({
                                 'margin-left':'3px',
                                 'font-size': '12px',
@@ -200,7 +229,7 @@
                     if(clas == "peco"){
                         option = abbreviate(option);
                     }
-
+                    
                     selectedOptions.push(option);
                 });
 
@@ -224,16 +253,28 @@
         }
 
         $(document).ready(function(){
-            setupCharts({{ profiles|safe }}, "po");
+            setupCharts({{ po_anatomy_profiles|safe }}, "po_anatomy");
         })
         
-        $("#po").click(function() {
+        $("#po_anatomy").click(function() {
             if (!this.checked) {
                 this.checked = true;
             } 
             else {
                 $("#peco").prop("checked", false);
-                setupCharts({{ profiles|safe }}, "po");
+                $("#po_dev_stage").prop("checked", false);
+                setupCharts({{ po_anatomy_profiles|safe }}, "po_anatomy");
+            }
+        });
+
+        $("#po_dev_stage").click(function() {
+            if (!this.checked) {
+                this.checked = true;
+            } 
+            else {
+                $("#peco").prop("checked", false);
+                $("#po_anatomy").prop("checked", false);
+                setupCharts({{ po_dev_stage_profiles|safe }}, "po_dev_stage");
             }
         });
 
@@ -242,10 +283,12 @@
                 this.checked = true;
             } 
             else {
-                $("#po").prop("checked", false);
+                $("#po_anatomy").prop("checked", false);
+                $("#po_dev_stage").prop("checked", false);
                 setupCharts({{ peco_profiles|safe }}, "peco");
             }
         });
+
         </script>
         <style>
             .select{
@@ -268,18 +311,30 @@
                 margin-left: 7px;
             }
             
-            .po, .peco{
+            .po_anatomy{
                 display: inline-block;
             }
 
-            .po input:checked + label:before{
+            .po_dev_stage{
+                display: inline-block;
+            }
+            
+            .peco{
+                display: inline-block;
+            }
+            
+            .po_anatomy input:checked + label:before{
                 background-color: #0b8b0b;
             }
 
+            .po_dev_stage input:checked + label:before{
+                background-color: #0b8b0b;
+            }
+            
             .peco input:checked + label:before{
                 background-color: #0b3a8b;
             }
-
+            
             .select input:checked + label{
                 text-decoration: none;
             }
@@ -297,7 +352,11 @@
             {% for key, value in example.items() %}
                 $('#{{key}}').val("{{value}}");
             {% endfor %}
-        });
+
+            let species_select = document.getElementById('species_id');
+            species_select.dispatchEvent(new Event('change'));
+
+        });        
     });
     </script>
     {% endif %}

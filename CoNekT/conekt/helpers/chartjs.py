@@ -4,7 +4,7 @@ from statistics import mean, stdev
 from utils.color import __COLORS_RGBA as COLORS
 
 
-def prepare_profiles_download(profiles, normalize=False):
+def prepare_profiles_download(profiles, doi, normalize=False):
     """
     Function to convert a list of NetworkProfiles to a dict compatible with chart.js
 
@@ -18,32 +18,40 @@ def prepare_profiles_download(profiles, normalize=False):
         data = json.loads(profiles[0].profile)
 
     # initiate output array with header
-    output = ['sample\tgene\ttpm\tpo\tpeco']
+    output = ['sample\tgene\tdoi\ttpm\tpo_anatomy\tpo_dev_stage\tpeco']
 
-    for key in data['data']['TPM'].keys():
+    for run in [key for key in data['data']['tpm'].keys() if data['data']['lit_doi'][key] == doi]:
         for count, p in enumerate(profiles):
             profile = json.loads(p.profile)
-            label = key
+            label = run
             gene = p.probe if p.sequence_id is None else p.sequence.name
-            tpm = profile['data']['TPM'][key]
-            po = profile['data']['PO'][key]
+            if run in profile['data']['tpm'].keys():
+                tpm = profile['data']['tpm'][run]
+            else:
+                continue
+            po_anatomy = profile['data']['po_anatomy'][run]
 
-            if key in profile['data']['PECO']:
-                peco = profile['data']['PECO'][key]
+            if run in profile['data']['po_dev_stage']:
+                po_dev_stage = profile['data']['po_dev_stage'][run]
+            else:
+                po_dev_stage = 'null'
+            
+            if run in profile['data']['peco']:
+                peco = profile['data']['peco'][run]
             else:
                 peco = 'null'
 
             if normalize:
-                max_tpm = max(data['data']['TPM'].values())
+                max_tpm = max(data['data']['tpm'].values())
                 tpm_normalized = tpm / max_tpm if max_tpm > 0 else 0
                 tpm = tpm_normalized
 
-            output.append(label + '\t' + gene + '\t' + str(tpm) + '\t' + po + '\t' + peco)
+            output.append(label + '\t' + gene + '\t' + doi + '\t' + str(tpm) + '\t' + po_anatomy + '\t' + po_dev_stage + '\t' + peco)
 
     return '\n'.join(output)
 
 
-def prepare_profiles(profiles, normalize=False, xlabel='', ylabel='', peco=False):
+def prepare_profiles(profiles, doi, normalize=False, xlabel='', ylabel='', category='po_anatomy'):
     """
     Function to convert a list of NetworkProfiles to a dict compatible with chart.js
 
@@ -62,23 +70,35 @@ def prepare_profiles(profiles, normalize=False, xlabel='', ylabel='', peco=False
     if len(profiles) > 0:
         data = json.loads(profiles[0].profile)
 
-        if peco:
-            samples = list(key for key in data['data']['TPM'].keys() if key in data['data']['PECO_class'].keys())
-            ontology_classes = list(data['data']['PECO_class'].values())
+        if category == 'peco':
+            samples = list(key for key in data['data']['tpm'].keys() if (key in data['data']['peco_class'].keys()) and (data['data']['lit_doi'][key] == doi))
+            ontology_classes = list(val for key, val in data['data']['peco_class'].items() if key in samples)
+            if not samples:
+                output = {}
+                return output
+        elif category == 'po_dev_stage':
+            samples = list(key for key in data['data']['tpm'].keys() if (key in data['data']['po_dev_stage'].keys()) and (data['data']['lit_doi'][key] == doi))
+            ontology_classes = list(val for key, val in data['data']['po_dev_stage'].items() if key in samples)
+            if not samples:
+                output = {}
+                return output
         else:
-            samples = list(data['data']['TPM'].keys())
-            ontology_classes = list(data['data']['PO_class'].values())
+            samples = list(key for key in data['data']['tpm'].keys() if (key in data['data']['po_anatomy'].keys()) and (data['data']['lit_doi'][key] == doi))
+            ontology_classes = list(val for key, val in data['data']['po_anatomy_class'].items() if key in samples)
 
-        sample_annotations = list(data['data']['annotation'].values())
+        sample_annotations = list(val for key, val in data['data']['annotation'].items() if key in samples)
+        sample_replicates = list(val for key, val in data['data']['replicate'].items() if key in samples)
 
-        labels_samples = [f'{sample} ({sample_annotation}/{ontology_class})' for sample, ontology_class, sample_annotation in zip(samples, ontology_classes, sample_annotations)]
+        labels_samples = [f'{sample} ({sample_annotation} - rep {str(replicate)}/{ontology_class})' for sample, replicate, ontology_class, sample_annotation in zip(samples, sample_replicates, ontology_classes, sample_annotations)]
 
     for count, p in enumerate(profiles):
         data = json.loads(p.profile)
-        if peco:
-            expression_values = list(data['data']['TPM'][key] for key in data['data']['TPM'].keys() if key in data['data']['PECO_class'].keys())
+        if category == 'peco':
+            expression_values = list(val for key, val in data['data']['tpm'].items() if (key in data['data']['peco_class'].keys()) and (data['data']['lit_doi'][key] == doi))
+        if category == 'po_dev_stage':
+            expression_values = list(val for key, val in data['data']['tpm'].items() if (key in data['data']['po_dev_stage_class'].keys()) and (data['data']['lit_doi'][key] == doi))
         else:
-            expression_values = list(data['data']['TPM'].values())
+            expression_values = list(val for key, val in data['data']['tpm'].items() if (key in data['data']['po_anatomy_class'].keys()) and (data['data']['lit_doi'][key] == doi))
 
         if normalize:
             if expression_values == []:
@@ -182,8 +202,8 @@ def prepare_avg_profiles(profiles, xlabel='', ylabel=''):
         data = json.loads(p.profile)
 
         processed_values = {}
-        for key, values in data["data"]["TPM"].items():
-            po_value = data["data"]["PO_class"][key]
+        for key, values in data["data"]["tpm"].items():
+            po_value = data["data"]["po_anatomy_class"][key]
 
             if po_value not in processed_values:
                 processed_values[po_value] = []
@@ -294,8 +314,8 @@ def prepare_expression_profile(data, show_sample_count=False, xlabel='', ylabel=
     processed_values = {}
     po_list = []
 
-    for key, expression_values in data["data"]["TPM"].items():
-        po_value = data["data"]["PO_class"][key]
+    for key, expression_values in data["data"]["tpm"].items():
+        po_value = data["data"]["po_anatomy_class"][key]
 
         if po_value not in processed_values:
             processed_values[po_value] = []

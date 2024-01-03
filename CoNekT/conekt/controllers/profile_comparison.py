@@ -2,7 +2,7 @@ import json
 import base64
 import contextlib
 
-from flask import Blueprint, request, render_template, flash, Markup, url_for
+from flask import Blueprint, request, render_template, flash, Markup, url_for, jsonify
 from sqlalchemy.orm import noload
 
 from conekt import cache
@@ -11,9 +11,10 @@ from conekt.helpers.chartjs import prepare_profiles, prepare_profiles_download
 from conekt.models.expression.coexpression_clusters import CoexpressionCluster
 from conekt.models.expression.profiles import ExpressionProfile
 from conekt.models.relationships.sequence_cluster import SequenceCoexpressionClusterAssociation
+from conekt.models.relationships.sample_literature import SampleLitAssociation
 from conekt.models.sequences import Sequence
-from conekt.models.species import Species
 from conekt.models.ontologies import PlantOntology
+from conekt.models.literature import LiteratureItem
 
 profile_comparison = Blueprint('profile_comparison', __name__)
 
@@ -63,7 +64,7 @@ def profile_comparison_cluster(cluster_id, normalize=0):
 @profile_comparison.route('/', methods=['GET', 'POST'])
 def profile_comparison_main():
     """
-    Profile comparison tool, accepts a species, a list of probes, POs and plots the profiles for the selected
+    Profile comparison tool, accepts a species, a paper, a list of probes, and plots the profiles for the selected
     """
     form = ProfileComparisonForm(request.form)
     form.populate_form()
@@ -71,6 +72,7 @@ def profile_comparison_main():
     if request.method == 'POST':
         species_id = request.form.get('species_id')
         terms = request.form.get('probes').split()
+        literature_id = request.form.get('literature_id')
         normalize = True if request.form.get('normalize') == 'y' else False
 
         probes = terms
@@ -87,6 +89,9 @@ def profile_comparison_main():
 
         # get max 51 profiles, only show the first 50 (the extra one is fetched to throw the warning)
         profiles = ExpressionProfile.get_profiles(species_id, probes, limit=51)
+
+        literature = LiteratureItem.query.get(literature_id)
+        doi = literature.doi
 
         not_found = [p.lower() for p in probes]
         for p in profiles:
@@ -106,16 +111,21 @@ def profile_comparison_main():
                   'warning')
 
         # Get json object for chart
-        profile_chart = prepare_profiles(profiles[:50], normalize,
+        po_anatomy_profile_chart = prepare_profiles(profiles[:50], doi, normalize,
                                          ylabel='TPM' + (' (normalized)' if normalize == 1 else ''))
-        peco_profile_chart = prepare_profiles(profiles[:50], normalize,
-                                         ylabel='TPM' + (' (normalized)' if normalize == 1 else ''), peco=True)
+        po_dev_stage_profile_chart = prepare_profiles(profiles[:50], doi, normalize,
+                                         ylabel='TPM' + (' (normalized)' if normalize == 1 else ''), category='po_dev_stage')
+        peco_profile_chart = prepare_profiles(profiles[:50], doi, normalize,
+                                         ylabel='TPM' + (' (normalized)' if normalize == 1 else ''), category='peco')
 
         # Get table in base64 format for download
-        data = base64.encodebytes(prepare_profiles_download(profiles[:50], normalize).encode('utf-8'))
+        data = base64.encodebytes(prepare_profiles_download(profiles[:50], doi, normalize).encode('utf-8'))
 
         return render_template("expression_profile_comparison.html",
-                               profiles=json.dumps(profile_chart), peco_profiles=json.dumps(peco_profile_chart), form=form, data=data.decode('utf-8'))
+                               po_anatomy_profiles=json.dumps(po_anatomy_profile_chart),
+                               po_dev_stage_profiles=json.dumps(po_dev_stage_profile_chart),
+                               peco_profiles=json.dumps(peco_profile_chart),
+                               form=form, data=data.decode('utf-8'))
     else:
         profiles = ExpressionProfile.query.filter(ExpressionProfile.sequence_id is not None).order_by(ExpressionProfile.species_id).limit(5).all()
 
@@ -129,3 +139,25 @@ def profile_comparison_main():
             example['probes'] = ' '.join([p.sequence.name for p in profiles])
 
         return render_template("expression_profile_comparison.html", form=form, example=example)
+
+@profile_comparison.route('/get_species_sample_lit/<species_id>')
+def get_sample_lit(species_id):
+    
+    lit_info = SampleLitAssociation.query.with_entities(SampleLitAssociation.literature_id).filter_by(species_id=species_id).distinct().all()
+
+    literatureArray = []
+    literature_ids = []
+
+    for lit_id in lit_info:
+        lit_author = LiteratureItem.query.get(lit_id).author_names
+        lit_year = LiteratureItem.query.get(lit_id).public_year
+        if lit_id in literature_ids:
+            continue
+        else:
+            literature_ids.append(lit_id)
+        litObj = {}
+        litObj['id'] = lit_id
+        litObj['publication_detail'] = f'{lit_author} ({lit_year})'
+        literatureArray.append(litObj)
+    
+    return jsonify({'literatures': literatureArray})

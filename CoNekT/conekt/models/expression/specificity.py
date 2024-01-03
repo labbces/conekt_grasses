@@ -15,8 +15,11 @@ class ExpressionSpecificityMethod(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.Text)
     conditions = db.Column(db.Text)
+    data_type = db.Column(db.Enum('condition', 'po_anatomy',
+                                  'po_dev_stage', 'peco',
+                                  name='data_type'))
     species_id = db.Column(db.Integer, db.ForeignKey('species.id', ondelete='CASCADE'), index=True)
-
+    literature_id = db.Column(db.Integer, db.ForeignKey('literature.id', ondelete='CASCADE'))
     specificities = db.relationship('ExpressionSpecificity',
                                     backref='method',
                                     lazy='dynamic',
@@ -62,10 +65,10 @@ class ExpressionSpecificityMethod(db.Model):
         # detect all conditions
         for profile_id, profile in profiles:
             profile_data = json.loads(profile)
-            for condition, po in profile_data['data']['PO_class'].items():
+            for condition, po in profile_data['data']['po_anatomy_class'].items():
                 condition_to_tissue[condition] = po
 
-        tissues = list(sorted(set(profile_data['data']['PO_class'].values())))
+        tissues = list(sorted(set(profile_data['data']['po_anatomy_class'].values())))
 
         new_method.conditions = json.dumps(tissues)
 
@@ -81,11 +84,11 @@ class ExpressionSpecificityMethod(db.Model):
             profile_means = {}
             for t in tissues:
                 values = []
-                valid_conditions = [k for k in profile_data['data']['TPM'].keys() if k in condition_to_tissue and condition_to_tissue[k] == t]
+                valid_conditions = [k for k in profile_data['data']['tpm'].keys() if k in condition_to_tissue and condition_to_tissue[k] == t]
 
-                for k, v in profile_data['data']['TPM'].items():
+                for k, v in profile_data['data']['tpm'].items():
                     if k in valid_conditions:
-                        if profile_data['data']['PO_class'][k] == t:
+                        if profile_data['data']['po_anatomy_class'][k] == t:
                             values = values + [v]
                 
                 profile_means[t] = mean(values)
@@ -100,8 +103,8 @@ class ExpressionSpecificityMethod(db.Model):
 
             # determine spm score for each condition
             profile_specificities = []
-            profile_tau = tau([v for v in profile_data['data']['TPM'].values()])
-            profile_entropy = entropy_from_values([v for v in profile_data['data']['TPM'].values()])
+            profile_tau = tau([v for v in profile_data['data']['tpm'].values()])
+            profile_entropy = entropy_from_values([v for v in profile_data['data']['tpm'].values()])
 
             for t in tissues:
                 score = expression_specificity(t, profile_means)

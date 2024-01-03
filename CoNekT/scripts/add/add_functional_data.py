@@ -36,10 +36,17 @@ parser.add_argument('--db_name', type=str, metavar='DB name',
                     dest='db_name',
                     help='The database name',
                     required=True)
+parser.add_argument('--db_password', type=str, metavar='DB password',
+                    dest='db_password',
+                    help='The database password',
+                    required=False)
 
 args = parser.parse_args()
 
-db_password = input("Enter the database password: ")
+if args.db_password:
+    db_password = args.db_password
+else:
+    db_password = input("Enter the database password: ")
 
 
 class OboEntry:
@@ -322,9 +329,7 @@ if interpro_file:
 if go_file:
     functional_data_count+=1
 
-if functional_data_count > 0:
-    print("Added functional data to the database")
-else:
+if functional_data_count == 0:
     print("Must add at least one type of functional data (e.g., --interpro_xml)\
           to the database!")
     exit(1)

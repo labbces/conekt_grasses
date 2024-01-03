@@ -46,8 +46,8 @@ class ExpressionProfile(db.Model):
         :return: Object of ontologies and values
         """
         processed_values = {}
-        for key, expression_values in data["data"]["TPM"].items():
-            po_value = data["data"]["PO_class"][key]
+        for key, expression_values in data["data"]["tpm"].items():
+            po_value = data["data"]["po_anatomy_class"][key]
 
             if po_value not in processed_values:
                 processed_values[po_value] = []
@@ -272,9 +272,9 @@ class ExpressionProfile(db.Model):
             values = {}
 
             for o in order:
-                for key, value in data['data']['PO_class'].items():
+                for key, value in data['data']['po_class'].items():
                     if value == o:
-                        values[key] = data['data']['TPM'][key] 
+                        values[key] = data['data']['tpm'][key] 
                         labels.append(key + " ("+ o +")")
 
             row_max = max(list(values.values()))
@@ -334,52 +334,52 @@ class ExpressionProfile(db.Model):
         :param order_color_file: tab delimited file that contains the order and color of conditions
         """
         annotation = {}
-        pecos = False
 
         with open(annotation_file, 'r') as fin:
             # get rid of the header
             _ = fin.readline()
-
             for line in fin:
-                parts = line.strip().split('\t')
-                if len(parts) == 6:
-                    run, literature_doi, description, strandness, layout, po = parts
+                # 9 parts (columns)
+                parts = line.split('\t')
+                if len(parts) == 9:        
+                    run, literature_doi,\
+                    description, replicate,\
+                    strandness, layout, po_anatomy,\
+                    po_dev_stage, peco = parts
+                    peco = peco.rstrip()
                     Sample.add(run, strandness, layout,
-                                   description, species_id)
+                                    description, replicate,
+                                    species_id)
                     annotation[run] = {}
                     annotation[run]["description"] = description
-                    if po.startswith('PO:'):
-                        annotation[run]["po"] = po
-                        PlantOntology.add_sample_po_association(run, po)
-                        po_details = PlantOntology.query.filter(PlantOntology.po_term == po).first()
-                        annotation[run]["po_class"] = po_details.po_class
+                    annotation[run]["replicate"] = replicate
+
+                    # 'po_anatomy' is mandatory
+                    if po_anatomy:
+                        annotation[run]["po_anatomy"] = po_anatomy
+                        PlantOntology.add_sample_po_association(run, po_anatomy, "po_anatomy")
+                        po_details = PlantOntology.query.filter(PlantOntology.po_term == po_anatomy).first()
+                        annotation[run]["po_anatomy_class"] = po_details.po_class
                     else:
-                        abort(400,f'Incorrect PO: {po}')
-                    SampleLitAssociation.add_sample_lit_association(run, literature_doi)
-                elif len(parts) == 7:
-                    run, literature_doi, description, strandness, layout, po, peco = parts
-                    Sample.add(run, strandness, layout,
-                                   description, species_id)
-                    annotation[run] = {}
-                    annotation[run]["description"] = description
-                    if po.startswith('PO:'):
-                        annotation[run]["po"] = po
-                        PlantOntology.add_sample_po_association(run, po)
-                        po_details = PlantOntology.query.filter(PlantOntology.po_term==po).first()
-                        annotation[run]["po_class"] = po_details.po_class
-                    else:
-                        abort(400,f'Incorrect PO: {po}')
-                    if peco.startswith('PECO:'):
+                        abort(400,f"The 'po_anatomy' of {run} sample is None (mandatory info)")
+                    # 'po_dev_stage' is optional
+                    if po_dev_stage:
+                        annotation[run]["po_dev_stage"] = po_dev_stage
+                        PlantOntology.add_sample_po_association(run, po_dev_stage, "po_dev_stage")
+                        po_details = PlantOntology.query.filter(PlantOntology.po_term == po_dev_stage).first()
+                        annotation[run]["po_dev_stage_class"] = po_details.po_class
+                    # 'peco' is optional
+                    if peco:
                         annotation[run]["peco"] = peco
                         PlantExperimentalConditionsOntology.add_sample_peco_association(run, peco)
                         peco_details = PlantExperimentalConditionsOntology.query.filter(PlantExperimentalConditionsOntology.peco_term==peco).first()
                         annotation[run]["peco_class"] = peco_details.peco_class
-                        pecos = True
-                    else:
-                        abort(400,f'Incorrect PECO: {peco}')
                 else:
                     flash(f'Unexpected number of columns in annotation file ({line})', 'danger')
                     return redirect(url_for('admin.add.expression_profiles.index'))
+                # Add literature-sample association
+                SampleLitAssociation.add_sample_lit_association(run, literature_doi, species_id)
+                annotation[run]["lit_doi"] = literature_doi
 
         #See the modifications in other parts of code
         order, colors = [], []
@@ -409,30 +409,40 @@ class ExpressionProfile(db.Model):
             if order == []:        
                 for c in colnames:
                     if c in annotation.keys():
-                        if annotation[c]['po_class'] not in order:
-                            order.append(annotation[c]['po_class'])
+                        if annotation[c]['po_anatomy_class'] not in order:
+                            order.append(annotation[c]['po_anatomy_class'])
                 order.sort()
 
             # read each line and build profile
             new_probes = []
             for line in fin:
                 transcript, *values = line.rstrip().split()
-                profile = {'TPM': {},
+                profile = {'tpm': {},
                            'annotation': {},
-                            'PO': {},
-                            'PO_class': {},
-                            'PECO': {},
-                            'PECO_class': {},}
+                           'replicate': {},
+                            'po_anatomy': {},
+                            'po_anatomy_class': {},
+                            'po_dev_stage': {},
+                            'po_dev_stage_class': {},
+                            'peco': {},
+                            'peco_class': {},
+                            'lit_doi': {}}
 
                 for c, v in zip(colnames, values):
                     if c in annotation.keys():
-                        profile['TPM'][c] = float(v)
+                        profile['tpm'][c] = float(v)
                         profile['annotation'][c] = annotation[c]['description']
-                        profile['PO'][c] = annotation[c]["po"]
-                        profile['PO_class'][c] = annotation[c]["po_class"]
+                        profile['replicate'][c] = annotation[c]['replicate']
+                        profile['lit_doi'][c] = annotation[c]['lit_doi']
+                        profile['po_anatomy'][c] = annotation[c]["po_anatomy"]
+                        profile['po_anatomy_class'][c] = annotation[c]["po_anatomy_class"]
+                        # not mandatory fields
+                        if 'po_dev_stage' in annotation[c]:
+                            profile['po_dev_stage'][c] = annotation[c]["po_dev_stage"]
+                            profile['po_dev_stage_class'][c] = annotation[c]["po_dev_stage_class"]
                         if 'peco' in annotation[c]:
-                            profile['PECO'][c] = annotation[c]["peco"]
-                            profile['PECO_class'][c] = annotation[c]["peco_class"]
+                            profile['peco'][c] = annotation[c]["peco"]
+                            profile['peco_class'][c] = annotation[c]["peco_class"]
 
 
                 new_probe = {"species_id": species_id,

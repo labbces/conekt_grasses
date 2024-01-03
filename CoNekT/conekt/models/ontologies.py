@@ -6,6 +6,7 @@ from conekt.models.relationships.sample_peco import\
     SamplePECOAssociation
 from conekt.models.relationships import sample_po, sample_peco
 import os
+from flask import flash
 
 SQL_COLLATION = 'NOCASE' if db.engine.name == 'sqlite' else ''
 
@@ -14,8 +15,8 @@ class PlantOntology(db.Model):
     __tablename__ = 'plant_ontology'
     id = db.Column(db.Integer, primary_key=True)
     po_term = db.Column(db.String(10, collation=SQL_COLLATION), unique=True)
-    po_class = db.Column(db.String(50, collation=SQL_COLLATION), unique=True)
-    po_annotation = db.Column(db.String(500, collation=SQL_COLLATION))
+    po_class = db.Column(db.String(80, collation=SQL_COLLATION), unique=True)
+    po_annotation = db.Column(db.Text)
 
     def __init__(self, po_term, po_class, po_annotation):
         self.po_term = po_term
@@ -63,17 +64,24 @@ class PlantOntology(db.Model):
             print(e)
     
     @staticmethod
-    def add_sample_po_association(sample_name, po_term):
+    def add_sample_po_association(sample_name, po_term, po_branch):
 
         sample = Sample.query.filter_by(sample_name=sample_name).first()
         po = PlantOntology.query.filter_by(po_term=po_term).first()
         species_id = sample.species_id
+
+        sample_po = SamplePOAssociation.query.filter_by(sample_id=sample.id, po_id=po.id).first()
         
-        association = {'sample_id': sample.id,
-                       'po_id': po.id,
-                       'species_id': species_id}
-    
-        db.engine.execute(SamplePOAssociation.__table__.insert(), association)
+        if not sample_po:
+
+            association = {'sample_id': sample.id,
+                        'po_id': po.id,
+                        'species_id': species_id,
+                        'po_branch': po_branch}
+        
+            db.engine.execute(SamplePOAssociation.__table__.insert(), association)
+        else:
+            flash(f'Association between sample {sample.sample_name} and PO {po.po_class} already exists.', 'danger')
 
 
 class PlantExperimentalConditionsOntology(db.Model):
@@ -112,7 +120,6 @@ class PlantExperimentalConditionsOntology(db.Model):
                     parts = line.strip().split('\t')
                     if len(parts) == 5:
                         peco_id, peco_name, peco_defn = parts[0], parts[1], parts[2]
-                        print("'",peco_id,"'")
                         peco = PlantExperimentalConditionsOntology(peco_term=peco_id, peco_class=peco_name, peco_annotation=peco_defn)
                         db.session.add(peco)
                         i += 1
@@ -136,8 +143,13 @@ class PlantExperimentalConditionsOntology(db.Model):
         peco = PlantExperimentalConditionsOntology.query.filter_by(peco_term=peco_term).first()
         species_id = sample.species_id
 
-        association = {'sample_id': sample.id,
-                       'peco_id': peco.id,
-                       'species_id': species_id}
-    
-        db.engine.execute(SamplePECOAssociation.__table__.insert(), association)
+        sample_peco = SamplePECOAssociation.query.filter_by(sample_id=sample.id, peco_id=peco.id).first()
+
+        if not sample_peco:
+            association = {'sample_id': sample.id,
+                            'peco_id': peco.id,
+                            'species_id': species_id}
+
+            db.engine.execute(SamplePECOAssociation.__table__.insert(), association)
+        else:
+            flash(f'Association between sample {sample.sample_name} and PECO {peco.peco_class} already exists.', 'danger')

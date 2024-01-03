@@ -7,6 +7,7 @@ class SamplePOAssociation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sample_id = db.Column(db.Integer, db.ForeignKey('samples.id', ondelete='CASCADE'))
     po_id = db.Column(db.Integer, db.ForeignKey('plant_ontology.id', ondelete='CASCADE'))
+    po_branch = db.Column(db.Enum('po_anatomy', 'po_dev_stage'))  # select the type of po (anatomy/dev stage)
     species_id = db.Column(db.Integer, db.ForeignKey('species.id', ondelete='CASCADE'))
 
     species = db.relationship('Species', backref=db.backref('po_associations',
