@@ -32,7 +32,6 @@ $SCRIPTS_DIR/add/add_functional_data.py --db_admin $DB_ADMIN\
 echo "Populating CoNekT Grasses with ontology data"
 # TODO: add PECO data
 $SCRIPTS_DIR/add/add_ontologies.py --plant_ontology $TEST_DATA_DIR/Ontology/plant-ontology.txt\
- #--plant_e_c_ontology $TEST_DATA_DIR/ontology/test.peco_table.txt\
  --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
  --db_password $DB_PASSWORD
@@ -44,7 +43,7 @@ $SCRIPTS_DIR/add/add_species.py --input_table $TEST_DATA_DIR/info_species_test.t
  --db_password $DB_PASSWORD
 
 echo "Populating CoNekT Grasses with gene descriptions"
-for species_code in "Zma" "Osa" "Svi"; do
+for species_code in "Zma" "Osa" "Svi" "Bdi" "Pvi" "Sit" "Sbi"; do
  $SCRIPTS_DIR/add/add_gene_descriptions.py --species_code "$species_code"\
   --gene_descriptions $TEST_DATA_DIR/Species/"$species_code"/"$species_code"_cds_description.txt\
   --db_admin $DB_ADMIN\
@@ -53,7 +52,7 @@ for species_code in "Zma" "Osa" "Svi"; do
 done;
 
 echo "Populating CoNekT Grasses with functional annotation data"
-for species_code in "Zma" "Osa" "Svi"; do
+for species_code in "Zma" "Osa" "Svi" "Bdi" "Pvi" "Sit" "Sbi"; do
  $SCRIPTS_DIR/add/add_interproscan.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
  --db_password $DB_PASSWORD\
@@ -62,17 +61,19 @@ for species_code in "Zma" "Osa" "Svi"; do
 done;
 
 echo "Populating CoNekT Grasses with expression profiles"
-# Setaria viridis - inflorescence development
-$SCRIPTS_DIR/add/add_expression_data.py --db_admin $DB_ADMIN\
+for species_code in "Zma" "Osa" "Svi" "Sbi"; do
+ $SCRIPTS_DIR/add/add_expression_data.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
  --db_password $DB_PASSWORD\
- --species_code Svi\
- --expression_matrix $TEST_DATA_DIR/Species/Svi/expression/Svi_expression_matrix.txt\
- --sample_annotation $TEST_DATA_DIR/Species/Svi/expression/Svi_expression_annotation.txt
+ --species_code "$species_code"\
+ --expression_matrix $TEST_DATA_DIR/Species/"$species_code"/expression/"$species_code"_expression_matrix.txt\
+ --sample_annotation $TEST_DATA_DIR/Species/"$species_code"/expression/"$species_code"_expression_annotation.txt
+done;
 
 echo "Populating CoNekT Grasses with expression specificities"
-# Setaria viridis
-$SCRIPTS_DIR/build/calculate_specificities.py --db_admin $DB_ADMIN\
+for species_code in "Zma" "Osa" "Svi" "Sbi"; do
+ $SCRIPTS_DIR/build/calculate_specificities.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
  --db_password $DB_PASSWORD\
- --species_code Svi
+ --species_code "$species_code"
+done;
