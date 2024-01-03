@@ -3,7 +3,9 @@
 BASE_DIR=/media/renato/SSD1TB/Repositories/conekt_grasses
 SCRIPTS_DIR=$BASE_DIR/CoNekT/scripts
 TEST_DATA_DIR=/media/renato/Renato_Backup/Projects/CENA/CoNekT_Bioenergy/v0.3
+GENE_FAMILIES_DESCRIPTION="Gene Families Testing v0.3"
 
+#Database credentials
 DB_ADMIN=conekt_grasses_admin_test_ipr
 DB_NAME=conekt_grasses_db_test_ipr
 DB_PASSWORD="E,~5*;{9f{p2VGp^"
@@ -77,3 +79,11 @@ for species_code in "Zma" "Osa" "Svi" "Sbi"; do
  --db_password $DB_PASSWORD\
  --species_code "$species_code"
 done;
+
+echo "Populating CoNekT Grasses with gene families"
+$SCRIPTS_DIR/add/add_gene_families.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --species_code "$species_code"\
+ --orthogroups $TEST_DATA_DIR/OrthoFinder/Results_Nov25/Orthogroups/Orthogroups.txt\
+ --description "$GENE_FAMILIES_DESCRIPTION"
