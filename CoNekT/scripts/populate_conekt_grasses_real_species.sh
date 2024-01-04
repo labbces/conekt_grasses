@@ -39,7 +39,7 @@ $SCRIPTS_DIR/add/add_ontologies.py --plant_ontology $TEST_DATA_DIR/Ontology/plan
  --db_password $DB_PASSWORD
 
 echo "Populating CoNekT Grasses with species data"
-$SCRIPTS_DIR/add/add_species.py --input_table $TEST_DATA_DIR/info_species_test.tsv\
+$SCRIPTS_DIR/add/add_species.py --input_table $TEST_DATA_DIR/info_species.tsv\
  --db_admin $DB_ADMIN \
  --db_name conekt_grasses_db_test_ipr \
  --db_password $DB_PASSWORD
@@ -62,6 +62,17 @@ for species_code in "Zma" "Osa" "Svi" "Bdi" "Pvi" "Sit" "Sbi"; do
  --species_code "$species_code"
 done;
 
+echo "Populating CoNekT Grasses with sugarcane functional annotation data"
+for species_code in "Scp1" "Shc10" "Shc11" "Shc12" "Shc13" "Shc14" "Shc15" "Shc16" "Shc17" "Shc18" "Shc19" "Shc1" "Shc20" "Shc21" "Shc22" "Shc23" "Shc24" "Shc25" "Shc26" "Shc27" "Shc28" "Shc29" "Shc2" "Shc30" "Shc31" "Shc32" "Shc33" "Shc34" "Shc35" "Shc36" "Shc37" "Shc38" "Shc39" "Shc3" "Shc40" "Shc41" "Shc42" "Shc43" "Shc44" "Shc45" "Shc46" "Shc47" "Shc48" "Shc49" "Shc4" "Shc50" "Shc5" "Shc6" "Shc7" "Shc8" "Shc9"; do
+ gzip -d $TEST_DATA_DIR/Species/Cana/InterProScan/"$species_code".aa.nonStop.interpro.tsv.gz
+ $SCRIPTS_DIR/add/add_interproscan.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --interproscan_tsv $TEST_DATA_DIR/Species/Cana/InterProScan/"$species_code".aa.nonStop.interpro.tsv\
+ --species_code "$species_code"
+ gzip $TEST_DATA_DIR/Species/Cana/InterProScan/"$species_code".aa.nonStop.interpro.tsv
+done;
+
 echo "Populating CoNekT Grasses with expression profiles"
 for species_code in "Zma" "Osa" "Svi" "Sbi"; do
  $SCRIPTS_DIR/add/add_expression_data.py --db_admin $DB_ADMIN\
@@ -72,8 +83,17 @@ for species_code in "Zma" "Osa" "Svi" "Sbi"; do
  --sample_annotation $TEST_DATA_DIR/Species/"$species_code"/expression/"$species_code"_expression_annotation.txt
 done;
 
+echo "Populating CoNekT Grasses with sugarcane expression profiles"
+species_code="Scp1"
+$SCRIPTS_DIR/add/add_expression_data.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --species_code "$species_code"\
+ --expression_matrix $TEST_DATA_DIR/Species/Cana/expression/"$species_code"_expression_matrix.txt\
+ --sample_annotation $TEST_DATA_DIR/Species/Cana/expression/"$species_code"_expression_annotation.txt
+
 echo "Populating CoNekT Grasses with expression specificities"
-for species_code in "Zma" "Osa" "Svi" "Sbi"; do
+for species_code in "Zma" "Osa" "Svi" "Sbi" "Scp1"; do
  $SCRIPTS_DIR/build/calculate_specificities.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
  --db_password $DB_PASSWORD\
