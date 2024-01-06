@@ -1,0 +1,18 @@
+<div class="table-responsive">
+    <table class="table table-striped table-separated">
+        <tbody>
+            {% for literature in literatures %}
+                <tr>
+                    <td>{{ literature.author_names }}</td>
+                    <td>{{ literature.public_year }}</td>
+                    <td>{{ literature.title }}</td>
+                    <td><a href = "http://doi.org/{{ literature.doi }}">Link to Article</a></td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="5"><em>No papers associated with this term</em></td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

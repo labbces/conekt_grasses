@@ -6,6 +6,8 @@ from conekt.models.species import Species
 from conekt.models.literature import LiteratureItem
 from conekt.models.sequences import Sequence
 from conekt.models.clades import Clade
+from conekt.models.relationships.sample_literature import SampleLitAssociation
+from conekt.models.literature import LiteratureItem
 
 from sqlalchemy.orm import undefer, noload
 from sqlalchemy import desc
@@ -79,6 +81,26 @@ def species_sequences(species_id, page=1):
                                                                  False).items
 
     return render_template('pagination/sequences.html', sequences=sequences)
+
+
+@species.route('/expression_papers/<species_id>/')
+@species.route('/expression_papers/<species_id>/<int:page>')
+@cache.cached()
+def species_expression_papers(species_id, page=1):
+    """
+    Returns a table with literature items from the selected species
+
+    :param species_id: Internal ID of the species
+    :param page: Page number
+    """
+
+    lit_info = SampleLitAssociation.query.with_entities(SampleLitAssociation.literature_id).filter_by(species_id=species_id).distinct().all()
+
+    literatures = LiteratureItem.query.filter(LiteratureItem.id.in_([lit_id[0] for lit_id in lit_info])).paginate(page,
+                                                                 g.page_items,
+                                                                 False).items
+
+    return render_template('pagination/literatures.html', literatures=literatures)
 
 
 @species.route('/download/coding/<species_id>')

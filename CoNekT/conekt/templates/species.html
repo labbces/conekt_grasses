@@ -51,6 +51,8 @@
 
         {{ macro.pagination('Sequences', url_for('species.species_sequences', species_id=species.id), species.sequence_count, none, 'species') }}
 
+        {{ macro.pagination('RNA-Seq Dataset Papers', url_for('species.species_expression_papers', species_id=species.id), 0, none, 'species') }}
+
     {% elif all_species %}
         <ol class="breadcrumb">
             <li><a href="{{ url_for('main.screen') }}">Home</a></li>
