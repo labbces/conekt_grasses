@@ -161,8 +161,8 @@ def calculate_specificities(species_code, engine):
     sample_literature_items = {}
 
     for profile_id, profile in profiles:
-            profile_data = json.loads(profile)
-            sample_literature_items = set(sample_literature_items).union(set(profile_data['data']['lit_doi'].values()))
+        profile_data = json.loads(profile)
+        sample_literature_items = set(sample_literature_items).union(set(profile_data['data']['lit_doi'].values()))
 
     for sample_category in ['annotation', 'po_anatomy', 'po_dev_stage', 'peco']:
 
