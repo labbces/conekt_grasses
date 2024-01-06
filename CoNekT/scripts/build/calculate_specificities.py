@@ -164,7 +164,7 @@ def calculate_specificities(species_code, engine):
         profile_data = json.loads(profile)
         sample_literature_items = set(sample_literature_items).union(set(profile_data['data']['lit_doi'].values()))
 
-    for sample_category in ['annotation', 'po_anatomy', 'po_dev_stage', 'peco']:
+    for sample_category in ['annotation', 'po_anatomy_class', 'po_dev_stage_class', 'peco_class']:
 
         for lit_doi in sample_literature_items:
 
@@ -179,9 +179,11 @@ def calculate_specificities(species_code, engine):
                 print(f'Literature not found in database: {lit_doi}')
                 exit(1)
 
+            sample_category_method = sample_category.replace('_class', '')
+
             new_method = ExpressionSpecificityMethod()
             new_method.species_id = species_id
-            new_method.description = f'{sample_category} ({literature.author_names}, {literature.public_year} - {literature.doi})'
+            new_method.description = f'{sample_category_method} ({literature.author_names}, {literature.public_year} - {literature.doi})'
             new_method.literature_id = literature.id
             new_method.data_type = 'condition'
             new_method.menu_order = 0
