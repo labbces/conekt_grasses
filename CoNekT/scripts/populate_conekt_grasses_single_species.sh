@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+
+BASE_DIR=/media/renato/SSD1TB/Repositories/conekt_grasses
+SCRIPTS_DIR=$BASE_DIR/CoNekT/scripts
+DATA_DIR=/media/renato/Renato_Backup/Projects/CENA/CoNekT_Bioenergy/v0.3
+GENE_FAMILIES_DESCRIPTION="Gene Families Testing v0.3"
+
+#Database credentials
+DB_ADMIN=conekt_grasses_admin_test_ipr
+DB_NAME=conekt_grasses_db_test_ipr
+DB_PASSWORD="E,~5*;{9f{p2VGp^"
+export FLASK_APP=run.py
+
+cd $BASE_DIR/CoNekT
+source bin/activate
+flask initdb
+if [ -d $BASE_DIR/CoNekT/migrations ]; then
+  rm -fr $BASE_DIR/CoNekT/migrations
+fi
+flask db init
+
+# Deactivate virtual environment
+# Currently it is necessary because libraries in the virtual environment
+# are not compatible with the libraries in the system used by the scripts
+deactivate
+
+species_code="Svi"
+species_table="info_species_sevir.tsv"
+
+echo "Populating CoNekT Grasses with functional data"
+$SCRIPTS_DIR/add/add_functional_data.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --interpro_xml $DATA_DIR/FunctionalData/interpro.xml\
+ --gene_ontology_obo $DATA_DIR/FunctionalData/go.obo\
+ --db_password $DB_PASSWORD
+
+echo "Populating CoNekT Grasses with ontology data"
+# TODO: add PECO data
+$SCRIPTS_DIR/add/add_ontologies.py --plant_ontology $DATA_DIR/Ontology/plant-ontology.txt\
+ --plant_e_c_ontology $DATA_DIR/Ontology/peco.tsv\
+ --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD
+
+echo "Populating CoNekT Grasses with species data"
+$SCRIPTS_DIR/add/add_species.py --input_table $DATA_DIR/"$species_table"\
+ --db_admin $DB_ADMIN \
+ --db_name $DB_NAME \
+ --db_password $DB_PASSWORD
+
+echo "Populating CoNekT Grasses with gene descriptions"
+$SCRIPTS_DIR/add/add_gene_descriptions.py --species_code "$species_code"\
+ --gene_descriptions $DATA_DIR/Species/"$species_code"/"$species_code"_cds_description.txt\
+ --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD
+
+echo "Populating CoNekT Grasses with functional annotation data"
+$SCRIPTS_DIR/add/add_interproscan.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --interproscan_tsv $DATA_DIR/Species/"$species_code"/"$species_code"_interproscan.tsv\
+ --species_code "$species_code"
+
+echo "Populating CoNekT Grasses with expression profiles"
+$SCRIPTS_DIR/add/add_expression_data.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --species_code "$species_code"\
+ --expression_matrix $DATA_DIR/Species/"$species_code"/expression/"$species_code"_expression_matrix.txt\
+ --sample_annotation $DATA_DIR/Species/"$species_code"/expression/"$species_code"_expression_annotation.txt
+
+echo "Populating CoNekT Grasses with expression specificity"
+$SCRIPTS_DIR/build/calculate_specificities.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --species_code "$species_code"
+
+echo "Populating CoNekT Grasses with gene families"
+$SCRIPTS_DIR/add/add_gene_families.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --orthogroups $DATA_DIR/OrthoFinder/Results_Nov25/Orthogroups/Orthogroups.txt\
+ --description "$GENE_FAMILIES_DESCRIPTION"
