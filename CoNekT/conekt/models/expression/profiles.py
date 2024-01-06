@@ -11,6 +11,7 @@ from collections import defaultdict
 from statistics import mean
 from math import log
 from werkzeug.utils import redirect
+from sqlalchemy.dialects.mysql import LONGTEXT
 
 from sqlalchemy.orm import joinedload, undefer
 from flask import flash, url_for, abort
@@ -22,9 +23,9 @@ class ExpressionProfile(db.Model):
     __tablename__ = 'expression_profiles'
     id = db.Column(db.Integer, primary_key=True)
     species_id = db.Column(db.Integer, db.ForeignKey('species.id', ondelete='CASCADE'), index=True)
-    probe = db.Column(db.String(50, collation=SQL_COLLATION), index=True)
+    probe = db.Column(db.String(80, collation=SQL_COLLATION), index=True)
     sequence_id = db.Column(db.Integer, db.ForeignKey('sequences.id', ondelete='CASCADE'), index=True)
-    profile = db.deferred(db.Column(db.Text))
+    profile = db.deferred(db.Column(LONGTEXT))
 
     specificities = db.relationship('ExpressionSpecificity',
                                     backref=db.backref('profile', lazy='joined'),
