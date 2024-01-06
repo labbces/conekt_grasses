@@ -51,11 +51,12 @@ def add_tabular_peco(filename, empty=True, compressed=False):
             conn.commit()
 
     with open(filename, 'r') as fin:
+        _ = fin.readline()
         i = 0
         for line in fin:
             if line.startswith('PECO:'):
                 parts = line.strip().split('\t')
-                if len(parts) == 5:
+                if len(parts) == 3:
                     peco_id, peco_name, peco_defn = parts[0], parts[1], parts[2]
                     peco = PlantExperimentalConditionsOntology(peco_term=peco_id, peco_class=peco_name, peco_annotation=peco_defn)
                     session.add(peco)

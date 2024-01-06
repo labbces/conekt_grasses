@@ -39,7 +39,7 @@ $SCRIPTS_DIR/add/add_ontologies.py --plant_ontology $TEST_DATA_DIR/ontology/test
 echo "Populating CoNekT Grasses with species data"
 $SCRIPTS_DIR/add/add_species.py --input_table $TEST_DATA_DIR/species_info.txt\
  --db_admin $DB_ADMIN \
- --db_name conekt_grasses_db_test_ipr \
+ --db_name $DB_NAME \
  --db_password $DB_PASSWORD
 
 echo "Populating CoNekT Grasses with gene descriptions"

@@ -34,6 +34,7 @@ $SCRIPTS_DIR/add/add_functional_data.py --db_admin $DB_ADMIN\
 echo "Populating CoNekT Grasses with ontology data"
 # TODO: add PECO data
 $SCRIPTS_DIR/add/add_ontologies.py --plant_ontology $TEST_DATA_DIR/Ontology/plant-ontology.txt\
+ --plant_e_c_ontology $TEST_DATA_DIR/Ontology/peco.tsv\
  --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
  --db_password $DB_PASSWORD
@@ -41,7 +42,7 @@ $SCRIPTS_DIR/add/add_ontologies.py --plant_ontology $TEST_DATA_DIR/Ontology/plan
 echo "Populating CoNekT Grasses with species data"
 $SCRIPTS_DIR/add/add_species.py --input_table $TEST_DATA_DIR/info_species.tsv\
  --db_admin $DB_ADMIN \
- --db_name conekt_grasses_db_test_ipr \
+ --db_name $DB_NAME \
  --db_password $DB_PASSWORD
 
 echo "Populating CoNekT Grasses with gene descriptions"
