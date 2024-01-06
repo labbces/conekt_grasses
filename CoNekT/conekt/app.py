@@ -112,6 +112,7 @@ def configure_blueprints(app):
     from conekt.controllers.specificity_comparison import specificity_comparison
     from conekt.controllers.admin.controls import admin_controls
     from conekt.controllers.tree import tree
+    from conekt.controllers.literature import literature
 
     LOGIN_ENABLED = app.config['LOGIN_ENABLED']
     BLAST_ENABLED = app.config['BLAST_ENABLED']
@@ -141,6 +142,7 @@ def configure_blueprints(app):
     app.register_blueprint(heatmap, url_prefix='/heatmap')
     app.register_blueprint(profile_comparison, url_prefix='/profile_comparison')
     app.register_blueprint(custom_network, url_prefix='/custom_network')
+    app.register_blueprint(literature, url_prefix='/literature')
     app.register_blueprint(graph_comparison, url_prefix='/graph_comparison')
     app.register_blueprint(clade, url_prefix='/clade')
     app.register_blueprint(ecc, url_prefix='/ecc')
