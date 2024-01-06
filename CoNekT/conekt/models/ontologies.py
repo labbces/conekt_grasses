@@ -88,8 +88,8 @@ class PlantExperimentalConditionsOntology(db.Model):
     __tablename__ = 'plant_experimental_conditions_ontology'
     id = db.Column(db.Integer, primary_key=True)
     peco_term = db.Column(db.String(13, collation=SQL_COLLATION), unique=True)
-    peco_class = db.Column(db.String(50, collation=SQL_COLLATION), unique=True)
-    peco_annotation = db.Column(db.String(500, collation=SQL_COLLATION))
+    peco_class = db.Column(db.String(80, collation=SQL_COLLATION), unique=True)
+    peco_annotation = db.Column(db.Text)
 
     def __init__(self, peco_term, peco_class, peco_annotation):
         self.peco_term = peco_term
