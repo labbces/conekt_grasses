@@ -86,7 +86,8 @@ def add_go_from_tab(filename, species_code, engine, source="Source not provided"
                         "sequence_id": current_sequence.id,
                         "go_id": current_term.id,
                         "evidence": evidence,
-                        "source": source}
+                        "source": source,
+                        "predicted": 0}
                     associations.append(association)
                     session.add(SequenceGOAssociation(**association))
 
@@ -129,7 +130,8 @@ def add_go_from_tab(filename, species_code, engine, source="Source not provided"
                         "sequence_id": current_sequence.id,
                         "go_id": current_term.id,
                         "evidence": None,
-                        "source": "Extended"}
+                        "source": "Extended",
+                        "predicted": 0}
                     associations.append(association)
                     session.add(SequenceGOAssociation(**association))
 
