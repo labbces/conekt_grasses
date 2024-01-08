@@ -164,6 +164,6 @@ Session = sessionmaker(bind=engine)
 session = Session()
 
 # Run function to add interproscan results for species
-add_go_from_tab(go_tsv, sps_code, engine)
+add_go_from_tab(go_tsv, sps_code, engine, source=annotation_source)
 
 session.close()
