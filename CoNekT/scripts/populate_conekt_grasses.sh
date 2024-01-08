@@ -102,3 +102,7 @@ $SCRIPTS_DIR/build/calculate_specificities.py --db_admin $DB_ADMIN\
  --db_password $DB_PASSWORD\
  --species_code Sp2
 
+echo "Update all counts in the database"
+$SCRIPTS_DIR/build/update_counts.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD 

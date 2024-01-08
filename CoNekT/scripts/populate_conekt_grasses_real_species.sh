@@ -107,3 +107,8 @@ $SCRIPTS_DIR/add/add_gene_families.py --db_admin $DB_ADMIN\
  --db_password $DB_PASSWORD\
  --orthogroups $DATA_DIR/OrthoFinder/Results_Nov25/Orthogroups/Orthogroups.txt\
  --description "$GENE_FAMILIES_DESCRIPTION"
+
+echo "Update all counts in the database"
+$SCRIPTS_DIR/build/update_counts.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD 
