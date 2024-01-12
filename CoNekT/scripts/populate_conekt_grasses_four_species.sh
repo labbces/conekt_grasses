@@ -24,9 +24,7 @@ flask db init
 # are not compatible with the libraries in the system used by the scripts
 deactivate
 
-#species_code="Svi"
-#species_table="info_species_sevir.tsv"
-species_table="info_species_three_species.tsv"
+species_table="info_four_species.tsv"
 
 echo "Populating CoNekT Grasses with functional data"
 $SCRIPTS_DIR/add/add_functional_data.py --db_admin $DB_ADMIN\
@@ -69,6 +67,17 @@ for species_code in Svi Osa Zma;
  --species_code "$species_code"
 done;
 
+echo "Populating CoNekT Grasses with sugarcane functional annotation data"
+species_code="Scp1"
+gzip -d $DATA_DIR/Species/Cana/InterProScan/"$species_code".aa.nonStop.interpro.tsv.gz
+$SCRIPTS_DIR/add/add_interproscan.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --interproscan_tsv $DATA_DIR/Species/Cana/InterProScan/"$species_code".aa.nonStop.interpro.tsv\
+ --species_code "$species_code"
+gzip $DATA_DIR/Species/Cana/InterProScan/"$species_code".aa.nonStop.interpro.tsv
+
+echo "Populating CoNekT Grasses with species GO annotation"
 for species_code in Svi Osa Zma;
  do
  $SCRIPTS_DIR/add/add_go.py --db_admin $DB_ADMIN\
@@ -78,6 +87,15 @@ for species_code in Svi Osa Zma;
  --species_code "$species_code"\
  --annotation_source "GOs from InterProScan"
 done;
+
+echo "Populating CoNekT Grasses with sugarcane GO annotation"
+species_code="Scp1"
+$SCRIPTS_DIR/add/add_go.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --go_tsv $DATA_DIR/Species/Cana/Sequences/Scp_v1/"$species_code"_go.txt\
+ --species_code "$species_code"\
+ --annotation_source "GOs from InterProScan"
 
 echo "Populating CoNekT Grasses with expression profiles"
 for species_code in Svi Osa Zma;
@@ -89,6 +107,15 @@ for species_code in Svi Osa Zma;
  --expression_matrix $DATA_DIR/Species/"$species_code"/expression/"$species_code"_expression_matrix.txt\
  --sample_annotation $DATA_DIR/Species/"$species_code"/expression/"$species_code"_expression_annotation.txt
 done;
+
+echo "Populating CoNekT Grasses with sugarcane expression profiles"
+species_code="Scp1"
+$SCRIPTS_DIR/add/add_expression_data.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --species_code "$species_code"\
+ --expression_matrix $DATA_DIR/Species/Cana/expression/"$species_code"_expression_matrix.txt\
+ --sample_annotation $DATA_DIR/Species/Cana/expression/"$species_code"_expression_annotation.txt
 
 echo "Populating CoNekT Grasses with expression specificity"
 for species_code in Svi Osa Zma;
@@ -114,6 +141,27 @@ $SCRIPTS_DIR/add/add_network.py --db_admin $DB_ADMIN\
  --network $DATA_DIR/Species/Zma/expression/Zma_PRJNA190188_network.txt\
  --description "Maize network (PRJNA190188, leaf sections)"
 
+$SCRIPTS_DIR/add/add_network.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --species_code "Scp1"\
+ --network $DATA_DIR/Species/Cana/Correr2020/PRJEB38368_network.txt\
+ --description "Sugarcane network (Correr, 2020 - PRJEB38368)"
+
+$SCRIPTS_DIR/add/add_network.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --species_code "Scp1"\
+ --network $DATA_DIR/Species/Cana/Hoang2017/Hoang2017_network.txt\
+ --description "Sugarcane network (Hoang, 2017)"
+
+$SCRIPTS_DIR/add/add_network.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --species_code "Scp1"\
+ --network $DATA_DIR/Species/Cana/Perlo2022/Perlo2022_network.txt\
+ --description "Sugarcane network (Perlo, 2022)"
+
 echo "Populating CoNekT Grasses with gene families"
 $SCRIPTS_DIR/add/add_gene_families.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
@@ -133,6 +181,24 @@ $SCRIPTS_DIR/build/calculate_clusters.py --db_admin $DB_ADMIN\
  --db_password $DB_PASSWORD\
  --network_method_id 2\
  --description "Maize coexpression clusters (PRJNA190188, leaf sections)"
+
+$SCRIPTS_DIR/build/calculate_clusters.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --network_method_id 3\
+ --description "Sugarcane coexpression clusters (Correr, 2020)"
+
+$SCRIPTS_DIR/build/calculate_clusters.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --network_method_id 4\
+ --description "Sugarcane coexpression clusters (Hoang, 2017)"
+
+$SCRIPTS_DIR/build/calculate_clusters.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --network_method_id 5\
+ --description "Sugarcane coexpression clusters (Perlo, 2022)"
 
 echo "Update all counts in the database"
 $SCRIPTS_DIR/build/update_counts.py --db_admin $DB_ADMIN\
