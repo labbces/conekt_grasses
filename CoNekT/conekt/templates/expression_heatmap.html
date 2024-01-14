@@ -145,6 +145,7 @@
                                 <li class="active"><a href="#tab1default" data-toggle="tab">Default</a></li>
                                 <li><a href="#tab2default" data-toggle="tab">Comparative</a></li>
                                 <li><a href="#tab3default" data-toggle="tab">PO</a></li>
+                                <li><a href="#tab4default" data-toggle="tab">PECO</a></li>
                             </ul>
                     </div>
                     <div>
@@ -209,6 +210,27 @@
                                     </form>
                                 </div>
                             </div>
+                            <div class="tab-pane fade in" id="tab4default">
+                                <div class="panel-body">
+                                    <form method="POST" id="form4" action="{{ url_for('heatmap.heatmap_custom_pecos') }}"  role="form">
+                                        <div class="row">
+                                            <div class="col-xs-12">
+                                                {{ form4.csrf_token }}
+                                                {{form4.species_id_peco(class_="form-control") }}<br />
+                                                {{form4.pecos(class_="form-control") }}<br />
+                                                {{form4.probes(class_="form-control") }}<br />
+                                                {{form4.options(class_="form-control") }}<br />
+                                                <div class="pull-right">
+                                                {% if example4 and example4.probes %}
+                                                    <button class="btn btn-default" id="load_example4" type="button">Load example</button>
+                                                {% endif %}
+                                                    <button type="submit" class="btn btn-primary" data-toggle="modal" data-target="#loaderModal">Generate heatmap</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
                         </div>
                     </div>
                  </div>
@@ -238,11 +260,13 @@
 {% block extrajs %}
 
 <script>
-let species_select = document.getElementById('species_id_po');
+let species_po_select = document.getElementById('species_id_po');
+let species_peco_select = document.getElementById('species_id_peco');
 let pos_select = document.getElementById('pos');
+let pecos_select = document.getElementById('pecos');
 
-species_select.onchange = function() {
-    species_id = species_select.value;
+species_po_select.onchange = function() {
+    species_id = species_po_select.value;
     
     fetch("{{ url_for('heatmap.get_species_pos', species_id='species_id_po') }}".replace('species_id_po', species_id)).then(function(response) {
         response.json().then(function(data) {
@@ -258,6 +282,25 @@ species_select.onchange = function() {
         })
     })
 }
+
+species_peco_select.onchange = function() {
+    species_id = species_peco_select.value;
+    
+    fetch("{{ url_for('heatmap.get_species_pecos', species_id='species_id_peco') }}".replace('species_id_peco', species_id)).then(function(response) {
+        response.json().then(function(data) {
+            
+            let optionHTML = '';
+           
+            for (let peco of data.pecos) {
+                optionHTML += '<option value="' + peco.id + '">' + peco.class + '</option>';
+            }
+
+            pecos_select.innerHTML = optionHTML;
+
+        })
+    })
+}
+
 </script>
 
 {% if order %}

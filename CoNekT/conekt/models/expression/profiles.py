@@ -4,6 +4,7 @@ from conekt.models.condition_tissue import ConditionTissue
 from conekt.models.sample import Sample
 from conekt.models.ontologies import PlantOntology, PlantExperimentalConditionsOntology
 from conekt.models.relationships.sample_literature import SampleLitAssociation
+from conekt.models.literature import LiteratureItem
 
 import json
 import contextlib
@@ -39,21 +40,29 @@ class ExpressionProfile(db.Model):
         self.profile = profile
 
     @staticmethod
-    def get_values(data):
+    def get_values(data, lit_dict=None):
         """
         Gets an object for values in data
 
         :param data: Dict with expression profile
-        :return: Object of ontologies and values
+        :param lit_dict: Dict with literature information (optional)
+        :return: Object of conditions and values
         """
         processed_values = {}
         for key, expression_values in data["data"]["tpm"].items():
-            po_value = data["data"]["po_anatomy_class"][key]
+            condition_value = data["data"]["annotation"][key]
+            literature_doi = data["data"]["lit_doi"][key]
 
-            if po_value not in processed_values:
-                processed_values[po_value] = []
+            if condition_value not in processed_values:
+                if lit_dict is None:
+                    processed_values[condition_value] = []
+                else:
+                    processed_values[condition_value + " (" + lit_dict[literature_doi] + ")"] = []
 
-            processed_values[po_value].append(expression_values)
+            if lit_dict is None:
+                processed_values[condition_value].append(expression_values)
+            else:
+                processed_values[condition_value + " (" + lit_dict[literature_doi] + ")"].append(expression_values)
         
         return processed_values
 
@@ -183,17 +192,23 @@ class ExpressionProfile(db.Model):
         """
         profiles = ExpressionProfile.query.options(undefer('profile')).filter_by(species_id=species_id).\
             filter(ExpressionProfile.probe.in_(probes)).all()
+        
+        lit_info = SampleLitAssociation.query.with_entities(SampleLitAssociation.literature_id).filter_by(species_id=species_id).distinct().all()
+
+        literatures = LiteratureItem.query.filter(LiteratureItem.id.in_([lit_id[0] for lit_id in lit_info]))
+
+        lit_dict = {}
+
+        for lit in literatures:
+            lit_dict[lit.doi] = f'{lit.author_names}, {lit.public_year}'
 
         order = []
-
         output = []
-
         not_found = [p.lower() for p in probes]
 
         for profile in profiles:
             name = profile.probe
             data = json.loads(profile.profile)
-            order = data['order']
 
             with contextlib.suppress(ValueError):
                 not_found.remove(profile.probe.lower())
@@ -201,9 +216,11 @@ class ExpressionProfile(db.Model):
             with contextlib.suppress(ValueError):
                 not_found.remove(profile.sequence.name.lower())
             
-            processed_values = ExpressionProfile.get_values(data)
+            processed_values = ExpressionProfile.get_values(data, lit_dict)
 
             values = {}
+
+            order = list(processed_values.keys())
 
             for o in order:
                 values[o] = mean(processed_values[o])
@@ -233,6 +250,8 @@ class ExpressionProfile(db.Model):
         if len(not_found) > 0:
             flash("Couldn't find profile for: %s" % ", ".join(not_found), "warning")
 
+        print(output, "\n\n\n\n\n\n")
+
         return {'order': order, 'heatmap_data': output}
 
     @staticmethod
@@ -251,7 +270,6 @@ class ExpressionProfile(db.Model):
             filter(ExpressionProfile.probe.in_(probes)).all()
 
         order = []
-        labels = []
         output = []
         not_found = [p.lower() for p in probes]
 
@@ -259,7 +277,7 @@ class ExpressionProfile(db.Model):
             name = profile.probe
             data = json.loads(profile.profile)
 
-            if pos:                
+            if pos:
                 order = pos
             else:
                 order = data['order']
@@ -273,10 +291,15 @@ class ExpressionProfile(db.Model):
             values = {}
 
             for o in order:
-                for key, value in data['data']['po_class'].items():
+                for key, value in data['data']['po_anatomy_class'].items():
                     if value == o:
-                        values[key] = data['data']['tpm'][key] 
-                        labels.append(key + " ("+ o +")")
+                        if value in values.keys():
+                            values[o].append(data['data']['tpm'][key])
+                        else:
+                            values[o] = [data['data']['tpm'][key]]
+                
+                print(values[o], "\n\n\n\n\n\n")
+                values[o] = mean(values[o])
 
             row_max = max(list(values.values()))
 
@@ -302,7 +325,79 @@ class ExpressionProfile(db.Model):
         if len(not_found) > 0:
             flash("Couldn't find profile for: %s" % ", ".join(not_found), "warning")
 
-        return {'labels':labels, 'order': order, 'heatmap_data': output}
+        return {'labels':order, 'order': order, 'heatmap_data': output}
+    
+    @staticmethod
+    def get_peco_heatmap(species_id, probes, pecos, zlog=True, raw=False):
+        """
+        Returns a heatmap for a given species (species_id), a list of probes and a list of ontologies. It returns a dict with 'order'
+        the order of the experiments and 'heatmap' another dict with the actual data. Data is zlog transformed
+
+        :param species_id: species id (internal database id)
+        :param probes: a list of probes to include in the heatmap
+        :param pecos: a list of peco classes to include in the heatmap
+        :param zlog: enable zlog transformation (otherwise normalization against highest expressed condition)
+        """
+
+        profiles = ExpressionProfile.query.options(undefer('profile')).filter_by(species_id=species_id).\
+            filter(ExpressionProfile.probe.in_(probes)).all()
+
+        order = []
+        output = []
+        not_found = [p.lower() for p in probes]
+
+        for profile in profiles:
+            name = profile.probe
+            data = json.loads(profile.profile)
+
+            if pecos:
+                order = pecos
+            else:
+                order = set(data['data']['peco_class'].values())
+
+            with contextlib.suppress(ValueError):
+                not_found.remove(profile.probe.lower())
+
+            with contextlib.suppress(ValueError):
+                not_found.remove(profile.sequence.name.lower())
+            
+            values = {}
+
+            for o in order:
+                for key, value in data['data']['peco_class'].items():
+                    if value == o:
+                        if value in values.keys():
+                            values[o].append(data['data']['tpm'][key])
+                        else:
+                            values[o] = [data['data']['tpm'][key]]
+                
+                values[o] = mean(values[o])
+
+            row_max = max(list(values.values()))
+
+            for v in values:
+                if zlog:
+                    if values[v] == 0:
+                        values[v] = '-'
+                    else:
+                        try:
+                            values[v] = log(values[v], 2)
+                        except ValueError as _:
+                            print("Unable to calculate log()", values[v])
+                            values[v] = '-'
+                else:
+                    if row_max != 0 and not raw:
+                        values[v] = values[v]/row_max
+
+            output.append({"name": name,
+                           "values": values,
+                           "sequence_id": profile.sequence_id,
+                           "shortest_alias": profile.sequence.shortest_alias})
+
+        if len(not_found) > 0:
+            flash("Couldn't find profile for: %s" % ", ".join(not_found), "warning")
+
+        return {'labels':order, 'order': order, 'heatmap_data': output}
 
     @staticmethod
     def get_profiles(species_id, probes, limit=1000):

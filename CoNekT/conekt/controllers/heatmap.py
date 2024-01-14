@@ -3,17 +3,18 @@ from sqlalchemy.orm import undefer
 import json
 
 from conekt import cache
-from conekt.forms.heatmap import HeatmapForm, HeatmapComparableForm, HeatmapPOForm
+from conekt.forms.heatmap import HeatmapForm, HeatmapComparableForm, HeatmapPOForm, HeatmapPECOForm
 from conekt.models.expression.coexpression_clusters import CoexpressionCluster
 from conekt.models.expression.profiles import ExpressionProfile
 from conekt.models.condition_tissue import ConditionTissue
 from conekt.models.relationships.sequence_cluster import SequenceCoexpressionClusterAssociation
 from conekt.models.relationships.sample_po import SamplePOAssociation
+from conekt.models.relationships.sample_peco import SamplePECOAssociation
 from conekt.models.sequences import Sequence
 from conekt.models.trees import Tree
 from conekt.models.gene_families import GeneFamily
 from conekt.models.expression.cross_species_profile import CrossSpeciesExpressionProfile
-from conekt.models.ontologies import PlantOntology
+from conekt.models.ontologies import PlantOntology, PlantExperimentalConditionsOntology
 
 heatmap = Blueprint('heatmap', __name__)
 
@@ -63,6 +64,10 @@ def heatmap_main():
     form3.populate_species()
     form3.populate_options()
 
+    form4 = HeatmapPECOForm(request.form)
+    form4.populate_species()
+    form4.populate_options()
+
     # Fetch data for normal example, get five profiles from a species
     profiles = ExpressionProfile.query.filter(ExpressionProfile.sequence_id is not None).order_by(ExpressionProfile.species_id).limit(5).all()
 
@@ -94,7 +99,6 @@ def heatmap_main():
     }
 
     # Fetch data for third example
-
     example3 = {
         'species_id': None,
         'probes': None,
@@ -105,10 +109,22 @@ def heatmap_main():
         example3['species_id'] = profiles[0].species_id
         example3['probes'] = ' '.join([p.sequence.name for p in profiles])
 
-    return render_template("expression_heatmap.html", form=form, form2=form2, form3=form3,
+    # Fetch data for forth example
+    example4 = {
+        'species_id': None,
+        'probes': None,
+        'options': 'zlog'
+    }
+
+    if len(profiles) > 0:
+        example4['species_id'] = profiles[0].species_id
+        example4['probes'] = ' '.join([p.sequence.name for p in profiles])
+
+    return render_template("expression_heatmap.html", form=form, form2=form2, form3=form3, form4=form4,
                            example=example,
                            example2=example2,
-                           example3=example3)
+                           example3=example3,
+                           example4=example4)
 
 
 @heatmap.route('/results/default', methods=['POST'])
@@ -206,6 +222,47 @@ def heatmap_custom_pos():
                                                     raw=(option == 'raw'))
 
     return render_template("expression_heatmap.html", order=current_heatmap['order'], po=True,
+                           profiles=current_heatmap['heatmap_data'],
+                           labels=current_heatmap['labels'],
+                           zlog=1 if option == 'zlog' else 0,
+                           raw=1 if option == 'raw' else 0)
+
+@heatmap.route('/results/pecos', methods=['POST'])
+def heatmap_custom_pecos():
+
+    form = HeatmapPECOForm(request.form)
+    form.populate_species()
+    form.populate_options()
+
+    probes = request.form.get('probes').split()
+    species_id = request.form.get('species_id_peco')
+    
+    pecos_ids = request.form.getlist('pecos')
+    pecos_ids = [eval(i) for i in pecos_ids]
+    pecos = [peco.peco_class for peco in PlantExperimentalConditionsOntology.query.filter(PlantExperimentalConditionsOntology.id.in_(pecos_ids)).distinct(PlantExperimentalConditionsOntology.peco_class).all()]
+
+    option = request.form.get('options')
+
+    if len(probes) == 0:
+        flash("No genes selected!", "warning")
+        return redirect(url_for('heatmap.heatmap_main'))
+
+    # also do search by gene ID
+    sequences = Sequence.query.filter(Sequence.name.in_(probes)).all()
+
+    for s in sequences:
+        for ep in s.expression_profiles:
+            probes.append(ep.probe)
+
+    # make probe list unique
+    probes = list(set(probes))
+    # TODO check if certain probes were not found and warn the user
+
+    current_heatmap = ExpressionProfile.get_peco_heatmap(species_id, probes, pecos,
+                                                    zlog=(option == 'zlog'),
+                                                    raw=(option == 'raw'))
+
+    return render_template("expression_heatmap.html", order=current_heatmap['order'], peco=True,
                            profiles=current_heatmap['heatmap_data'],
                            labels=current_heatmap['labels'],
                            zlog=1 if option == 'zlog' else 0,
@@ -310,3 +367,25 @@ def get_species_pos(species_id):
         poArray.append(poObj)
     
     return jsonify({'pos': poArray})
+
+
+@heatmap.route('/get_pecos/<species_id>')
+def get_species_pecos(species_id):
+    
+    peco_info = SamplePECOAssociation.query.filter_by(species_id=species_id).distinct().all()
+
+    pecoArray = []
+    peco_ids = []
+
+    for peco in peco_info:
+        peco_class = PlantExperimentalConditionsOntology.query.get(peco.peco_id).peco_class
+        if peco.peco_id in peco_ids:
+            continue
+        else:
+            peco_ids.append(peco.peco_id)
+        pecoObj = {}
+        pecoObj['id'] = peco.peco_id
+        pecoObj['class'] = peco_class
+        pecoArray.append(pecoObj)
+    
+    return jsonify({'pecos': pecoArray})
