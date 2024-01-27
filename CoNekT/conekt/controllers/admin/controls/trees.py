@@ -112,7 +112,18 @@ def add_trees():
                 tree_string = str(tf.extractfile(entry).read().decode('utf-8')).replace('\r', '').replace('\n','')
 
                 # get the gene families original name from the filename
-                original_name = str(name.split('_')[0])
+                if name.startswith('./'):
+                    # remove the ./ from the beginning of the name
+                    # this was an issue after compressing the trees with 
+                    # find . -name "OG*.txt" -print | tar -czvf trees.tgz -T -
+                    name_replaced = str(name.replace('./', ''))
+                    print(name_replaced)
+                    original_name = str(name_replaced.split('_')[0])
+                    print(original_name)
+                else:
+                    original_name = str(name.split('_')[0])
+                    print(original_name)
+                
                 gf_id = None
 
                 if original_name in ori_name_to_id.keys():

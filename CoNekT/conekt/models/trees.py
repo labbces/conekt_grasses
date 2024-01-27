@@ -5,6 +5,7 @@ from conekt.models.relationships.sequence_sequence_clade import SequenceSequence
 
 from conekt.models.expression.cross_species_profile import CrossSpeciesExpressionProfile
 
+from sqlalchemy.dialects.mysql import LONGTEXT
 import utils.phylo as phylo
 
 from flask import url_for
@@ -118,7 +119,7 @@ class Tree(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     label = db.Column(db.String(50, collation=SQL_COLLATION), index=True)
-    data_newick = db.Column(db.Text)
+    data_newick = db.Column(LONGTEXT)
     data_phyloxml = db.Column(db.Text)
 
     gf_id = db.Column(db.Integer, db.ForeignKey('gene_families.id', ondelete='CASCADE'), index=True)
