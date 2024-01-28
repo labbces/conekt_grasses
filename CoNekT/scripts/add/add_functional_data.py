@@ -289,7 +289,7 @@ def add_cazymes_from_table(filename, empty=True):
     # If required empty the table first
     if empty:
         with engine.connect() as conn:
-            stmt = delete(Interpro)
+            stmt = delete(CAZYme)
             conn.execute(stmt)
         
     class_dict = {
