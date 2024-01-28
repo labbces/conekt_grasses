@@ -37,10 +37,10 @@ $SCRIPTS_DIR/add/add_functional_data.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
  --interpro_xml $DATA_DIR/FunctionalData/interpro.xml\
  --gene_ontology_obo $DATA_DIR/FunctionalData/go.obo\
+ --cazyme $DATA_DIR/FunctionalData/CAZyDB.07302020.fam-activities.txt\
  --db_password $DB_PASSWORD
 
 echo "Populating CoNekT Grasses with ontology data"
-# TODO: add PECO data
 $SCRIPTS_DIR/add/add_ontologies.py --plant_ontology $DATA_DIR/Ontology/plant-ontology.txt\
  --plant_e_c_ontology $DATA_DIR/Ontology/peco.tsv\
  --db_admin $DB_ADMIN\
