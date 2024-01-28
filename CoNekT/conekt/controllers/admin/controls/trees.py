@@ -117,12 +117,9 @@ def add_trees():
                     # this was an issue after compressing the trees with 
                     # find . -name "OG*.txt" -print | tar -czvf trees.tgz -T -
                     name_replaced = str(name.replace('./', ''))
-                    print(name_replaced)
                     original_name = str(name_replaced.split('_')[0])
-                    print(original_name)
                 else:
                     original_name = str(name.split('_')[0])
-                    print(original_name)
                 
                 gf_id = None
 
