@@ -21,13 +21,10 @@ parser.add_argument('--gene_ontology_obo', type=str, metavar='go.obo',
                     dest='go_file',
                     help='The go.obo file from Gene Ontology',
                     required=False)
-'''
-TODO: add CAZyme support
 parser.add_argument('--cazyme', type=str, metavar='cazyme_database.txt',
                     dest='cazymes_file',
                     help='The cazymes.tsv file to add CAZymes to the database',
                     required=False)
-'''
 parser.add_argument('--db_admin', type=str, metavar='DB admin',
                     dest='db_admin',
                     help='The database admin user',
@@ -280,6 +277,54 @@ def add_interpro_from_xml(filename, empty=True):
 
     session.commit()
 
+def add_cazymes_from_table(filename, empty=True):
+    """
+    Populates CAZYme table with domains and descriptions from the dbCAN2 TXT file
+
+    :param filename: path to TXT file
+    :param empty: If True the cazyme table will be cleared before uploading the new domains, default = True
+
+    """
+
+    # If required empty the table first
+    if empty:
+        with engine.connect() as conn:
+            stmt = delete(Interpro)
+            conn.execute(stmt)
+        
+    class_dict = {
+        'GH':'Glycoside Hydrolase',
+        'GT':'GlycosylTransferase',
+        'PL':'Polysaccharide Lyase',
+        'CE':'Carbohydrate Esterase',
+        'AA':'Auxiliary Activitie',
+        'CBM':'Carbohydrate-Binding Module'
+    }
+
+    with open(filename, 'r') as fin:
+        i = 0
+        for line in fin:
+            parts = line.strip().split('\t')
+            if len(parts) == 2:
+                family, cazyme_class, activities = parts[0], '', parts[1]
+                    
+                string = ''
+                for char in parts[0]:
+                    if char.isalpha():
+                        string += char
+                cazyme_class = class_dict[string]
+
+                cazyme = CAZYme(family=family, cazyme_class=cazyme_class, activities=activities)
+                session.add(cazyme)
+                    
+                i += 1
+                if i % 40 == 0:
+                    # commit to the db frequently to allow WHOOSHEE's indexing function to work without timing out
+                    session.commit()
+        
+        session.commit()
+
+
 def add_go_from_obo(filename, empty=True, compressed=False):
     """
     Parses GeneOntology's OBO file and adds it to the database
@@ -315,13 +360,18 @@ def add_go_from_obo(filename, empty=True, compressed=False):
 
 interpro_file = ''
 go_file = ''
+cazymes_file = ''
 
 db_admin = args.db_admin
 db_name = args.db_name
 interpro_file = args.interpro_file
 go_file = args.go_file
+cazymes_file = args.cazymes_file
 
 functional_data_count = 0
+
+if cazymes_file:
+    functional_data_count+=1
 
 if interpro_file:
     functional_data_count+=1
@@ -346,6 +396,7 @@ Base.prepare(engine, reflect=True)
 
 Interpro = Base.classes.interpro
 GO = Base.classes.go
+CAZYme = Base.classes.cazyme
 
 # Create a Session
 Session = sessionmaker(bind=engine)
@@ -357,5 +408,8 @@ if interpro_file:
 
 if go_file:
     add_go_from_obo(go_file)
+
+if cazymes_file:
+    add_cazymes_from_table(cazymes_file)
 
 session.close()
