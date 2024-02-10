@@ -67,6 +67,18 @@ class Species(db.Model):
             return True
         else:
             return False
+    
+    @property
+    def has_cazyme(self):
+        from conekt.models.sequences import Sequence
+        from conekt.models.relationships.sequence_cazyme import SequenceCAZYmeAssociation
+
+        cazyme = SequenceCAZYmeAssociation.query.join(Sequence, Sequence.id == SequenceCAZYmeAssociation.sequence_id).filter(Sequence.species_id == self.id).first()
+
+        if cazyme is not None:
+            return True
+        else:
+            return False
 
     @staticmethod
     def add(code, name, data_type='genome',

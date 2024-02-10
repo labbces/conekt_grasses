@@ -60,6 +60,9 @@ def species_view(species_id):
     if not current_species.has_go:
         flash(Markup('No <strong>GO annotation</strong> present in the database for this species'), 'warning')
 
+    if not current_species.has_cazyme:
+        flash(Markup('No <strong>CAZyme annotation</strong> present in the database for this species'), 'warning')
+
     description = None if current_species.description is None \
         else Markup(markdown(current_species.description, extensions=['markdown.extensions.tables', 'markdown.extensions.attr_list']))
 
