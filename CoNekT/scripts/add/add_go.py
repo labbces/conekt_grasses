@@ -57,13 +57,13 @@ def add_go_from_tab(filename, species_code, engine, source="Source not provided"
         species_id = species.id
 
     with engine.connect() as conn:
-            stmt = select(Sequence).where(Sequence.__table__.c.species_id == species_id,\
-                                          Sequence.__table__.c.type == 'protein_coding')
-            all_sequences = conn.execute(stmt).all()
+        stmt = select(Sequence).where(Sequence.__table__.c.species_id == species_id,\
+                                        Sequence.__table__.c.type == 'protein_coding')
+        all_sequences = conn.execute(stmt).all()
     
     with engine.connect() as conn:
-            stmt = select(GO)
-            all_go = conn.execute(stmt).all()
+        stmt = select(GO)
+        all_go = conn.execute(stmt).all()
 
     for sequence in all_sequences:
         gene_hash[sequence.name] = sequence
@@ -165,7 +165,7 @@ SequenceGOAssociation = Base.classes.sequence_go
 Session = sessionmaker(bind=engine)
 session = Session()
 
-# Run function to add interproscan results for species
+# Run function to add GO results for species
 add_go_from_tab(go_tsv, sps_code, engine, source=annotation_source)
 
 session.close()
