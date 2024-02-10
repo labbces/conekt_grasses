@@ -327,8 +327,8 @@
                         <thead>
                             <tr>
                                 <th class="col-xs-2" data-sort="string-ins"><span class="sort-icon"></span>HMM Family</th>
-                                <th class="col-xs-1" data-sort="string-ins"><span class="sort-icon"></span>HMM Length</th>
-                                <th class="col-xs-1" data-sort="string-ins"><span class="sort-icon"></span>Query Length</th>
+                                <th class="col-xs-2" data-sort="string-ins"><span class="sort-icon"></span>HMM Length</th>
+                                <th class="col-xs-2" data-sort="string-ins"><span class="sort-icon"></span>Query Length</th>
                                 <th class="col-xs-2" data-sort="string-ins"><span class="sort-icon"></span>e-Value</th>
                                 <th class="col-xs-2" data-sort="string-ins"><span class="sort-icon"></span>Query Start</th>
                                 <th class="col-xs-2" data-sort="string-ins"><span class="sort-icon"></span>Query End</th>
@@ -338,8 +338,8 @@
                             {% for association in cazyme_associations %}
                             <tr>
                                 <td class="col-xs-2"><a href="{{ url_for('cazyme.cazyme_view', cazyme_id=association.cazyme.id) }}">{{ association.cazyme.family }}</a></td>
-                                <td class="col-xs-1">{{ association.hmm_length }}</td>
-                                <td class="col-xs-1">{{ association.query_length }}</td>
+                                <td class="col-xs-2">{{ association.hmm_length }}</td>
+                                <td class="col-xs-2">{{ association.query_length }}</td>
                                 <td class="col-xs-2">{{ association.e_value }}</td>
                                 <td class="col-xs-2">{{ association.query_start }}</td>
                                 <td class="col-xs-2">{{ association.query_end }}</td>
