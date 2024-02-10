@@ -65,7 +65,7 @@ for species_code in ${SPECIES_ARRAY[@]};
  fi
 done;
 
-echo "Populating CoNekT Grasses with functional annotation data"species_code="Scp1"
+echo "Populating CoNekT Grasses with functional annotation data"
 for species_code in ${SPECIES_ARRAY[@]};
  do
   if [ -f $DATA_DIR/Species/"$species_code"/"$species_code".aa.nonStop.interpro.tsv.gz ]; then
@@ -89,6 +89,18 @@ for species_code in ${SPECIES_ARRAY[@]};
  --go_tsv $DATA_DIR/Species/"$species_code"/"$species_code"_go.txt\
  --species_code "$species_code"\
  --annotation_source "GOs from InterProScan"
+ fi
+done;
+
+echo "Populating CoNekT Grasses with species CAZyme annotation"
+for species_code in ${SPECIES_ARRAY[@]};
+ do
+ if [ -f $DATA_DIR/Species/"$species_code"/"$species_code"_cazymes.txt ]; then
+ $SCRIPTS_DIR/add/add_cazymes.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --cazyme_tsv $DATA_DIR/Species/"$species_code"/"$species_code"_cazymes.txt\
+ --species_code "$species_code"
  fi
 done;
 
