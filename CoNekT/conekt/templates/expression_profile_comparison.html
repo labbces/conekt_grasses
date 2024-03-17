@@ -42,10 +42,10 @@
 
     <div class="select">
         <div class="po_anatomy"><input type="checkbox" value="po_anatomy" id="po_anatomy" checked><label for="po_anatomy" style="margin-left:3px; font-size:12px; color: #575555; font-weight: 100;">PO Anatomy</label></div>
-        {% if not po_dev_stage_profiles|length %}
+        {% if po_dev_stage_profiles %}
         <div class="po_dev_stage"><input type="checkbox" value="po_dev_stage" id="po_dev_stage"><label for="po_dev_stage" style="margin-left:3px; font-size:12px; color: #575555; font-weight: 100;">PO Dev Stage</label></div>
         {% endif %}
-        {% if not peco_profiles|length %}
+        {% if peco_profiles %}
         <div class="peco"><input type="checkbox" value="peco" id="peco"><label for="peco" style="margin-left:3px; font-size:12px; color: #575555; font-weight: 100;">PECO</label></div>
         {% endif %}
     </div>
@@ -177,6 +177,7 @@
                             .prop('checked', true)
                             .appendTo($itemDiv);
 
+                        if (clas == "po_anatomy") {
                         $('<label>')
                             .attr('for', sample_annotation_ontology_class)
                             .text(clas == "po_anatomy"? sample_annotation_ontology_class.charAt(0).toUpperCase() + sample_annotation_ontology_class.slice(1): sample_annotation_ontology_class.charAt(0).toUpperCase() + sample_annotation_ontology_class.slice(1) + " (" + abbreviate(sample_annotation_ontology_class) + ")")
@@ -187,6 +188,29 @@
                                 'font-weight': '100',
                             })
                             .appendTo($itemDiv);
+                        } else if (clas == "po_dev_stage") {
+                            $('<label>')
+                            .attr('for', sample_annotation_ontology_class)
+                            .text(clas == "po_dev_stage"? sample_annotation_ontology_class.charAt(0).toUpperCase() + sample_annotation_ontology_class.slice(1): sample_annotation_ontology_class.charAt(0).toUpperCase() + sample_annotation_ontology_class.slice(1) + " (" + abbreviate(sample_annotation_ontology_class) + ")")
+                            .css({
+                                'margin-left':'3px',
+                                'font-size': '12px',
+                                'color': '#575555',
+                                'font-weight': '100',
+                            })
+                            .appendTo($itemDiv);
+                        } else {
+                            $('<label>')
+                            .attr('for', sample_annotation_ontology_class)
+                            .text(clas == "peco"? sample_annotation_ontology_class.charAt(0).toUpperCase() + sample_annotation_ontology_class.slice(1): sample_annotation_ontology_class.charAt(0).toUpperCase() + sample_annotation_ontology_class.slice(1) + " (" + abbreviate(sample_annotation_ontology_class) + ")")
+                            .css({
+                                'margin-left':'3px',
+                                'font-size': '12px',
+                                'color': '#575555',
+                                'font-weight': '100',
+                            })
+                            .appendTo($itemDiv);
+                        }
                             
                         $itemDiv.appendTo('.select.ontology');
                     }
