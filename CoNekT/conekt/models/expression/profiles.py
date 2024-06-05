@@ -444,8 +444,8 @@ class ExpressionProfile(db.Model):
                     po_dev_stage, peco = parts
                     peco = peco.rstrip()
                     Sample.add(run, strandness, layout,
-                                    description, replicate,
-                                    species_id)
+                                    description, species_id,
+                                    replicate)
                     annotation[run] = {}
                     annotation[run]["description"] = description
                     annotation[run]["replicate"] = replicate
