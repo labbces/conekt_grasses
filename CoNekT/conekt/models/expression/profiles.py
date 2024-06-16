@@ -57,12 +57,14 @@ class ExpressionProfile(db.Model):
                 if lit_dict is None:
                     processed_values[condition_value] = []
                 else:
-                    processed_values[condition_value + " (" + lit_dict[literature_doi] + ")"] = []
+                    author_name = lit_dict[literature_doi].capitalize()
+                    processed_values[condition_value + " (" + author_name + ")"] = []
 
             if lit_dict is None:
                 processed_values[condition_value].append(expression_values)
             else:
-                processed_values[condition_value + " (" + lit_dict[literature_doi] + ")"].append(expression_values)
+                author_name = lit_dict[literature_doi].capitalize()
+                processed_values[condition_value + " (" + author_name + ")"].append(expression_values)
         
         return processed_values
 
@@ -200,7 +202,12 @@ class ExpressionProfile(db.Model):
         lit_dict = {}
 
         for lit in literatures:
-            lit_dict[lit.doi] = f'{lit.author_names}, {lit.public_year}'
+            author_name = lit.author_names
+            author_name = author_name.capitalize()
+            if lit.qtd_author > 1:
+                lit_dict[lit.doi] = f'{author_name} et al., {lit.public_year}'
+            else:
+                lit_dict[lit.doi] = f'{author_name}, {lit.public_year}'
 
         order = []
         output = []
@@ -249,8 +256,6 @@ class ExpressionProfile(db.Model):
 
         if len(not_found) > 0:
             flash("Couldn't find profile for: %s" % ", ".join(not_found), "warning")
-
-        print(output, "\n\n\n\n\n\n")
 
         return {'order': order, 'heatmap_data': output}
 
