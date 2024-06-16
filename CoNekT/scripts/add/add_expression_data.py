@@ -349,7 +349,7 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
             new_probes.append(new_probe)
             session.add(ExpressionProfile(**new_probe))
 
-            if len(new_probes) > 40:
+            if len(new_probes) > 300:
                 session.commit()
                 new_probes = []
 
