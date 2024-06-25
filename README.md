@@ -26,12 +26,19 @@ sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt-get update
 sudo apt-get install python3.8
 ```
+To install MariaDB execute the followin codes:
+
+```bash
+sudo apt update 
+sudo apt install mariadb-server
+sudo mysql_secure_installation
+```
 
 Dependencies are usually installed using `apt` and `pip`:
 
 
 ```bash
-apt install python3.8-venv python3.8-dev
+sudo apt install python3.8-venv python3.8-dev
 python3.8 -m ensurepip --default-pip
 python3.8 -m pip install --upgrade pip setuptools wheel
 pip3.8 install virtualenv
