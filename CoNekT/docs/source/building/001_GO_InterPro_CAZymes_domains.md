@@ -8,7 +8,7 @@ the top menu click on 'Add' and select 'Functional Data'.
 
 The GO descriptions can be obtained from the Gene Ontology Consortium's 
 official website in OBO format [here](http://geneontology.org/page/download-ontology).
-InterPro domains and descriptions (called the **Entry list**) are found on EBI InterPro's download pages [here](https://www.ebi.ac.uk/interpro/download.html). CAZymes descriptions can be access on CAZY database that contains info about enzymes that degrade, modify, or create glycosidic bonds [here](http://www.cazy.org/).
+InterPro domains and descriptions (called the **Entry list**) are found on EBI InterPro's download pages [here](https://www.ebi.ac.uk/interpro/download.html). CAZymes descriptions can be access on CAZY database that contains info about enzymes that degrade, modify, or create glycosidic bonds [here](https://bcb.unl.edu/dbCAN2/download/Databases/).
 **Decompress the .gz file prior to uploading.** 
 
 Click the buttons on the page and select the corresponding files, next 

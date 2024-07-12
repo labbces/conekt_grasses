@@ -26,7 +26,7 @@ sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt-get update
 sudo apt-get install python3.8
 ```
-To install MariaDB execute the followin codes:
+To install MariaDB execute the following codes:
 
 ```bash
 sudo apt update 
