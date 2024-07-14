@@ -11,6 +11,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import select
+from sqlalchemy.pool import NullPool
 
 # Create arguments
 parser = argparse.ArgumentParser(description='Add network to the database')
@@ -22,6 +23,10 @@ parser.add_argument('--species_code', type=str, metavar='Svi',
                     dest='species_code',
                     help='The CoNekT Grasses species code',
                     required=True)
+parser.add_argument('--hrr_score_threshold', type=int, metavar='hrr score threshold',
+                    dest='hrr_score_threshold',
+                    help='hrr score threshold, pairs with a score above this will be ignored',
+                    required=False)
 parser.add_argument('--description', type=str, metavar='Description',
                     dest='description',
                     help='Description of the network as it should appear in CoNekT',
@@ -186,7 +191,7 @@ db_name = args.db_name
 
 create_engine_string = "mysql+pymysql://"+db_admin+":"+db_password+"@localhost/"+db_name
 
-engine = create_engine(create_engine_string, echo=True)
+engine = create_engine(create_engine_string, echo=True, poolclass=NullPool)
 
 # Reflect an existing database into a new model
 Base = automap_base()
@@ -206,6 +211,9 @@ network_file = args.network_file
 species_code = args.species_code
 description = args.description
 
-read_expression_network_lstrap(network_file, species_code, description, engine)
+if args.hrr_score_threshold:
+    read_expression_network_lstrap(network_file, species_code, description, engine, limit=args.hrr_score_threshold)
+else:
+    read_expression_network_lstrap(network_file, species_code, description, engine)
 
 session.close()
