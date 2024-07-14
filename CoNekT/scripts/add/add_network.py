@@ -57,7 +57,7 @@ def print_memory_usage():
     print(f"Memory Usage Percentage: {memory.percent}%\n")
 
 def read_expression_network_lstrap(network_file, species_code, description, engine, score_type="rank",
-                                       pcc_cutoff=0.7, limit=40, enable_second_level=False):
+                                       pcc_cutoff=0.7, limit=100, enable_second_level=False):
     """
     Reads a network from disk, generated using LSTrAP, determing hrr scores for each pair and store things in the
     DB.
