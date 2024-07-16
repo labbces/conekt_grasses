@@ -20,7 +20,7 @@ parser.add_argument('--gene_family_method_id', type=int, metavar='1',
                     dest='gene_family_method_id',
                     help='Gene family method identifier',
                     required=True)
-parser.add_argument('--gene_family_method_description', type=str, metavar='Description of the gene family method',
+parser.add_argument('--gene_tree_method_description', type=str, metavar='Description of the gene tree method',
                     dest='tree_method_description',
                     help='Gene tree method description',
                     required=True)
