@@ -41,16 +41,15 @@ else:
 def reconcile_trees(tree_method_id, engine):
 
     with engine.connect() as conn:
-        stmt = select(Sequence)
+        stmt = select(Sequence).where(Sequence.__table__.c.type == 'protein_coding')
         sequences = conn.execute(stmt).all()
-        # TODO: select only fields necessary for this task; this will improve memory usage!
     
     with engine.connect() as conn:
         stmt = select(Clade)
         clades = conn.execute(stmt).all()
 
     with engine.connect() as conn:
-        stmt = select(Tree).where(Tree.__table__.c.method_id != tree_method_id)
+        stmt = select(Tree).where(Tree.__table__.c.method_id == tree_method_id)
         trees = conn.execute(stmt).all()
 
     seq_to_species = {s.name: s.species.code for s in sequences}
