@@ -10,7 +10,7 @@ from sqlalchemy.sql import select, update
 import newick
 import json
 
-import utils.phylo as phylo
+import utils_scripts.phylo as phylo
 
 parser = argparse.ArgumentParser(description='Reconcile trees in the database')
 parser.add_argument('--tree_method_id', type=str, metavar='1',
