@@ -18,7 +18,7 @@ database. Make sure to read instructions on pages and this documentation to avoi
 Step-by-step instructions
 
   * [Adding GO term, InterPro domain and CAZymes definitions](building/001_GO_InterPro_CAZymes_domains.md)
-  * [Adding Ontology definitions](building/009_Ontology definitions.md)
+  * [Adding Ontology definitions](building/009_Ontology_definitions.md)
   * [Adding a new species and functional data](building/002_species_functional_data.md)
   * [Adding expression profiles and specificity](building/003_expression_profiles.md)
   * [Adding co-expession networks and clusters](building/004_coexpression_network_cluster.md)
