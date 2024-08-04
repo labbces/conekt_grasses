@@ -54,9 +54,9 @@ def reconcile_trees(tree_method_id, engine):
 
     with engine.connect() as conn:
         stmt = select(Species)
-        all_species = conn.execute(stmt).all()
+        all_species_db = conn.execute(stmt).all() # Naming all_species_db to avoid conflict with all_species variable
 
-    seq_to_species = {s.name: sp.code for s in sequences for sp in all_species if s.species_id == sp.id}
+    seq_to_species = {s.name: sp.code for s in sequences for sp in all_species_db if s.species_id == sp.id}
     seq_to_id = {s.name: s.id for s in sequences}
     clade_to_species = {c.name: json.loads(c.species) for c in clades}
     clade_to_id = {c.name: c.id for c in clades}
