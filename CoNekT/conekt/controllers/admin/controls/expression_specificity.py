@@ -14,7 +14,6 @@ from conekt.models.expression.specificity import ExpressionSpecificityMethod
 def add_condition_specificity():
     form = AddConditionSpecificityForm(request.form)
     form.populate_species()
-    flash('Please, use the script (not this page) to compute expression specificities.', 'danger')
 
     if request.method == 'POST' and form.validate():
         species_id = int(request.form.get('species_id'))
@@ -37,7 +36,6 @@ def add_condition_specificity():
 def add_tissue_specificity():
     form = AddTissueSpecificityForm(request.form)
     form.populate_species()
-    flash('Please, use the script (not this page) to compute expression specificities.', 'danger')
 
     if request.method == 'POST' and form.validate():
         species_id = int(request.form.get('species_id'))
