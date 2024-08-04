@@ -41,6 +41,10 @@ else:
 def reconcile_trees(tree_method_id, engine):
 
     with engine.connect() as conn:
+        stmt = select(Tree).where(Tree.__table__.c.method_id == tree_method_id)
+        trees = conn.execute(stmt).all()
+
+    with engine.connect() as conn:
         stmt = select(Sequence).where(Sequence.__table__.c.type == 'protein_coding')
         sequences = conn.execute(stmt).all()
     
@@ -49,10 +53,10 @@ def reconcile_trees(tree_method_id, engine):
         clades = conn.execute(stmt).all()
 
     with engine.connect() as conn:
-        stmt = select(Tree).where(Tree.__table__.c.method_id == tree_method_id)
-        trees = conn.execute(stmt).all()
+        stmt = select(Species)
+        all_species = conn.execute(stmt).all()
 
-    seq_to_species = {s.name: s.species.code for s in sequences}
+    seq_to_species = {s.name: sp.code for s in sequences for sp in all_species if s.species_id == sp.id}
     seq_to_id = {s.name: s.id for s in sequences}
     clade_to_species = {c.name: json.loads(c.species) for c in clades}
     clade_to_id = {c.name: c.id for c in clades}
@@ -151,6 +155,7 @@ Base = automap_base()
 
 Base.prepare(engine, reflect=True)
 
+Species = Base.classes.species
 Sequence = Base.classes.sequences
 Clade = Base.classes.clades
 Tree = Base.classes.trees
