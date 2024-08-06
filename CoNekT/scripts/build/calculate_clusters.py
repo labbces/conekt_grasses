@@ -8,6 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import select
+from sqlalchemy.pool import NullPool
 
 # Create arguments
 parser = argparse.ArgumentParser(description='Clusterize network and add to')
@@ -512,7 +513,7 @@ db_name = args.db_name
 
 create_engine_string = "mysql+pymysql://"+db_admin+":"+db_password+"@localhost/"+db_name
 
-engine = create_engine(create_engine_string, echo=True)
+engine = create_engine(create_engine_string, echo=True, poolclass=NullPool)
 
 # Reflect an existing database into a new model
 Base = automap_base()

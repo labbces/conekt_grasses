@@ -1,4 +1,5 @@
 from flask_admin import expose
+from flask import flash
 
 from conekt.controllers.admin.views import MyModelView, AdminBaseView
 from conekt.forms.admin.add_expression_specificity import AddConditionSpecificityForm, AddTissueSpecificityForm
@@ -36,6 +37,7 @@ class AddSpecificityView(AdminBaseView):
 
         tissue_form = AddTissueSpecificityForm()
         tissue_form.populate_species()
+        flash('Please, use the script (not this page) to compute expression specificities.', 'danger')
 
         return self.render('admin/add/expression_specificity.html',
                            condition_form=condition_form,
