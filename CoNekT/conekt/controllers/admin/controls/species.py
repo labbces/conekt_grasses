@@ -46,7 +46,7 @@ def add_species():
         # Add species (or return id of existing species)
         species_id = Species.add(request.form.get('code'),
                                 request.form.get('name'),
-                                data_type=request.form.get('data_type'),
+                                data_type='genome',
                                 color='#' + request.form.get('color'),
                                 highlight='#' + request.form.get('highlight'),
                                 description=request.form.get('description'),
