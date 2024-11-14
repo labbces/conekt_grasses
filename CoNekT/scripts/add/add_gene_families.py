@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import getpass
 import argparse
 import psutil
 
@@ -37,7 +37,7 @@ args = parser.parse_args()
 if args.db_password:
     db_password = args.db_password
 else:
-    db_password = input("Enter the database password: ")
+    db_password = getpass.getpass("Enter the database password: ")
 
 
 def print_memory_usage():
