@@ -9,12 +9,12 @@ cd Conekt/scripts/add
 ```
 The scripts you will find there are:
 
-![Scripts](imagens/scripts_folder.png "Scripts")
+![Scripts](images/admin_home.png "Scripts")
 
 To access script help, type the desired script and then -h, as shown in the figure.In the example, the script add_cazymes.py was used.
 
-![Scripts help](imagens/scripts_help.png "Script help")
+![Scripts help](images/scripts_help.png "Script help")
 
 To load data into conekt you need to enter the information as shown in the figure.
 
-![Scripts data](imagens/scripts_data.png "Script data")
+![Scripts data](images/script_data.png "Script data")
