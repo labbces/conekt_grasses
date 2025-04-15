@@ -1,37 +1,41 @@
-# Etapas - Pré-processamento
+# Antes de começar
 
-## Metadados das amostras
+Crie uma pasta com o nome do projeto/espécie que vocẽ está trabalhando.
 
-Verificar no artigo e no NCBI quais as informações relacionadas as amostras. Para isso realizo o seguinte procedimento:
+## 1. Clone este repositório
 
-1- pesquiso o SRR no NCBI;
-2- clico no bioproject;
-3- procuro por uma tabela(PROJECT DATA) e clico no valor que está na frente do 'SRA Experiments';
-4- na página que irá abrir, clico em 'Send to', clico em 'file', e logo abaixo na aba que irá abrir, clico em 'Format'
-   depois em 'Runinfo' e para finalizar clico em 'Create file'.
-5- no arquivo que foi gerado, abro e vou até a coluna 'Library Strategy' e deleto todas as linhas que não contém 'RNA-SEQ'
+Na pasta que você criou, clone o repositório abaixo. 
 
-## Recuperação dos dados brutos de processamento
+git clone https://github.com/felipevzps/conekt-grasses-snakemake-pipeline.git
+cd conekt-grasses-snakemake-pipeline * colocar o link correto
 
-Verificar no artigo os dados a serem usados através do código Short Read Archive(SRA) do NCBI, que começa com SRR, por ex SRR1979656.
+## 2. Instale e configure o ambiente virtual
 
-Os arquivos de sequenciamento de rna estão no formato fastq.
+Na pasta que você criou, instale e configure o ambiente virtual.
 
-### Download com ffq e wget
+# installing conda env - this might take some time...
+conda env create -n conekt-grasses-snakemake-pipeline -f environment.yaml
 
-Caso não tenha o ffq instalado, para instala-lo use
+# activating the environment
+conda activate conekt-grasses-snakemake-pipeline
 
-``` bash
-pip install ffq
-```
-O ffq é uma biblioteca de python que é usada para fazer o download do arquivo SRR.
+## 3. Configurar caminhos de software no config.yaml
 
-``` bash
-ffq -o SRR1979656.json SRR1979656
-```
-### Download com sratoolkit 
+Antes de executar o pipeline, revise o config.yaml. Alguns caminhos na configuração são específicos do usuário, enquanto outros são específicos do cluster. Portanto, sempre que um novo usuário pretende executar o pipeline, é necessário ajustar os caminhos de software de acordo.
 
-Caso não tenha faça o download compatível com seu sistema operacional(https://github.com/ncbi/sra-tools/wiki/01.-Downloading-SRA-Toolkit).
+## 4. Configurar o arquivo Snakefile
 
-Com o programa instalado e configurado baixe os dados desejados usando o comando 'prefetch' mais o código de SRR desejado. Com o arquivo baixado rode o comando 'fasterq-dump' para converter as Runs pré-buscadas do formato SRA compactado para o formato fastq.
+No arquivo, você deverá ajustar o nome de suas amostras e do transcriptoma de referência.
+
+## 4. Execute o pipeline
+
+Comece com uma execução de teste para garantir que tudo esteja configurado corretamente:
+
+snakemake -np
+
+Esse comando listará todas as etapas planejadas, desde o download de leituras brutas até a geração de matrizes de quantificação e relatórios.
+
+Se estiver tudo certo, execute o pipeline:
+
+qsub Snakefile.sh
 
