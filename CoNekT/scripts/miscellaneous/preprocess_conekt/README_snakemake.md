@@ -1,41 +1,60 @@
-# Antes de começar
+# Before you begin
 
-Crie uma pasta com o nome do projeto/espécie que vocẽ está trabalhando.
+Create a folder with the name of the project/species you are working on.
 
-## 1. Clone este repositório
+## 1.Clone this repository
 
-Na pasta que você criou, clone o repositório abaixo. 
+Inside the folder you created, clone the repository below. 
 
-git clone https://github.com/felipevzps/conekt-grasses-snakemake-pipeline.git
-cd conekt-grasses-snakemake-pipeline * colocar o link correto
+'''bash
 
-## 2. Instale e configure o ambiente virtual
+git clone https://github.com/labbces/conekt_grasses/tree/conekt_documentacao/CoNekT/scripts/miscellaneous/preprocess_conekt.git
 
-Na pasta que você criou, instale e configure o ambiente virtual.
+'''
 
-# installing conda env - this might take some time...
+## 2. Install and set up the virtual environment
+
+In the folder you created, install and configure the virtual environment, Be patient, as this installation may take a few minutes.
+
+'''bash
+
 conda env create -n conekt-grasses-snakemake-pipeline -f environment.yaml
 
-# activating the environment
+'''
+
+Once the installation is complete, activate the environment:
+
+'''bash
+
 conda activate conekt-grasses-snakemake-pipeline
 
-## 3. Configurar caminhos de software no config.yaml
+'''
 
-Antes de executar o pipeline, revise o config.yaml. Alguns caminhos na configuração são específicos do usuário, enquanto outros são específicos do cluster. Portanto, sempre que um novo usuário pretende executar o pipeline, é necessário ajustar os caminhos de software de acordo.
+## 3. Configure software paths in config.yaml
 
-## 4. Configurar o arquivo Snakefile
+Before running pipeline, review the config.yaml file. Some paths ind the configuration are user-specific, while others are cluster-specific. Therefore, whenever a new user intends to run the pipeline, the software paths must bve adjusted accordingly.
 
-No arquivo, você deverá ajustar o nome de suas amostras e do transcriptoma de referência.
+## 4. Configure the Snakefile
 
-## 4. Execute o pipeline
+In the file, you will need to adjust the name of yours samples and the reference transcriptome.
 
-Comece com uma execução de teste para garantir que tudo esteja configurado corretamente:
+## 4. Run the pipeline
+
+Start with a test run to ensure everything is set up correctly:
+
+'''bash
 
 snakemake -np
 
-Esse comando listará todas as etapas planejadas, desde o download de leituras brutas até a geração de matrizes de quantificação e relatórios.
+'''
 
-Se estiver tudo certo, execute o pipeline:
+This command will lst all planned steps, from downloading raw reads to generating quantification matrices and reports.
+
+If everything looks correct, execute pipeline:
+
+'''bash
 
 qsub Snakefile.sh
+
+'''
 
