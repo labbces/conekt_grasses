@@ -16,7 +16,7 @@ SEQTYPE='PAIRED'
 samples = pd.read_csv(GENOTYPE+'_samples.csv')
 reference_transcriptome = "Sviridis_726_v4.1.transcript_primaryTranscriptOnly.fa"
 
-fastq_dump = config["software"]["fastq-dump"]
+fasterq_dump = config["software"]["fastq-dump"]
 bbduk = config["software"]["bbduk"]
 salmon = config["software"]["salmon"]
 filter_salmon_output = config["software"]["filter_salmon_output"]
@@ -47,7 +47,7 @@ rule download_fastq:
 	log:
 		"datasets_{genotype}/logs/download_fastq/{sample}.log"
 	shell:
-		"{fastq_dump} --defline-seq '@$sn[_$rn]/$ri' --split-files {wildcards.sample} -O datasets_{params.genotype}/logs/download_fastq/{wildcards.sample}.log 2> {log}"
+		"{fasterq_dump} --defline-seq '@$sn[_$rn]/$ri' --split-files {wildcards.sample} -O datasets_{params.genotype}/logs/download_fastq/{wildcards.sample}.log 2> {log}"
 
 rule bbduk:
 	"""
