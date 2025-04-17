@@ -1,7 +1,7 @@
 default-resources: [load=1]
 
 software:
-        fastq-dump: /Storage/data1/felipe.peres/src/sratoolkit.3.0.10-ubuntu64/bin/fastq-dump
+        fasterq-dump: /Storage/progs/sratoolkit.3.0.0-centos_linux64/bin/fasterq-dump
         bbduk: /Storage/progs/bbmap_35.85/bbduk2.sh
         salmon: ~/.conda/envs/conekt-grasses-snakemake-pipeline/bin/salmon
         filter_salmon_output: ./filter_salmon_output.py
