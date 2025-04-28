@@ -10,6 +10,7 @@ Check in article and NCBI what information listed to samples. For this I perform
 4-In page that will open, click 'Send To', click 'File', and below the tab that will open, click 'format' then 'Runinfo' and to finish click on 'Create File';
 5-In the file that was generated, check the 'Library Strategy' column and delete all lines that do not contain 'RNA-SEQ'
 
-## Gross Processing Data Recovery
+## Recovery of Raw Sequencing Data
 
 Check in the article the data to be used through the NCBI Short Read Archive Code, which starts with SRR, e.g., SRR1979656. RNA sequencing files are in Fastq format.
+

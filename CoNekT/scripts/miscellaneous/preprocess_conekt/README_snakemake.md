@@ -35,13 +35,15 @@ conda activate conekt-grasses-snakemake-pipeline
 
 ## 3. Configure software paths in config.yaml
 
-Before running pipeline, review the config.yaml file. Some paths ind the configuration are user-specific, while others are cluster-specific. Therefore, whenever a new user intends to run the pipeline, the software paths must bve adjusted accordingly.
+Before running pipeline, review the `config.yaml` file. Some paths ind the configuration are user-specific, while others are cluster-specific. Therefore, whenever a new user intends to run the pipeline, the software paths must bve adjusted accordingly.
 
 ## 4. Adjust the Snakefile for proper inputs
 
-In the file `Snakefile`, you will need to adjust the name of your samples and the reference transcriptome.
+In the file `Snakefile`, you will need to adjust the name of the CSV file with your samples (SRRs) and the reference transcriptome.
 
 ## 5. Run the pipeline
+
+### 5.1 Run the pipeline only with the samples.csv
 
 Start with a test run to ensure everything is set up correctly:
 
@@ -56,4 +58,6 @@ If everything looks correct, execute pipeline:
 '''bash
 qsub Snakefile.sh
 '''
+
+### 5.2 Run the pipeline if previously downloaded FASTQ files
 
