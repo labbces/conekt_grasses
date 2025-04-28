@@ -11,12 +11,12 @@ from pandas.errors import EmptyDataError
 import yaml
 import os
 
-GENOTYPE='Sviridis'
+GENOTYPE='Sugarcane'
 SEQTYPE='PAIRED'
 samples = pd.read_csv(GENOTYPE+'_samples.csv')
-reference_transcriptome = "Sviridis_726_v4.1.transcript_primaryTranscriptOnly.fa"
+reference_transcriptome = "Scp1_rnas.fa"
 
-fasterq_dump = config["software"]["fastq-dump"]
+fasterq_dump = config["software"]["fasterq-dump"]
 bbduk = config["software"]["bbduk"]
 salmon = config["software"]["salmon"]
 filter_salmon_output = config["software"]["filter_salmon_output"]
