@@ -10,11 +10,12 @@ import pandas as pd
 from pandas.errors import EmptyDataError
 import yaml
 import os
+import shutil 
 
-GENOTYPE='Sugarcane'
+GENOTYPE='Sviridis'
 SEQTYPE='PAIRED'
 samples = pd.read_csv(GENOTYPE+'_samples.csv')
-reference_transcriptome = "Scp1_rnas.fa"
+reference_transcriptome = "Sviridis_726_v4.1.transcript_primaryTranscriptOnly.fa"
 
 fasterq_dump = config["software"]["fasterq-dump"]
 bbduk = config["software"]["bbduk"]
@@ -210,9 +211,7 @@ rule filter_stranded:
 	"""
 	priority: 1
 	input:
-		meta_info = expand("datasets_{genotype}/3_salmon/quant/{sample}/aux_info/meta_info.json", genotype=GENOTYPE, sample=samples),
-		R1_trimmedstats = expand("datasets_{genotype}/2_trimmed_reads/{sample}_1.stats.txt", genotype=GENOTYPE, sample=samples),
-		R2_trimmedstats = expand("datasets_{genotype}/2_trimmed_reads/{sample}_2.stats.txt", genotype=GENOTYPE, sample=samples)
+		meta_info = expand("datasets_{genotype}/3_salmon/quant/{sample}/aux_info/meta_info.json", genotype=GENOTYPE, sample=samples)
 	output:
 		filtered_samples = "datasets_{genotype}/3_salmon/quant/{genotype}_{seqtype}_srrlist.csv"
 	threads: 1
@@ -243,24 +242,43 @@ def get_filter_stranded_samples(wildcards):
 	except EmptyDataError:
 		print("Empty file - {f1}")
 
+def get_stranded_csv(wildcards):
+	genotype = wildcards.genotype
+	seqtype = wildcards.seqtype
+
+	if config.get("skip_filter_stranded", "false") == "true":
+		# skip_filter_stranded is True => skip the rule filter_stranded
+		source_csv = f"{genotype}_samples.csv"
+		dest_csv = f"datasets_{genotype}/3_salmon/quant/{genotype}_{seqtype}_srrlist_ALL.csv"
+		os.makedirs(os.path.dirname(dest_csv), exist_ok=True)
+		if not os.path.exists(dest_csv):
+			# copy source to dest (all samples, skiping filter_stranded)
+			shutil.copy(source_csv, dest_csv)
+		return dest_csv 
+	else:
+		# skip_filter_stranded is false => run the rule filter_stranded
+		return f"datasets_{genotype}/3_salmon/quant/{genotype}_{seqtype}_srrlist.csv"
+
 rule filter_low_mapping_reads:
 	"""
 	Filtra leituras por mapping_rate e low_perc_mapping com o script filter_salmon_output.py
 	"""
 	priority: 1
 	input:
-		expand("datasets_{genotype}/3_salmon/quant/{genotype}_{seqtype}_srrlist.csv",genotype=GENOTYPE, seqtype=SEQTYPE),
-		expand("datasets_{genotype}/3_salmon/quant/{sample}/quant.sf", genotype=GENOTYPE, sample=samples),
-		expand("datasets_{genotype}/3_salmon/quant/{sample}/aux_info/meta_info.json", genotype=GENOTYPE, sample=samples)
+		stranded_csv = get_stranded_csv,
+		quant_files = expand("datasets_{genotype}/3_salmon/quant/{sample}/quant.sf", genotype=GENOTYPE, sample=samples),
+		meta_info = expand("datasets_{genotype}/3_salmon/quant/{sample}/aux_info/meta_info.json", genotype=GENOTYPE, sample=samples),
+		R1_trimmedstats = expand("datasets_{genotype}/2_trimmed_reads/{sample}_1.stats.txt", genotype=GENOTYPE, sample=samples),
+		R2_trimmedstats = expand("datasets_{genotype}/2_trimmed_reads/{sample}_2.stats.txt", genotype=GENOTYPE, sample=samples)
+
 	output:
-                "{genotype}_{seqtype}_filter_stats.txt",
+		"{genotype}_{seqtype}_filter_stats.txt",
 		"{genotype}_{seqtype}_srrlist_LowMapping_LowReads.csv"
 	threads: 1
 	params:
 		server="figsrv",
 		seqtype="{seqtype}",
-		genotype="{genotype}",
-		stranded_samples=get_filter_stranded_samples
+		genotype="{genotype}"
 	resources:
 		load=1
 	log:
@@ -268,7 +286,7 @@ rule filter_low_mapping_reads:
 	name: "filter_low_mapping_reads"
 	shell:
 		"""
-		{filter_salmon_output} --genotype {params.genotype} --stranded_samples datasets_{params.genotype}/3_salmon/quant/{params.genotype}_{params.seqtype}_srrlist.csv > {log} 2>&1
+		{filter_salmon_output} --genotype {params.genotype} --stranded_samples {input.stranded_csv}  > {log} 2>&1
 		"""
 
 def get_filter_low_mapping_samples(wildcards):
@@ -301,7 +319,7 @@ rule preliminar_report:
 	log:
 		expand("datasets_{genotype}/logs/preliminar_report/preliminar_report.log", genotype=GENOTYPE)
 	name: "preliminar_report"
-	conda: "parse_filters.yaml"
+	#conda: "parse_filters.yaml"
 	shell:
 		"""
 		sed -e 's/,/\\n/g' {input.accessions} >> {input.accessions}.temp 2>> {log}
