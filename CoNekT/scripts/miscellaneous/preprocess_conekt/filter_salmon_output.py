@@ -56,7 +56,7 @@ for path2salmon in os.listdir('datasets_'+ genotype +'/3_salmon/quant/'):
 paired_samples_file.close()
 
 print(good_quality_samples)
-f3 = open(genotype + "_" + seqtype + "_srrlist_LowMapping_LowReads.csv", "a")
+f3 = open(genotype + "_" + seqtype + "_runlist_LowMapping_LowReads.csv", "a")
 f3.write(','.join(good_quality_samples))
 
 #for sample in good_quality_samples:

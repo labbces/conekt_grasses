@@ -1,4 +1,4 @@
- #!/usr/bin/env python
+#!/usr/bin/env python
 
 #Usage
 
@@ -14,8 +14,9 @@ import shutil
 
 GENOTYPE='Sviridis'
 SEQTYPE='PAIRED'
+read_prefix='@GSM'
 samples = pd.read_csv(GENOTYPE+'_samples.csv')
-reference_transcriptome = "Sviridis_726_v4.1.transcript_primaryTranscriptOnly.fa"
+reference_transcriptome = "Svi_rnas.fa"
 
 fasterq_dump = config["software"]["fasterq-dump"]
 bbduk = config["software"]["bbduk"]
@@ -113,11 +114,11 @@ rule count_raw_sequences:
 	name: "count_raw_sequences"
 	shell:
 		"""
-		cat {input.R1} | grep -c "@SRR" > {output.R1_rawstats} 2>> {log}
+		cat {input.R1} | grep -c "{read_prefix}" > {output.R1_rawstats} 2>> {log}
 		echo "sequences: $(cat {output.R1_rawstats})" > {output.R1_rawstats} 2>> {log}
 		rm {input.R1} 2>> {log} 
 		
-		cat {input.R2} | grep -c "@SRR" > {output.R2_rawstats} 2>> {log}
+		cat {input.R2} | grep -c "{read_prefix}" > {output.R2_rawstats} 2>> {log}
 		echo "sequences: $(cat {output.R2_rawstats})" > {output.R2_rawstats} 2>> {log}
 		rm {input.R2} 2>> {log}
 		"""
@@ -196,11 +197,11 @@ rule count_trimmed_sequences:
 	name: "count_trimmed_sequences"
 	shell:
 		"""
-		cat {input.R1} | grep -c "@SRR" > {output.R1_trimmedstats} 2>> {log}
+		cat {input.R1} | grep -c "{read_prefix}" > {output.R1_trimmedstats} 2>> {log}
 		echo "sequences: $(cat {output.R1_trimmedstats})" > {output.R1_trimmedstats} 2>> {log}
 		rm {input.R1} 2>> {log}
 
-		cat {input.R2} | grep -c "@SRR" > {output.R2_trimmedstats} 2>> {log}
+		cat {input.R2} | grep -c "{read_prefix}" > {output.R2_trimmedstats} 2>> {log}
 		echo "sequences: $(cat {output.R2_trimmedstats})" > {output.R2_trimmedstats} 2>> {log}
 		rm {input.R2} 2>> {log}
 		"""
@@ -213,7 +214,7 @@ rule filter_stranded:
 	input:
 		meta_info = expand("datasets_{genotype}/3_salmon/quant/{sample}/aux_info/meta_info.json", genotype=GENOTYPE, sample=samples)
 	output:
-		filtered_samples = "datasets_{genotype}/3_salmon/quant/{genotype}_{seqtype}_srrlist.csv"
+		filtered_samples = "datasets_{genotype}/3_salmon/quant/{genotype}_{seqtype}_runlist.csv"
 	threads: 1
 	resources:
 		load=1
@@ -230,13 +231,13 @@ rule filter_stranded:
 		ls datasets_{wildcards.genotype}/3_salmon/quant/ | grep SRR > datasets_{params.genotype}/3_salmon/quant/id.txt 2>> {log}
 		paste datasets_{params.genotype}/3_salmon/quant/id.txt datasets_{params.genotype}/3_salmon/quant/lib.txt -d, > datasets_{params.genotype}/3_salmon/quant/stranded_status.csv 2>> {log}
 		grep .S datasets_{params.genotype}/3_salmon/quant/stranded_status.csv > datasets_{params.genotype}/3_salmon/quant/stranded_samples.csv 2>> {log}
-		cut -f1 -d, datasets_{params.genotype}/3_salmon/quant/stranded_samples.csv | paste -s -d, > datasets_{params.genotype}/3_salmon/quant/{params.genotype}_{params.seqtype}_srrlist.csv 2>> {log}
+		cut -f1 -d, datasets_{params.genotype}/3_salmon/quant/stranded_samples.csv | paste -s -d, > datasets_{params.genotype}/3_salmon/quant/{params.genotype}_{params.seqtype}_runlist.csv 2>> {log}
 		"""
 
 def get_filter_stranded_samples(wildcards):
 	#this file is created by filter_stranded (rule above)
 	try:
-		with open(f"datasets_{wildcards.genotype}/3_salmon/quant/{wildcards.genotype}_{wildcards.seqtype}_srrlist.csv", "r") as f1:
+		with open(f"datasets_{wildcards.genotype}/3_salmon/quant/{wildcards.genotype}_{wildcards.seqtype}_runlist.csv", "r") as f1:
 			stranded_samples = pd.read_csv(f1)
 		return stranded_samples
 	except EmptyDataError:
@@ -249,7 +250,7 @@ def get_stranded_csv(wildcards):
 	if config.get("skip_filter_stranded", "false") == "true":
 		# skip_filter_stranded is True => skip the rule filter_stranded
 		source_csv = f"{genotype}_samples.csv"
-		dest_csv = f"datasets_{genotype}/3_salmon/quant/{genotype}_{seqtype}_srrlist_ALL.csv"
+		dest_csv = f"datasets_{genotype}/3_salmon/quant/{genotype}_{seqtype}_runlist_ALL.csv"
 		os.makedirs(os.path.dirname(dest_csv), exist_ok=True)
 		if not os.path.exists(dest_csv):
 			# copy source to dest (all samples, skiping filter_stranded)
@@ -257,7 +258,7 @@ def get_stranded_csv(wildcards):
 		return dest_csv 
 	else:
 		# skip_filter_stranded is false => run the rule filter_stranded
-		return f"datasets_{genotype}/3_salmon/quant/{genotype}_{seqtype}_srrlist.csv"
+		return f"datasets_{genotype}/3_salmon/quant/{genotype}_{seqtype}_runlist.csv"
 
 rule filter_low_mapping_reads:
 	"""
@@ -273,7 +274,7 @@ rule filter_low_mapping_reads:
 
 	output:
 		"{genotype}_{seqtype}_filter_stats.txt",
-		"{genotype}_{seqtype}_srrlist_LowMapping_LowReads.csv"
+		"{genotype}_{seqtype}_runlist_LowMapping_LowReads.csv"
 	threads: 1
 	params:
 		server="figsrv",
@@ -291,7 +292,7 @@ rule filter_low_mapping_reads:
 
 def get_filter_low_mapping_samples(wildcards):
 	salmon_path = f"datasets_{wildcards.genotype}/3_salmon/quant/"
-	filter_file = f"{wildcards.genotype}_{wildcards.seqtype}_srrlist_LowMapping_LowReads.csv"
+	filter_file = f"{wildcards.genotype}_{wildcards.seqtype}_runlist_LowMapping_LowReads.csv"
 	try:
 		with open(filter_file, "r") as f2:
 			filter_low_mapping_samples = list(pd.read_csv(f2))
@@ -307,7 +308,7 @@ rule preliminar_report:
 	priority: 1
 	input: 
 		accessions = expand("{genotype}_samples.csv", genotype=GENOTYPE),
-		paired_srrlist = expand("{genotype}_{seqtype}_srrlist_LowMapping_LowReads.csv",genotype=GENOTYPE, seqtype=SEQTYPE),
+		paired_runlist = expand("{genotype}_{seqtype}_runlist_LowMapping_LowReads.csv",genotype=GENOTYPE, seqtype=SEQTYPE),
 		filter_stats = expand("{genotype}_{seqtype}_filter_stats.txt", genotype=GENOTYPE, seqtype=SEQTYPE),
 	output:
 		"preliminar_report.tsv"
@@ -323,11 +324,11 @@ rule preliminar_report:
 	shell:
 		"""
 		sed -e 's/,/\\n/g' {input.accessions} >> {input.accessions}.temp 2>> {log}
-		sed -e 's/,/\\n/g' {input.paired_srrlist} >> {input.paired_srrlist}.temp 2>> {log}
+		sed -e 's/,/\\n/g' {input.paired_runlist} >> {input.paired_runlist}.temp 2>> {log}
 		sed -e 's/\\t/,/g' {input.filter_stats} >> {input.filter_stats}.temp 2>> {log}
-		{parse_filter} --accessions {input.accessions}.temp --paired_srrlist {input.paired_srrlist}.temp --filter_stats {input.filter_stats}.temp 2>> {log}
+		{parse_filter} --accessions {input.accessions}.temp --paired_runlist {input.paired_runlist}.temp --filter_stats {input.filter_stats}.temp 2>> {log}
 		rm {input.accessions}.temp 2>> {log}
-		rm {input.paired_srrlist}.temp 2>> {log}
+		rm {input.paired_runlist}.temp 2>> {log}
 		rm {input.filter_stats}.temp 2>> {log}
 		"""
 
@@ -337,7 +338,7 @@ rule merge_quantification_results:
 	"""
 	priority: 1
 	input:
-		expand("{genotype}_{seqtype}_srrlist_LowMapping_LowReads.csv", genotype=GENOTYPE, seqtype=SEQTYPE),
+		expand("{genotype}_{seqtype}_runlist_LowMapping_LowReads.csv", genotype=GENOTYPE, seqtype=SEQTYPE),
 	output:
 		"{genotype}_{seqtype}_quantmerge.txt"
 	threads: 1

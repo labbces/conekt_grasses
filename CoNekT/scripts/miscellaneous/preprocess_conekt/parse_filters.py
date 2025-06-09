@@ -10,20 +10,20 @@ import argparse
 
 parser = argparse.ArgumentParser(prog='parse_filters.py', description='Parse CoNekT Bioenergy snakemake pipeline filters', add_help=True)
 parser.add_argument('--accessions', dest='accessions', metavar='<accesions csv file>', help='file containing SRA IDs', required=True)
-parser.add_argument('--paired_srrlist', dest='paired_srrlist', metavar='<paired srrlist csv file>', help='file containing only paired accessions', required=True)
+parser.add_argument('--paired_runlist', dest='paired_runlist', metavar='<paired runlist csv file>', help='file containing only paired accessions', required=True)
 parser.add_argument('--filter_stats', dest='filter_stats', metavar='<filter stats file>', help='file containing only filtered accessions', required=True)
 
 args = parser.parse_args()
 accessions = args.accessions
-paired_srrlist = args.paired_srrlist
+paired_runlist = args.paired_runlist
 filter_stats = args.filter_stats
 
 #Trocar virgula por \n no acessions (dentro do shell snakemake)
 sample_column = ['Sample']
 download = pd.read_csv(accessions, header=None, names=sample_column)
 
-#Trocar virgula por \n no paired_srrlist (dentro do shell snakemake)
-filter1 = pd.read_csv(paired_srrlist, header=None, names=sample_column)
+#Trocar virgula por \n no paired_runlist (dentro do shell snakemake)
+filter1 = pd.read_csv(paired_runlist, header=None, names=sample_column)
 
 #Trocar tab por virgula no filter_stats
 filter_columns = ['Sample', 'Mapping Rate', 'Perc Low TPM']
