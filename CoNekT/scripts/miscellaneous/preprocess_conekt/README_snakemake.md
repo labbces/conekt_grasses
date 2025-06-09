@@ -39,7 +39,7 @@ In the folder you cloned, move to `preprocess_conekt` directory:
 cd conekt_grasses/CoNekT/scripts/miscellaneous/preprocess_conekt
 ```
 
-Then, install and configure your Conda virtual environment.  
+
 Be patient, as this installation may take a few minutes.
 
 > [!IMPORTANT]
@@ -71,12 +71,13 @@ Some paths in the configuration are user-specific, while others are cluster-spec
 
 ## 4. Adjust the Snakefile for proper inputs
 
-In the file [Snakefile](https://github.com/labbces/conekt_grasses/blob/documentation-review/CoNekT/scripts/miscellaneous/preprocess_conekt/Snakefile), you will need to adjust the name of the CSV file with your samples (SRRs) and the reference transcriptome.  
+In the file [Snakefile](https://github.com/labbces/conekt_grasses/blob/documentation-review/CoNekT/scripts/miscellaneous/preprocess_conekt/Snakefile), you will need to adjust the name of the CSV file with your samples (SRRs) and the reference transcriptome. Além disso também ajustar a variável read_prefix com o prefixo do nome das corridas de sequenciamento.  
 See the example below:
 
 ```bash
 GENOTYPE='Sugarcane'
 SEQTYPE='PAIRED'
+read_prefix='@SRR'
 samples = pd.read_csv(GENOTYPE+'_samples.csv')
 reference_transcriptome = "Scp1_rnas.fa"
 ```
