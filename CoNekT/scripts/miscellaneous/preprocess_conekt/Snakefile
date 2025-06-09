@@ -228,7 +228,7 @@ rule filter_stranded:
 	shell:
 		"""
 		{jq} -r '.library_types[]' {input.meta_info} > datasets_{params.genotype}/3_salmon/quant/lib.txt 2>> {log}
-		ls datasets_{wildcards.genotype}/3_salmon/quant/ | grep SRR > datasets_{params.genotype}/3_salmon/quant/id.txt 2>> {log}
+		ls datasets_{wildcards.genotype}/3_salmon/quant/ | grep "{read_prefix}" > datasets_{params.genotype}/3_salmon/quant/id.txt 2>> {log}
 		paste datasets_{params.genotype}/3_salmon/quant/id.txt datasets_{params.genotype}/3_salmon/quant/lib.txt -d, > datasets_{params.genotype}/3_salmon/quant/stranded_status.csv 2>> {log}
 		grep .S datasets_{params.genotype}/3_salmon/quant/stranded_status.csv > datasets_{params.genotype}/3_salmon/quant/stranded_samples.csv 2>> {log}
 		cut -f1 -d, datasets_{params.genotype}/3_salmon/quant/stranded_samples.csv | paste -s -d, > datasets_{params.genotype}/3_salmon/quant/{params.genotype}_{params.seqtype}_runlist.csv 2>> {log}
