@@ -30,6 +30,12 @@ sequence_cazyme = db.Table('sequence_cazyme',
                             db.Column('cazyme_id', db.Integer, db.ForeignKey('cazyme.id'), index=True)
                             )
 
+sequence_tf = db.Table('sequence_tf',
+                            db.Column('id', db.Integer, primary_key=True),
+                            db.Column('sequence_id', db.Integer, db.ForeignKey('sequences.id'), index=True),
+                            db.Column('tf_id', db.Integer, db.ForeignKey('transcription_factor.id'), index=True)
+                            )
+
 sequence_family = db.Table('sequence_family',
                            db.Column('id', db.Integer, primary_key=True),
                            db.Column('sequence_id', db.Integer, db.ForeignKey('sequences.id'), index=True),
@@ -90,6 +96,12 @@ family_cazyme = db.Table('family_cazyme',
                         db.Column('id', db.Integer, primary_key=True),
                         db.Column('gene_family_id', db.Integer, db.ForeignKey('gene_families.id'), index=True),
                         db.Column('cazyme_id', db.Integer, db.ForeignKey('cazyme.id'), index=True)
+                        )
+
+family_tf = db.Table('family_tf',
+                        db.Column('id', db.Integer, primary_key=True),
+                        db.Column('gene_family_id', db.Integer, db.ForeignKey('gene_families.id'), index=True),
+                        db.Column('tf_id', db.Integer, db.ForeignKey('cazyme.id'), index=True)
                         )
 
 cluster_go_enrichment = db.Table('cluster_go_enrichment',
