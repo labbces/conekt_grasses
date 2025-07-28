@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 
-BASE_DIR=/home/conekt_admin/populate_conekt/conekt_grasses
+BASE_DIR=/home/pturquetti/conekt/conekt_grasses/
 SCRIPTS_DIR=$BASE_DIR/CoNekT/scripts
-DATA_DIR=/DataBig/CoNeKt/Backups/01052024/v0.3
+DATA_DIR=/mnt/c/Users/Usuario/Desktop/DadosConekt
+LOG_DIR=$BASE_DIR/CoNekT/scripts/add/logs_populate
 SPECIES_TABLE=$DATA_DIR/Species/species_info.tsv
-SPECIES_ARRAY=( Svi Bdi Osa Sit Sbi Pvi Zma Scp1 Shc1 Shc2 Shc3 Shc4 Shc5 Shc6 Shc7 Shc8 Shc9 Shc10 Shc11 Shc12 Shc13 Shc14 Shc15 Shc16 Shc17 Shc18 Shc19 Shc20 Shc21 Shc22 Shc23 Shc24 Shc25 Shc26 Shc27 Shc28 Shc29 Shc30 Shc31 Shc32 Shc33 Shc34 Shc35 Shc36 Shc37 Shc38 Shc39 Shc40 Shc41 Shc42 Shc43 Shc44 Shc45 Shc46 Shc47 Shc48 Shc49 Shc50 )
+SPECIES_ARRAY=( Svi Osa Sit Sbi )
 SPECIES_EXPRESSION_PROFILES=(  )
+DB_VERBOSE=false
 
 # Description of method to generate gene families
 GENE_FAMILIES_DESCRIPTION="OrthoFinder Gene Families v0.3"
@@ -35,10 +37,13 @@ source $SCRIPTS_DIR/Populate_CoNekT/bin/activate
 echo "Populating CoNekT Grasses with functional data"
 $SCRIPTS_DIR/add/add_functional_data.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
- --interpro_xml $DATA_DIR/FunctionalData/interpro.xml\
+ --db_password $DB_PASSWORD\
+ --interpro_xml $DATA_DIR/FunctionalData/naoExiste.xml\
  --gene_ontology_obo $DATA_DIR/FunctionalData/go.obo\
  --cazyme $DATA_DIR/FunctionalData/CAZyDB.07302020.fam-activities.txt\
- --db_password $DB_PASSWORD
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE
+ 
 
 echo "Populating CoNekT Grasses with ontology data"
 $SCRIPTS_DIR/add/add_ontologies.py --plant_ontology $DATA_DIR/Ontology/plant-ontology.txt\
