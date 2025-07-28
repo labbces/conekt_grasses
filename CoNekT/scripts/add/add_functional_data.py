@@ -54,9 +54,14 @@ parser.add_argument('--logdir', type=str, metavar='Log diretory',
                     required=False)
 parser.add_argument('--db_verbose', type=str, metavar='Database verbose',
                     dest='db_verbose',
-                    help='Enable verbose logging (true/false)',
+                    help='Enable databaseverbose logging (true/false)',
                     required=False,
                     default="false")
+parser.add_argument('--py_verbose', type=str, metavar='Python script verbose',
+                    dest='py_verbose',
+                    help='Enable python verbose logging (true/false)',
+                    required=False,
+                    default="true")
 
 args = parser.parse_args()
 
@@ -65,15 +70,6 @@ if args.db_password:
 else:
     db_password = getpass.getpass("Enter the database password: ")
 
-
-
-# def print_and_log(message):
-#     """
-#     Imprime a mensagem no terminal e salva no arquivo de log.
-#     """
-#     print(message)  # mostra no terminal
-#     with open(log_file_path, "a", encoding="utf-8") as log_file:
-#         log_file.write(message + "")
 
 
 
@@ -292,17 +288,17 @@ def add_interpro_from_xml(filename, empty=True):
     logger.info("➡️  Adding InterPro data:")
     # If required empty the table first
     if empty:
-        logger.info("Cleaning 'interpro' table...")
+        logger.debug("Cleaning 'interpro' table...")
         try:
             session.query(Interpro).delete()
             session.commit()
-            logger.info("✅  Table cleaned successfully.")
+            logger.debug("✅  Table cleaned successfully.")
         except Exception as e:
             print_log_error(e)
             sys.exit(1)
             
 
-    logger.info(f"Reading InterPro file: {filename}")
+    logger.debug(f"Reading InterPro file: {filename}")
     try:
         interpro_parser = InterProParser()
         interpro_parser.readfile(filename)
@@ -311,7 +307,7 @@ def add_interpro_from_xml(filename, empty=True):
         print_log_error(e)
         sys.exit(1)
 
-    logger.info(f"Found {total_entries} entries in the file.")
+    logger.debug(f"Found {total_entries} entries in the file.")
 
     try:
         for i, domain in enumerate(interpro_parser.domains):
@@ -326,7 +322,7 @@ def add_interpro_from_xml(filename, empty=True):
             
             step = 10 ** int(math.log10(total_entries))
             if i % step == 0:
-                logger.info(f"{i}/{total_entries} entries processed and committed...")
+                logger.debug(f"{i}/{total_entries} entries processed and committed...")
 
     
         session.commit()
@@ -352,11 +348,11 @@ def add_cazymes_from_table(filename, empty=False):
     # If required empty the table first
     if empty:
         try:
-            logger.info("Cleaning 'cazyme' table...")
+            logger.debug("Cleaning 'cazyme' table...")
             with engine.begin() as conn:  
                 stmt = delete(CAZYme)
                 conn.execute(stmt)
-                logger.info("✅  Table cleaned successfully.")
+                logger.debug("✅  Table cleaned successfully.")
         except Exception as e:
             print_log_error(e)
             sys.exit(1)
@@ -370,7 +366,7 @@ def add_cazymes_from_table(filename, empty=False):
         'CBM':'Carbohydrate-Binding Module'
     }
 
-    logger.info(f"Reading CAZYmes file: {filename}")
+    logger.debug(f"Reading CAZYmes file: {filename}")
     with open(filename, 'r') as fin:
         i = 0
 
@@ -395,7 +391,7 @@ def add_cazymes_from_table(filename, empty=False):
                         session.commit()
 
                     if i % 100 == 0:
-                        logger.info(f"{i} entries processed and committed...")
+                        logger.debug(f"{i} entries processed and committed...")
 
             session.commit()
             logger.info(f"✅  All {i} entries added to table 'cazyme' successfully!")
@@ -419,17 +415,17 @@ def add_go_from_obo(filename, empty=True, compressed=False):
     #If required empty the table first
     if empty:
         try:
-            logger.info("Cleaning 'go' table...")
+            logger.debug("Cleaning 'go' table...")
             with engine.begin() as conn:
                 stmt = delete(GO)
                 conn.execute(stmt)
-            logger.info("✅  Table cleaned successfully.")
+            logger.debug("✅  Table cleaned successfully.")
         except Exception as e:
             print_log_error(e)
             sys.exit(1)
 
 
-    logger.info(f"Reading GO file: {filename}")
+    logger.debug(f"Reading GO file: {filename}")
 
     try:
         obo_parser = OBOParser()
@@ -441,7 +437,7 @@ def add_go_from_obo(filename, empty=True, compressed=False):
 
 
     total_entries = len(obo_parser.terms)
-    logger.info(f"Found {total_entries} entries in the file.")
+    logger.debug(f"Found {total_entries} entries in the file.")
 
     try:
         for i, term in enumerate(obo_parser.terms):
@@ -457,7 +453,7 @@ def add_go_from_obo(filename, empty=True, compressed=False):
 
             step = 10 ** int(math.log10(total_entries))
             if i % step == 0:
-                logger.info(f"{i}/{total_entries} entries processed and committed...")
+                logger.debug(f"{i}/{total_entries} entries processed and committed...")
 
         session.commit()
         logger.info(f"✅  All {total_entries} entries added to table 'go' successfully!")
@@ -471,7 +467,7 @@ def add_go_from_obo(filename, empty=True, compressed=False):
 
 
 
-def setup_logger(log_dir="logs_populate", base_filename="functional data", DBverbose=False):
+def setup_logger(log_dir="logs_populate", base_filename="functional data", DBverbose=False, PYverbose=True):
     """
     Sets up the application's logging system with support for both file and console output.
 
@@ -494,8 +490,7 @@ def setup_logger(log_dir="logs_populate", base_filename="functional data", DBver
     os.makedirs(log_dir, exist_ok=True)
 
     logger = logging.getLogger()
-    # level = logging.DEBUG if py_verbose else logging.INFO
-    level = logging.INFO
+    level = logging.DEBUG if PYverbose else logging.INFO
     logger.setLevel(level)
 
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
@@ -538,7 +533,7 @@ def print_log_error(message):
     :param message: Error message to log
     """
     logger.error(f'❌ {message}')
-    logger.info("OPERATION ABORTED. Fix the issue and run the script again.")
+    logger.error("OPERATION ABORTED. Fix the issue and run the script again.")
 
 
 
@@ -548,12 +543,20 @@ def str2bool(v):
     :param v: The input value to convert to boolean
     :return: Boolean value (True or False)
     """
-    return str(v).lower() in ("yes", "true", "t", "1")
+    if isinstance(v, bool):
+        return v
+    val = str(v).strip().lower()
+    if val in ('yes', 'true', 't', '1'):
+        return True
+    elif val in ('no', 'false', 'f', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError(f'Boolean value expected, got "{v}"')
 
 
 
 try:
-
+    thisFileName = os.path.basename(__file__)
 
     interpro_file = ''
     go_file = ''
@@ -569,9 +572,9 @@ try:
     #log variables
     log_dir = args.log_dir  #log dir path
     log_file_name = "functional_data"   #log file names
-    DBverbose = True    #Database verbose
     db_verbose = str2bool(args.db_verbose)
-    logger = setup_logger(log_dir=log_dir, base_filename=log_file_name, DBverbose=db_verbose)
+    py_verbose = str2bool(args.py_verbose)
+    logger = setup_logger(log_dir=log_dir, base_filename=log_file_name, DBverbose=db_verbose, PYverbose=py_verbose)
     
 
     functional_data_count = 0
@@ -621,9 +624,12 @@ try:
 
 except Exception as e:
     print_log_error(e)
+    logger.info(f" ---- ❌ An error occurred while executing {thisFileName}. Please fix the issue and rerun the script. ❌ ---- ")
     sys.exit(1)
 
-logger.info(" ---- ✅ SUCCESS: All operations finished without errors! ✅ ---- ")
+
+
+logger.info(f" ---- ✅ SUCCESS: All operations from {thisFileName} finished without errors! ✅ ---- ")
 
 
 

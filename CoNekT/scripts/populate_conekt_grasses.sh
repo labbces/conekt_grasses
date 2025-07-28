@@ -8,6 +8,7 @@ SPECIES_TABLE=$DATA_DIR/Species/species_info.tsv
 SPECIES_ARRAY=( Svi Osa Sit Sbi )
 SPECIES_EXPRESSION_PROFILES=(  )
 DB_VERBOSE=false
+PY_VERBOSE=true
 
 # Description of method to generate gene families
 GENE_FAMILIES_DESCRIPTION="OrthoFinder Gene Families v0.3"
@@ -38,11 +39,12 @@ echo "Populating CoNekT Grasses with functional data"
 $SCRIPTS_DIR/add/add_functional_data.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
  --db_password $DB_PASSWORD\
- --interpro_xml $DATA_DIR/FunctionalData/naoExiste.xml\
+ --interpro_xml $DATA_DIR/FunctionalData/interpro.xml\
  --gene_ontology_obo $DATA_DIR/FunctionalData/go.obo\
  --cazyme $DATA_DIR/FunctionalData/CAZyDB.07302020.fam-activities.txt\
  --logdir $LOG_DIR\
- --db_verbose $DB_VERBOSE
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE
  
 
 echo "Populating CoNekT Grasses with ontology data"
