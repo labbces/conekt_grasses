@@ -60,10 +60,14 @@ $SCRIPTS_DIR/add/add_ontologies.py\
  --py_verbose $PY_VERBOSE
 
 echo "Populating CoNekT Grasses with species data"
-$SCRIPTS_DIR/add/add_species.py --input_table $SPECIES_TABLE\
+$SCRIPTS_DIR/add/add_species.py\
+ --input_table $SPECIES_TABLE\
  --db_admin $DB_ADMIN \
  --db_name $DB_NAME \
- --db_password $DB_PASSWORD
+ --db_password $DB_PASSWORD\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE
 
 echo "Populating CoNekT Grasses with gene descriptions"
 for species_code in ${SPECIES_ARRAY[@]};
