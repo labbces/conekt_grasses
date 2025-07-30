@@ -36,7 +36,8 @@ deactivate
 source $SCRIPTS_DIR/Populate_CoNekT/bin/activate
 
 echo "Populating CoNekT Grasses with functional data"
-$SCRIPTS_DIR/add/add_functional_data.py --db_admin $DB_ADMIN\
+$SCRIPTS_DIR/add/add_functional_data.py\
+ --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
  --db_password $DB_PASSWORD\
  --interpro_xml $DATA_DIR/FunctionalData/interpro.xml\
@@ -48,11 +49,15 @@ $SCRIPTS_DIR/add/add_functional_data.py --db_admin $DB_ADMIN\
  
 
 echo "Populating CoNekT Grasses with ontology data"
-$SCRIPTS_DIR/add/add_ontologies.py --plant_ontology $DATA_DIR/Ontology/plant-ontology.txt\
+$SCRIPTS_DIR/add/add_ontologies.py\
+ --plant_ontology $DATA_DIR/Ontology/plant-ontology.txt\
  --plant_e_c_ontology $DATA_DIR/Ontology/peco.tsv\
  --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
- --db_password $DB_PASSWORD
+ --db_password $DB_PASSWORD\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE
 
 echo "Populating CoNekT Grasses with species data"
 $SCRIPTS_DIR/add/add_species.py --input_table $SPECIES_TABLE\
