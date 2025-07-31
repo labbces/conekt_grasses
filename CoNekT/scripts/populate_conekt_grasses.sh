@@ -1,22 +1,7 @@
 #!/usr/bin/env bash
 
-BASE_DIR=/home/pturquetti/conekt/conekt_grasses/
-SCRIPTS_DIR=$BASE_DIR/CoNekT/scripts
-DATA_DIR=/mnt/c/Users/Usuario/Desktop/DadosConekt
-LOG_DIR=$BASE_DIR/CoNekT/scripts/add/logs_populate
-SPECIES_TABLE=$DATA_DIR/Species/species_info.tsv
-SPECIES_ARRAY=( Svi Osa Sit Sbi )
-SPECIES_EXPRESSION_PROFILES=(  )
-DB_VERBOSE=false
-PY_VERBOSE=true
-
-# Description of method to generate gene families
-GENE_FAMILIES_DESCRIPTION="OrthoFinder Gene Families v0.3"
-
-#Database credentials for CoNekT Grasses from file
-#Expected variables: DB_ADMIN, DB_NAME and DB_PASSWORD
-MARIADB_CREDENTIALS_FILE=$SCRIPTS_DIR/mariadb_credentials.txt
-source $MARIADB_CREDENTIALS_FILE
+# Get variables from 'setup_variables.sh' file (copy/paste your full path to file here)
+source /home/pturquetti/conekt/conekt_grasses/CoNekT/scripts/setup_variables.sh
 
 export FLASK_APP=run.py
 
@@ -32,10 +17,15 @@ flask db init
 # Deactivate virtual environment
 # Currently it is necessary because libraries in the virtual environment
 # are not compatible with the libraries in the system used by the scripts
-deactivate
-source $SCRIPTS_DIR/Populate_CoNekT/bin/activate
+# deactivate
+# source $SCRIPTS_DIR/Populate_CoNekT/bin/activate
 
-echo "Populating CoNekT Grasses with functional data"
+# Activating virtual environment
+deactivate
+source $BASE_DIR/CoNekT/bin/activate
+echo -e "Ready to start populating!"
+
+echo -e "\nPopulating CoNekT Grasses with functional data"
 $SCRIPTS_DIR/add/add_functional_data.py\
  --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
@@ -48,7 +38,7 @@ $SCRIPTS_DIR/add/add_functional_data.py\
  --py_verbose $PY_VERBOSE
  
 
-echo "Populating CoNekT Grasses with ontology data"
+echo -e "\nPopulating CoNekT Grasses with ontology data"
 $SCRIPTS_DIR/add/add_ontologies.py\
  --plant_ontology $DATA_DIR/Ontology/plant-ontology.txt\
  --plant_e_c_ontology $DATA_DIR/Ontology/peco.tsv\
@@ -59,7 +49,7 @@ $SCRIPTS_DIR/add/add_ontologies.py\
  --db_verbose $DB_VERBOSE\
  --py_verbose $PY_VERBOSE
 
-echo "Populating CoNekT Grasses with species data"
+echo -e "\nPopulating CoNekT Grasses with species data"
 $SCRIPTS_DIR/add/add_species.py\
  --input_table $SPECIES_TABLE\
  --db_admin $DB_ADMIN \

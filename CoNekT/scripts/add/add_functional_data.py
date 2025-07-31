@@ -132,7 +132,7 @@ def print_log_error(message):
     :param message: Error message to log
     """
     logger.error(f'❌ {message}')
-    logger.error("OPERATION ABORTED. Fix the issue and run the script again.")
+    logger.error(f"OPERATION ABORTED. Fix the issue and run the {thisFileName} script again.")
 
 def str2bool(v):
     """

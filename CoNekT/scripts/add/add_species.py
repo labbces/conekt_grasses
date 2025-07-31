@@ -2,7 +2,7 @@
 
 import getpass
 import argparse
-import psutil
+# import psutil
 import sys
 import gzip
 import operator
@@ -128,7 +128,7 @@ def print_log_error(message):
     :param message: Error message to log
     """
     logger.error(f'❌ {message}')
-    logger.error("OPERATION ABORTED. Fix the issue and run the script again.")
+    logger.error(f"OPERATION ABORTED. Fix the issue and run the {thisFileName} script again.")
 
 def str2bool(v):
     """
@@ -221,21 +221,21 @@ class Fasta:
                 print(v, file=f)
 
 
-def print_memory_usage():
-    # Get memory usage statistics
-    memory = psutil.virtual_memory()
+# def print_memory_usage():
+#     # Get memory usage statistics
+#     memory = psutil.virtual_memory()
 
-    # Print memory usage
-    print(f"Total Memory: {memory.total / (1024.0 ** 3):.2f} GB")
-    print(f"Available Memory: {memory.available / (1024.0 ** 3):.2f} GB")
-    print(f"Used Memory: {memory.used / (1024.0 ** 3):.2f} GB")
-    print(f"Memory Usage Percentage: {memory.percent}%\n")
+#     # Print memory usage
+#     print(f"Total Memory: {memory.total / (1024.0 ** 3):.2f} GB")
+#     print(f"Available Memory: {memory.available / (1024.0 ** 3):.2f} GB")
+#     print(f"Used Memory: {memory.used / (1024.0 ** 3):.2f} GB")
+#     print(f"Memory Usage Percentage: {memory.percent}%\n")
 
 
-def add_literature(doi, engine):
+def add_literature(doi, session):
         
     # logger.info("______________________________________________________________________")
-    logger.info(f"➡️  Adding literature entry for DOI: {doi}")
+    logger.info(f"➡️  Adding literature entry: {doi}")
 
     try:
 
@@ -274,9 +274,8 @@ def add_literature(doi, engine):
         exit(1)
     
     try:
-        with engine.connect() as conn:
-            stmt = select(LiteratureItem).where(LiteratureItem.__table__.c.doi == doi)
-            literature = conn.execute(stmt).first()
+        # stmt = select(LiteratureItem).where(LiteratureItem.doi == doi)
+        literature = session.query(LiteratureItem).filter(LiteratureItem.doi == doi).first()
     except Exception as e:
         print_log_error(f" Error while querying literature table for DOI '{doi}': {e}")
         exit(1)
@@ -297,7 +296,7 @@ def add_literature(doi, engine):
         exit(1)
 
 
-def add_species(code, name, engine, data_type='genome',
+def add_species(code, name, session, data_type='genome',
             color="#C7C7C7", highlight="#DEDEDE", description=None,
             source=None, literature_id=None, genome_version=None):
         
@@ -323,8 +322,7 @@ def add_species(code, name, engine, data_type='genome',
 
     try:
         with engine.connect() as conn:
-            stmt = select(Species).where(Species.__table__.c.code == code)
-            species = conn.execute(stmt).first()
+            species = session.query(Species).filter(Species.code == code).first()
     except Exception as e:
         print_log_error(f"Error while querying existing species with code '{code}': {e}")
         exit(1)
@@ -433,7 +431,7 @@ try:
 
     # Create a Session
     Session = sessionmaker(bind=engine)
-    session = Session()
+    
 
     logger.debug(f"Reading species file: {args.species_file}")
     # Loop over species file and add to DB
@@ -445,33 +443,41 @@ try:
         line = line.rstrip()
         name, code, genome_source, genome_version, doi, cds_file, rna_file = line.split("\t")
 
-        logger.info(f"Inserting species '{name}' data  ========================================")
+        logger.info(f"Inserting species '{name}' data  ===============================================")
         
         # skip if species exists
-        with engine.connect() as conn:
-            stmt = select(Species).where(Species.__table__.c.code == code)
-            species = conn.execute(stmt).first()
-        
-        if species:
-            continue
+        session = Session()
 
-        # add literature
-        if doi:
-            literature_id = add_literature(doi, engine)
-            time.sleep(3)
-        else:
-            literature_id = None
+        try:
+            species = session.query(Species).filter_by(code=code).first()
 
-        # add species
-        species_id = add_species(code, name, engine, source=genome_source, literature_id=literature_id, genome_version=genome_version)
+            if species:
+                logger.info(f"'{name}' data  already in database. Skipping to next species")
+                continue  # antes de fechar a sessão, então use try/finally para fechar
 
-        # add sequences
-        num_seq_added_cds = add_from_fasta(cds_file, species_id, sequence_type='protein_coding')
-        num_seq_added_rna = add_from_fasta(rna_file, species_id, sequence_type='RNA')
+            # add literature
+            if doi:
+                literature_id = add_literature(doi, session)
+                time.sleep(3)
+            else:
+                literature_id = None
 
-        logger.info(f"✅  Added {num_seq_added_cds} CDS and {num_seq_added_rna} RNA sequences for {name} ({code})\n")
+            # add species (se essa função usar sessão, deve receber 'session', não 'engine')
+            species_id = add_species(code, name, session, source=genome_source, literature_id=literature_id, genome_version=genome_version)
 
-        if py_verbose: print_memory_usage()
+            # add sequences
+            num_seq_added_cds = add_from_fasta(cds_file, species_id, sequence_type='protein_coding')
+            num_seq_added_rna = add_from_fasta(rna_file, species_id, sequence_type='RNA')
+
+            logger.info(f"✅  Added {num_seq_added_cds} CDS and {num_seq_added_rna} RNA sequences for {name} ({code})\n")
+
+            session.commit()
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error processing species {name} ({code}): {e}")
+            raise
+        finally:
+            session.close()
 
 
     session.close()

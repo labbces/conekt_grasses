@@ -14,8 +14,6 @@ from sqlalchemy.sql import delete
 
 
 
-
-
 # Create arguments
 parser = argparse.ArgumentParser(description='Add ontology data to the database')
 parser.add_argument('--plant_ontology', type=str, metavar='plant_ontology.txt',
@@ -126,7 +124,7 @@ def print_log_error(message):
     :param message: Error message to log
     """
     logger.error(f'❌ {message}')
-    logger.error("OPERATION ABORTED. Fix the issue and run the script again.")
+    logger.error(f"OPERATION ABORTED. Fix the issue and run the {thisFileName} script again.")
 
 def str2bool(v):
     """
@@ -160,8 +158,7 @@ def add_tabular_peco(filename, empty=True, compressed=False):
             with engine.connect() as conn:
                 stmt = delete(PlantExperimentalConditionsOntology)
                 conn.execute(stmt)
-                conn.commit()
-                logger.debug("✅  Table cleaned successfully.")
+            logger.debug("✅  Table cleaned successfully.")
         except Exception as e:
             print_log_error(f"Error while cleaning 'plant_experimental_conditions_ontology' table: {e}")
             exit(1)
@@ -206,8 +203,7 @@ def add_tabular_po(filename, empty=True, compressed=False):
             with engine.connect() as conn:
                 stmt = delete(PlantOntology)
                 conn.execute(stmt)
-                conn.commit()
-                logger.debug("✅  Table cleaned successfully.")
+            logger.debug("✅  Table cleaned successfully.")
         except Exception as e:
             print_log_error(f"Error while cleaning 'plant_ontology' table: {e}")
             exit(1)
