@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if tr %}
+        {{ tr.family }} ({{tr.type}}): {{ tr.description }} details
+    {% else %}
+        Transcription Regulator not found
+    {% endif %}
+{% endblock %}
+
+{% block container %}
+{% import 'macros/pagination.html' as macro %}
+{% import 'macros/ajax_table.html' as ajax %}
+<div class="top-pad">
+
+    {% if tr %}
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+        <li>Transcription Regulator</li>
+        <li class="active"><strong>{{ tr.family }}</strong></li>
+    </ol>
+    <h1>{{ tr.family }}</h1>
+
+	<p>{{ tr.description }}</p>
+    <br/>
+
+    <div class="row">
+        <div class="col-lg-12 col-md-12 col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <p>There are <strong>{{ count }}</strong> sequences with this Transcription Regulator.</p>
+                    {% if count > 0 %}
+                    <div id="canvas-holder" class="center-block"  style="height:300px;max-height:300px">
+                        <div id="chart-loader"></div>
+                        <canvas id="chart-area" class="center-block" width="300" height="300" style="display:none"/>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{ macro.pagination('Sequences',
+        url_for('tr.tr_sequences', tr_id=tr.id),
+        count,
+        url_for('tr.tr_sequences_table', tr_id=tr.id),
+        'tr'
+    ) }}
+    <h3 class="banner-green" id="associated_things">Associations</h3>
+
+    {% if (count < 5000) %}
+    {{ ajax.ajax_table(
+        'Other Domains',
+        url_for('tr.tr_tr_ajax', tr_id=tr.id),
+        none,
+        'tr_ajax'
+    ) }}
+    {% endif %}
+
+    {% if (count < 5000) %}
+    {{ ajax.ajax_table(
+        'Families',
+        url_for('tr.tr_family_ajax', tr_id=tr.id),
+        none,
+        'tr_ajax'
+    ) }}
+    {% endif %}
+
+    {% endif %}
+</div>
+
+</div>
+{% endblock %}
+
+{% block extrajs %}
+    {% if count > 0 %}
+    <script src="{{ url_for('static', filename='js/Chart.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/hammer.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chartjs-plugin-zoom.min.js') }}"></script>
+	<script>
+		{% import "macros/chartjs.html" as chartjs %}
+	    {{ chartjs.pie_chart_loader("chart-area", url_for('tr.tr_json_species', tr_id=tr.id), "chart-loader") }}
+	</script>
+    {% endif %}
+{% endblock %}
