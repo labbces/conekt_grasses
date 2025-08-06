@@ -30,9 +30,9 @@ $SCRIPTS_DIR/add/add_functional_data.py\
  --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
  --db_password $DB_PASSWORD\
- --interpro_xml $DATA_DIR/FunctionalData/interpro.xml\
- --gene_ontology_obo $DATA_DIR/FunctionalData/go.obo\
- --cazyme $DATA_DIR/FunctionalData/CAZyDB.07302020.fam-activities.txt\
+ --interpro_xml $DATA_DIR"/Functional Data/interpro.xml"\
+ --gene_ontology_obo $DATA_DIR"/Functional Data/go.obo"\
+ --cazyme $DATA_DIR"/Functional Data/CAZyDB.07302020.fam-activities.txt"\
  --logdir $LOG_DIR\
  --db_verbose $DB_VERBOSE\
  --py_verbose $PY_VERBOSE
@@ -63,9 +63,9 @@ $SCRIPTS_DIR/add/add_species.py\
 echo "Populating CoNekT Grasses with gene descriptions"
 for species_code in ${SPECIES_ARRAY[@]};
  do
- if [ -f $DATA_DIR/Species/"$species_code"/"$species_code"_cds_description.txt ]; then
+ if [ -f $SPECIES_DIR/"$species_code"/"$species_code"_cds_description.txt ]; then
   $SCRIPTS_DIR/add/add_gene_descriptions.py --species_code "$species_code"\
-  --gene_descriptions $DATA_DIR/Species/"$species_code"/"$species_code"_cds_description.txt\
+  --gene_descriptions $SPECIES_DIR/"$species_code"/"$species_code"_cds_description.txt\
   --db_admin $DB_ADMIN\
   --db_name $DB_NAME\
   --db_password $DB_PASSWORD
