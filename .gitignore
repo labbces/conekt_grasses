@@ -16,8 +16,8 @@ pip-selfcheck.json
 
 /CoNekT/config.py
 # /CoNekT/scripts/populate_conekt_grasses.sh
-# /CoNekT/scripts/clear_database.sh
-# /CoNekT/scripts/setup_variables.sh
+/CoNekT/scripts/clear_database.sh
+/CoNekT/scripts/setup_variables.sh
 
 /ftp
 

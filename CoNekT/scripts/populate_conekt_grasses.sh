@@ -55,6 +55,7 @@ $SCRIPTS_DIR/add/add_species.py\
  --db_admin $DB_ADMIN \
  --db_name $DB_NAME \
  --db_password $DB_PASSWORD\
+ --species_dir $SPECIES_DIR\
  --logdir $LOG_DIR\
  --db_verbose $DB_VERBOSE\
  --py_verbose $PY_VERBOSE

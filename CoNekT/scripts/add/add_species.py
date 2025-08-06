@@ -39,6 +39,10 @@ parser.add_argument('--db_password', type=str, metavar='DB password',
                     dest='db_password',
                     help='The database password',
                     required=False)
+parser.add_argument('--species_dir', type=str, metavar='Species data diretory',
+                    dest='species_dir',
+                    help='The directory containing species data',
+                    required=False)
 parser.add_argument('--logdir', type=str, metavar='Log diretory',
                     dest='log_dir',
                     help='The directory containing temporary populate logs',
@@ -301,7 +305,7 @@ def add_species(code, name, session, data_type='genome',
             source=None, literature_id=None, genome_version=None):
         
     logger.info("______________________________________________________________________")
-    logger.info(f"➡️  Adding species '{code}' infos:")
+    logger.info(f"➡️  Adding species '{name}' (code: {code}) infos:")
 
     try:
         new_species = Species(code=code,
@@ -344,9 +348,22 @@ def add_species(code, name, session, data_type='genome',
         exit(1)
 
 
-def add_from_fasta(filename, species_id, compressed=False, sequence_type='protein_coding'):
+def add_from_fasta(species_code, species_id, compressed=False, sequence_type='protein_coding'):
     logger.info("______________________________________________________________________")
     logger.info(f"➡️  Adding {sequence_type} sequences")
+
+
+    ftype_map = {
+        'protein_coding': 'cds',
+        'RNA': 'rnas'
+    }
+
+    ftype = ftype_map.get(sequence_type)
+    if not ftype:
+        raise ValueError(f"Unsupported sequence type: {sequence_type}")
+
+    # Gets file name based on species ID and sequence type
+    filename = f"{args.species_dir}/{species_code}/{species_code}_{ftype}.fa"
 
     try:
         logger.debug(f"Reading FASTA file: {filename}")
@@ -441,7 +458,7 @@ try:
         if line.startswith("#"):
             continue
         line = line.rstrip()
-        name, code, genome_source, genome_version, doi, cds_file, rna_file = line.split("\t")
+        name, code, genome_source, genome_version, doi = line.split("\t")
 
         logger.info(f"Inserting species '{name}' data  ===============================================")
         
@@ -466,8 +483,8 @@ try:
             species_id = add_species(code, name, session, source=genome_source, literature_id=literature_id, genome_version=genome_version)
 
             # add sequences
-            num_seq_added_cds = add_from_fasta(cds_file, species_id, sequence_type='protein_coding')
-            num_seq_added_rna = add_from_fasta(rna_file, species_id, sequence_type='RNA')
+            num_seq_added_cds = add_from_fasta(code, species_id, sequence_type='protein_coding')
+            num_seq_added_rna = add_from_fasta(code, species_id, sequence_type='RNA')
 
             logger.info(f"✅  Added {num_seq_added_cds} CDS and {num_seq_added_rna} RNA sequences for {name} ({code})\n")
 
