@@ -1,18 +1,18 @@
 from conekt import db, whooshee
-from conekt.models.relationships import sequence_tf
+from conekt.models.relationships import sequence_tr
 from conekt.models.sequences import Sequence
-from conekt.models.relationships.sequence_tf import SequenceTFAssociation
+from conekt.models.relationships.sequence_tr import SequenceTRAssociation
 from collections import defaultdict
 import json
 
 @whooshee.register_model('family', 'type', 'description')
-class TranscriptionFactor(db.Model):
-    __tablename__ = 'transcription_factor'
+class TranscriptionRegulator(db.Model):
+    __tablename__ = 'transcription_regulator'
     id = db.Column(db.Integer, primary_key=True)
     family = db.Column(db.Text)
     type = db.Column(db.Text) 
     description = db.Column(db.Text)  
-    sequence = db.relationship('Sequence', secondary=sequence_tf, lazy='dynamic', back_populates='tfs')
+    sequences = db.relationship('Sequence', secondary=sequence_tr, lazy='dynamic', back_populates='trs')
 
     def __init__(self, family, type, description=None):
         self.family = family
@@ -26,9 +26,9 @@ class TranscriptionFactor(db.Model):
 
     @staticmethod
     def sequence_stats(sequence_ids):
-        from conekt.models.relationships.sequence_tf import SequenceTFAssociation
-        data = SequenceTFAssociation.query.filter(SequenceTFAssociation.sequence_id.in_(sequence_ids)).all()
-        return TranscriptionFactor.__sequence_stats_associations(data)
+        from conekt_grasses.CoNekT.conekt.models.relationships.sequence_tr import SequenceTRAssociation
+        data = SequenceTRAssociation.query.filter(SequenceTRAssociation.sequence_id.in_(sequence_ids)).all()
+        return TranscriptionRegulator.__sequence_stats_associations(data)
 
     @staticmethod
     def __sequence_stats_associations(associations):
@@ -57,11 +57,11 @@ class TranscriptionFactor(db.Model):
         subquery = sequences.subquery()
         data = SequenceTFAssociation.query.join(subquery, SequenceTFAssociation.sequence_id == subquery.c.id).all()
 
-        return TranscriptionFactor.__sequence_stats_associations(data)
+        return TranscriptionRegulator.__sequence_stats_associations(data)
 
     @property
     def tf_stats(self):
-        return TranscriptionFactor.sequence_stats_subquery(self.sequences)
+        return TranscriptionRegulator.sequence_stats_subquery(self.sequences)
 
     @property
     def family_stats(self):
@@ -74,7 +74,7 @@ class TranscriptionFactor(db.Model):
         tf_hash = {}
 
         all_sequences = Sequence.query.filter(Sequence.species_id == species_id, Sequence.type == 'protein_coding').all()
-        all_tfs = TranscriptionFactor.query.all()
+        all_tfs = TranscriptionRegulator.query.all()
 
         for sequence in all_sequences:
             gene_hash[sequence.name] = sequence
@@ -118,13 +118,13 @@ class TranscriptionFactor(db.Model):
     @staticmethod
     def add_from_txt(filename, empty=True):
         """
-        Populates transcription_factor table with families and descriptions from a TXT file
+        Populates transcription_regulator table with families and descriptions from a TXT file
         :param filename: path to TXT file
         :param empty: If True the table will be cleared before uploading the new families, default = True
         """
         if empty:
             try:
-                db.session.query(TranscriptionFactor).delete()
+                db.session.query(TranscriptionRegulator).delete()
                 db.session.commit()
             except Exception as e:
                 db.session.rollback()
@@ -135,7 +135,7 @@ class TranscriptionFactor(db.Model):
                 parts = line.strip().split('\t')
                 if len(parts) == 2:
                     family, description = parts[0], parts[1]
-                    tf = TranscriptionFactor(family=family, type=None, description=description)
+                    tf = TranscriptionRegulator(family=family, type=None, description=description)
                     db.session.add(tf)
                     i += 1
                 if i % 40 == 0:

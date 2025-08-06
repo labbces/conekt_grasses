@@ -1,6 +1,6 @@
 from conekt import db, whooshee
 
-from conekt.models.relationships import sequence_go, sequence_interpro, sequence_cazyme, sequence_family, sequence_coexpression_cluster, sequence_tf
+from conekt.models.relationships import sequence_go, sequence_interpro, sequence_cazyme, sequence_family, sequence_coexpression_cluster, sequence_tr
 from conekt.models.relationships import sequence_xref, sequence_sequence_ecc
 from utils.sequence import translate
 from utils.parser.fasta import Fasta
@@ -46,7 +46,7 @@ class Sequence(db.Model):
     go_labels = db.relationship('GO', secondary=sequence_go, lazy='dynamic')
     interpro_domains = db.relationship('Interpro', secondary=sequence_interpro, lazy='dynamic')
     cazymes = db.relationship('CAZYme', secondary=sequence_cazyme, lazy='dynamic')
-    tfs = db.relationship('TranscriptionFactor', secondary=sequence_tf, lazy='dynamic', back_populates='sequences')
+    trs = db.relationship('TranscriptionRegulator', secondary=sequence_tr, lazy='dynamic', back_populates='sequences')
     families = db.relationship('GeneFamily', secondary=sequence_family, lazy='dynamic')
 
     coexpression_clusters = db.relationship('CoexpressionCluster', secondary=sequence_coexpression_cluster,
