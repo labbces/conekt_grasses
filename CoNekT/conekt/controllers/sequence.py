@@ -39,6 +39,8 @@ def sequence_view(sequence_id):
     """
     from conekt.models.relationships.sequence_go import SequenceGOAssociation
     from conekt.models.relationships.sequence_cazyme import SequenceCAZYmeAssociation
+    from conekt.models.relationships.sequence_tr import SequenceTRAssociation
+    from conekt.models.relationships.sequence_tr_domain import SequenceTRDomain
 
     current_sequence = Sequence.query.get_or_404(sequence_id)
 
@@ -47,6 +49,8 @@ def sequence_view(sequence_id):
                                                                 SequenceGOAssociation.source).all()
     
     cazyme_associations = current_sequence.cazyme_associations.group_by(SequenceCAZYmeAssociation.cazyme_id).all()
+    tr_associations = current_sequence.tr_associations.group_by(SequenceTRAssociation.tr_id).all()
+    tr_domain_associations = current_sequence.tr_domain_associations.all()
 
     # to avoid running long count queries, fetch relations here and pass to template
     #expression_profiles=current_sequence.expression_profiles.all()
@@ -55,6 +59,8 @@ def sequence_view(sequence_id):
                            go_associations=go_associations,
                            interpro_associations=current_sequence.interpro_associations.all(),
                            cazyme_associations=cazyme_associations,
+                           tr_associations=tr_associations,
+                           tr_domain_associations=tr_domain_associations,
                            families=current_sequence.families.all(),
                            expression_profiles=current_sequence.expression_profiles.all(),
                            network_nodes=current_sequence.network_nodes.all(),
