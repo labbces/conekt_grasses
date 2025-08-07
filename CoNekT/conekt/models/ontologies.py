@@ -1,12 +1,4 @@
 from conekt import db
-from conekt.models.sample import Sample
-from conekt.models.relationships.sample_po import\
-    SamplePOAssociation
-from conekt.models.relationships.sample_peco import\
-    SamplePECOAssociation
-from conekt.models.relationships import sample_po, sample_peco
-import os
-from flask import flash
 
 SQL_COLLATION = 'NOCASE' if db.engine.name == 'sqlite' else ''
 
@@ -25,63 +17,6 @@ class PlantOntology(db.Model):
 
     def __repr__(self):
         return str(self.id) + ". " + self.po_term
-    
-    @staticmethod
-    def add_tabular_po(filename, empty=True, compressed=False):
-
-        # If required empty the table first
-
-        file_size = os.stat(filename).st_size
-        if empty and file_size > 0:
-            try:
-                db.session.query(PlantOntology).delete()
-                db.session.commit()
-            except Exception as e:
-                db.session.rollback()
-                print(e)
-    
-        with open(filename, 'r') as fin:
-            i = 0
-            for line in fin:
-                if line.startswith('PO:'):
-                    parts = line.strip().split('\t')
-                    if len(parts) == 6:
-                        po_id, po_name, po_defn = parts[0], parts[1], parts[2]
-                        po = PlantOntology(po_term=po_id, po_class=po_name, po_annotation=po_defn)
-                        db.session.add(po)
-                        i += 1
-                if i % 40 == 0:
-                # commit to the db frequently to allow WHOOSHEE's indexing function to work without timing out
-                    try:
-                        db.session.commit()
-                    except Exception as e:
-                        db.session.rollback()
-                        print(e)
-        try:
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            print(e)
-    
-    @staticmethod
-    def add_sample_po_association(sample_name, po_term, po_branch):
-
-        sample = Sample.query.filter_by(sample_name=sample_name).first()
-        po = PlantOntology.query.filter_by(po_term=po_term).first()
-        species_id = sample.species_id
-
-        sample_po = SamplePOAssociation.query.filter_by(sample_id=sample.id, po_id=po.id).first()
-        
-        if not sample_po:
-
-            association = {'sample_id': sample.id,
-                        'po_id': po.id,
-                        'species_id': species_id,
-                        'po_branch': po_branch}
-        
-            db.engine.execute(SamplePOAssociation.__table__.insert(), association)
-        else:
-            flash(f'Association between sample {sample.sample_name} and PO {po.po_class} already exists.', 'danger')
 
 
 class PlantExperimentalConditionsOntology(db.Model):
@@ -98,58 +33,3 @@ class PlantExperimentalConditionsOntology(db.Model):
 
     def __repr__(self):
         return str(self.id) + ". " + self.peco_term
-    
-    @staticmethod
-    def add_tabular_peco(filename, empty=True, compressed=False):
-
-        # If required empty the table first
-
-        file_size = os.stat(filename).st_size
-        if empty and file_size > 0:
-            try:
-                db.session.query(PlantExperimentalConditionsOntology).delete()
-                db.session.commit()
-            except Exception as e:
-                db.session.rollback()
-                print(e)
-
-        with open(filename, 'r') as fin:
-            i = 0
-            for line in fin:
-                if line.startswith('PECO:'):
-                    parts = line.strip().split('\t')
-                    if len(parts) == 3:
-                        peco_id, peco_name, peco_defn = parts[0], parts[1], parts[2]
-                        peco = PlantExperimentalConditionsOntology(peco_term=peco_id, peco_class=peco_name, peco_annotation=peco_defn)
-                        db.session.add(peco)
-                        i += 1
-                if i % 40 == 0:
-                # commit to the db frequently to allow WHOOSHEE's indexing function to work without timing out
-                    try:
-                        db.session.commit()
-                    except Exception as e:
-                        db.session.rollback()
-                        print(e)
-        try:
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            print(e)
-    
-    @staticmethod
-    def add_sample_peco_association(sample_name, peco_term):
-
-        sample = Sample.query.filter_by(sample_name=sample_name).first()
-        peco = PlantExperimentalConditionsOntology.query.filter_by(peco_term=peco_term).first()
-        species_id = sample.species_id
-
-        sample_peco = SamplePECOAssociation.query.filter_by(sample_id=sample.id, peco_id=peco.id).first()
-
-        if not sample_peco:
-            association = {'sample_id': sample.id,
-                            'peco_id': peco.id,
-                            'species_id': species_id}
-
-            db.engine.execute(SamplePECOAssociation.__table__.insert(), association)
-        else:
-            flash(f'Association between sample {sample.sample_name} and PECO {peco.peco_class} already exists.', 'danger')

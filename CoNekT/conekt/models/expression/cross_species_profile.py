@@ -2,7 +2,6 @@ from conekt.models.condition_tissue import ConditionTissue
 from conekt.models.expression.profiles import ExpressionProfile
 
 import json
-from statistics import mean
 from heapq import merge
 from collections import OrderedDict
 
