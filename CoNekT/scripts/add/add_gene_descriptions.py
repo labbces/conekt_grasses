@@ -50,6 +50,11 @@ parser.add_argument('--py_verbose', type=str, metavar='Python script verbose',
                     help='Enable python verbose logging (true/false)',
                     required=False,
                     default="true")
+parser.add_argument('--first_run', type=str, metavar='Flag indicating first execution of the file',
+                    dest='first_run',
+                    help='Controls log file openning type',
+                    required=False,
+                    default="true")
 
 args = parser.parse_args()
 
@@ -60,7 +65,7 @@ else:
 
 
 
-def setup_logger(log_dir="logs_populate", base_filename="functional data", DBverbose=False, PYverbose=True):
+def setup_logger(log_dir="logs_populate", base_filename="functional data", DBverbose=False, PYverbose=True, overwrite_logs=False):
     """
     Sets up the application's logging system with support for both file and console output.
 
@@ -82,6 +87,9 @@ def setup_logger(log_dir="logs_populate", base_filename="functional data", DBver
     #creates log dir
     os.makedirs(log_dir, exist_ok=True)
 
+    # defines openning type for log files
+    mode = 'w' if overwrite_logs else 'a'
+
     logger = logging.getLogger()
     level = logging.DEBUG if PYverbose else logging.INFO
     logger.setLevel(level)
@@ -93,11 +101,11 @@ def setup_logger(log_dir="logs_populate", base_filename="functional data", DBver
     stderr_log_path = f"{log_file_base}.e.log"
 
     # File handlers
-    file_info_handler = logging.FileHandler(stdout_log_path, mode='w', encoding='utf-8')
+    file_info_handler = logging.FileHandler(stdout_log_path, mode=mode, encoding='utf-8')
     file_info_handler.setLevel(level)
     file_info_handler.setFormatter(formatter)
 
-    file_error_handler = logging.FileHandler(stderr_log_path, mode='w', encoding='utf-8')
+    file_error_handler = logging.FileHandler(stderr_log_path, mode=mode, encoding='utf-8')
     file_error_handler.setLevel(logging.ERROR)
     file_error_handler.setFormatter(formatter)
 
@@ -186,6 +194,7 @@ def add_descriptions(filename, species_code, engine):
 
     try:
         with open(filename, "r") as f_in:
+            notFound = 0
             for i, line in enumerate(f_in):
                 try:
                     name, description = line.strip().split('\t')
@@ -209,7 +218,12 @@ def add_descriptions(filename, species_code, engine):
                     except Exception as e:
                         logger.error(f"Failed to update description for sequence '{name}': {e}")
                 else:
-                    logger.warning(f"⚠️  Sequence '{name}' not found in database.")
+                    #logger.warning(f"⚠️  Sequence '{name}' not found in database.")
+                    notFound+=1
+            
+            logger.info(f"✅  {i - notFound} gene descriptions updated successfully.")
+            if notFound > 0:
+                logger.warning(f"⚠️  {notFound} sequences in '{species_code}' gene description file were not found in database.")
     except Exception as e:
         print_log_error(f"Error while processing file '{filename}': {e}")
         exit(1)
@@ -222,7 +236,9 @@ try:
     log_file_name = "gene_descriptions"   #log file names
     db_verbose = str2bool(args.db_verbose)
     py_verbose = str2bool(args.py_verbose)
-    logger = setup_logger(log_dir=log_dir, base_filename=log_file_name, DBverbose=db_verbose, PYverbose=py_verbose)
+    first_run = str2bool(args.first_run)
+
+    logger = setup_logger(log_dir=log_dir, base_filename=log_file_name, DBverbose=db_verbose, PYverbose=py_verbose, overwrite_logs=first_run)
 
     db_admin = args.db_admin
     db_name = args.db_name
@@ -257,5 +273,5 @@ except Exception as e:
     exit(1)
 
 
-logger.info(f" ---- ✅ SUCCESS: All operations from {thisFileName} finished without errors! ✅ ---- ")
+logger.info(f" ---- ✅ SUCCESS: All operations for '{species_code}' from {thisFileName} finished without errors! ✅ ---- ")
 

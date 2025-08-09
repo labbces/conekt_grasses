@@ -61,6 +61,7 @@ $SCRIPTS_DIR/add/add_species.py\
  --py_verbose $PY_VERBOSE
 
 echo -e "\nPopulating CoNekT Grasses with gene descriptions"
+first_run=true
 for species_code in ${SPECIES_ARRAY[@]};
  do
  if [ -f $SPECIES_DIR/"$species_code"/"$species_code"_cds_description.txt ]; then
@@ -71,7 +72,9 @@ for species_code in ${SPECIES_ARRAY[@]};
   --db_password $DB_PASSWORD\
   --logdir $LOG_DIR\
   --db_verbose $DB_VERBOSE\
-  --py_verbose $PY_VERBOSE
+  --py_verbose $PY_VERBOSE\
+  --first_run $first_run
+  first_run=false
  fi
 done;
 
