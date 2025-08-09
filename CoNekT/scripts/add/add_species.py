@@ -19,6 +19,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import select
 
 from crossref.restful import Works
+from log_functions import *
 
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
@@ -65,90 +66,6 @@ if args.db_password:
     db_password = args.db_password
 else:
     db_password = getpass.getpass("Enter the database password: ")
-
-
-# Logging related functions
-def setup_logger(log_dir="logs_populate", base_filename="add_species", DBverbose=False, PYverbose=True):
-    """
-    Sets up the application's logging system with support for both file and console output.
-
-    Creates a logger with separate handlers for info and error messages, writing them to 
-    distinct files and displaying them in the console. Also allows enabling or disabling 
-    SQLAlchemy engine log propagation.
-
-    :param log_dir: Directory where the log files will be saved (default: "logs_populate")
-    :param base_filename: Base name for the generated log files (default: "functional data")
-    :param DBverbose: If True, enables SQLAlchemy engine logs to propagate to the console (default: False)
-    :return: Configured logger object
-    """
-
-    # Set SQLAlchemy logger level
-    sqla_logger = logging.getLogger('sqlalchemy.engine')
-    sqla_logger.setLevel(logging.INFO)
-    sqla_logger.propagate = DBverbose 
-
-    # Creates log dir
-    os.makedirs(log_dir, exist_ok=True)
-
-    logger = logging.getLogger()
-    level = logging.DEBUG if PYverbose else logging.INFO
-    logger.setLevel(level)
-
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-
-    log_file_base = os.path.join(log_dir, base_filename)
-    stdout_log_path = f"{log_file_base}.o.log"
-    stderr_log_path = f"{log_file_base}.e.log"
-
-    # File handlers
-    file_info_handler = logging.FileHandler(stdout_log_path, mode='w', encoding='utf-8')
-    file_info_handler.setLevel(level)
-    file_info_handler.setFormatter(formatter)
-
-    file_error_handler = logging.FileHandler(stderr_log_path, mode='w', encoding='utf-8')
-    file_error_handler.setLevel(logging.ERROR)
-    file_error_handler.setFormatter(formatter)
-
-    # Console handlers
-    console_info_handler = logging.StreamHandler(sys.stdout)
-    console_info_handler.setLevel(level)
-    console_info_handler.setFormatter(formatter)
-
-    console_error_handler = logging.StreamHandler(sys.stderr)
-    console_error_handler.setLevel(logging.ERROR)
-    console_error_handler.setFormatter(formatter)
-
-    if not logger.hasHandlers():
-        logger.addHandler(file_info_handler)
-        logger.addHandler(file_error_handler)
-        logger.addHandler(console_info_handler)
-        logger.addHandler(console_error_handler)
-
-    return logger
-
-def print_log_error(message):
-    """
-    Logs an error message and a follow-up instruction to abort the operation.
-    :param message: Error message to log
-    """
-    logger.error(f'❌ {message}')
-    logger.error(f"OPERATION ABORTED. Fix the issue and run the {thisFileName} script again.")
-
-def str2bool(v):
-    """
-    Converts a string or value to a boolean.
-    :param v: The input value to convert to boolean
-    :return: Boolean value (True or False)
-    """
-    if isinstance(v, bool):
-        return v
-    val = str(v).strip().lower()
-    if val in ('yes', 'true', 't', '1'):
-        return True
-    elif val in ('no', 'false', 'f', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError(f'Boolean value expected, got "{v}"')
 
 
 
@@ -264,7 +181,7 @@ def add_literature(doi, session):
             public_year = literature_info['issued']['date-parts'][0][0]
     
     except Exception as e:
-        print_log_error(f"Error while retrieving metadata for DOI '{doi}': {e}")
+        print_log_error(logger, f"Error while retrieving metadata for DOI '{doi}': {e}")
         exit(1)
 
     try:
@@ -274,14 +191,14 @@ def add_literature(doi, session):
                                         public_year=public_year,
                                         doi=doi)
     except Exception as e:
-        print_log_error(f"Error while querying literature table for DOI '{doi}': {e}")
+        print_log_error(logger, f"Error while querying literature table for DOI '{doi}': {e}")
         exit(1)
     
     try:
         # stmt = select(LiteratureItem).where(LiteratureItem.doi == doi)
         literature = session.query(LiteratureItem).filter(LiteratureItem.doi == doi).first()
     except Exception as e:
-        print_log_error(f" Error while querying literature table for DOI '{doi}': {e}")
+        print_log_error(logger, f" Error while querying literature table for DOI '{doi}': {e}")
         exit(1)
 
     try:
@@ -296,7 +213,7 @@ def add_literature(doi, session):
             return literature.id
     except Exception as e:
         session.rollback()
-        print_log_error(f"Error while inserting literature entry for DOI '{doi}': {e}")
+        print_log_error(logger, f"Error while inserting literature entry for DOI '{doi}': {e}")
         exit(1)
 
 
@@ -321,14 +238,14 @@ def add_species(code, name, session, data_type='genome',
                               literature_id=literature_id,
                               genome_version=genome_version)
     except Exception as e:
-        print_log_error(f"Error while creating Species object for code '{code}': {e}")
+        print_log_error(logger, f"Error while creating Species object for code '{code}': {e}")
         exit(1)
 
     try:
         with engine.connect() as conn:
             species = session.query(Species).filter(Species.code == code).first()
     except Exception as e:
-        print_log_error(f"Error while querying existing species with code '{code}': {e}")
+        print_log_error(logger, f"Error while querying existing species with code '{code}': {e}")
         exit(1)
 
     try:
@@ -344,7 +261,7 @@ def add_species(code, name, session, data_type='genome',
         
     except Exception as e:
         session.rollback()
-        print_log_error(f"Failed while inserting species '{name}' (code: {code}): {e}")
+        print_log_error(logger, f"Failed while inserting species '{name}' (code: {code}): {e}")
         exit(1)
 
 
@@ -370,7 +287,7 @@ def add_from_fasta(species_code, species_id, compressed=False, sequence_type='pr
         fasta_data = Fasta()
         fasta_data.readfile(filename, compressed=compressed)
     except Exception as e:
-        print_log_error(f"Error while reading FASTA file '{filename}': {e}")
+        print_log_error(logger, f"Error while reading FASTA file '{filename}': {e}")
         exit(1)
 
     total_sequences = len(fasta_data.sequences)
@@ -416,7 +333,7 @@ def add_from_fasta(species_code, species_id, compressed=False, sequence_type='pr
     
     except Exception as e:
         session.rollback()
-        print_log_error(f"Failed while inserting sequence {counter} from '{filename}': {e}")
+        print_log_error(logger, f"Failed while inserting sequence {counter} from '{filename}': {e}")
         exit(1)
 
 
@@ -500,7 +417,7 @@ try:
     session.close()
 
 except Exception as e:
-    print_log_error(e)
+    print_log_error(logger, e)
     logger.info(f" ---- ❌ An error occurred while executing {thisFileName}. Please fix the issue and rerun the script. ❌ ---- ")
     exit(1)
 

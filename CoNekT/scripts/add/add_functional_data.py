@@ -16,7 +16,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import delete
 import logging
 
-
+from log_functions import *
 
 # Create arguments
 parser = argparse.ArgumentParser(description='Add functional data to the database')
@@ -66,89 +66,6 @@ if args.db_password:
 else:
     db_password = getpass.getpass("Enter the database password: ")
 
-
-# Logging related functions
-def setup_logger(log_dir="logs_populate", base_filename="functional data", DBverbose=False, PYverbose=True):
-    """
-    Sets up the application's logging system with support for both file and console output.
-
-    Creates a logger with separate handlers for info and error messages, writing them to 
-    distinct files and displaying them in the console. Also allows enabling or disabling 
-    SQLAlchemy engine log propagation.
-
-    :param log_dir: Directory where the log files will be saved (default: "logs_populate")
-    :param base_filename: Base name for the generated log files (default: "functional data")
-    :param DBverbose: If True, enables SQLAlchemy engine logs to propagate to the console (default: False)
-    :return: Configured logger object
-    """
-
-    # Set SQLAlchemy logger level
-    sqla_logger = logging.getLogger('sqlalchemy.engine')
-    sqla_logger.setLevel(logging.INFO)
-    sqla_logger.propagate = DBverbose 
-
-    # Creates log dir
-    os.makedirs(log_dir, exist_ok=True)
-
-    logger = logging.getLogger()
-    level = logging.DEBUG if PYverbose else logging.INFO
-    logger.setLevel(level)
-
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-
-    log_file_base = os.path.join(log_dir, base_filename)
-    stdout_log_path = f"{log_file_base}.o.log"
-    stderr_log_path = f"{log_file_base}.e.log"
-
-    # File handlers
-    file_info_handler = logging.FileHandler(stdout_log_path, mode='w', encoding='utf-8')
-    file_info_handler.setLevel(level)
-    file_info_handler.setFormatter(formatter)
-
-    file_error_handler = logging.FileHandler(stderr_log_path, mode='w', encoding='utf-8')
-    file_error_handler.setLevel(logging.ERROR)
-    file_error_handler.setFormatter(formatter)
-
-    # Console handlers
-    console_info_handler = logging.StreamHandler(sys.stdout)
-    console_info_handler.setLevel(level)
-    console_info_handler.setFormatter(formatter)
-
-    console_error_handler = logging.StreamHandler(sys.stderr)
-    console_error_handler.setLevel(logging.ERROR)
-    console_error_handler.setFormatter(formatter)
-
-    if not logger.hasHandlers():
-        logger.addHandler(file_info_handler)
-        logger.addHandler(file_error_handler)
-        logger.addHandler(console_info_handler)
-        logger.addHandler(console_error_handler)
-
-    return logger
-
-def print_log_error(message):
-    """
-    Logs an error message and a follow-up instruction to abort the operation.
-    :param message: Error message to log
-    """
-    logger.error(f'❌ {message}')
-    logger.error(f"OPERATION ABORTED. Fix the issue and run the {thisFileName} script again.")
-
-def str2bool(v):
-    """
-    Converts a string or value to a boolean.
-    :param v: The input value to convert to boolean
-    :return: Boolean value (True or False)
-    """
-    if isinstance(v, bool):
-        return v
-    val = str(v).strip().lower()
-    if val in ('yes', 'true', 't', '1'):
-        return True
-    elif val in ('no', 'false', 'f', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError(f'Boolean value expected, got "{v}"')
 
 
 
@@ -373,7 +290,7 @@ def add_interpro_from_xml(filename, empty=True):
             session.commit()
             logger.debug("✅  Table cleaned successfully.")
         except Exception as e:
-            print_log_error(f"Error while cleaning 'interpro' table: {e}")
+            print_log_error(logger, f"Error while cleaning 'interpro' table: {e}")
             exit(1)
             
 
@@ -383,7 +300,7 @@ def add_interpro_from_xml(filename, empty=True):
         interpro_parser.readfile(filename)
         total_entries = len(interpro_parser.domains)
     except Exception as e:
-        print_log_error(e)
+        print_log_error(logger, e)
         exit(1)
 
     logger.debug(f"Found {total_entries} entries in the file.")
@@ -410,7 +327,7 @@ def add_interpro_from_xml(filename, empty=True):
 
     except Exception as e:
         session.rollback()
-        print_log_error(f"Failed while inserting entry number {i}: {e}")
+        print_log_error(logger, f"Failed while inserting entry number {i}: {e}")
         exit(1)
 
     
@@ -433,7 +350,7 @@ def add_cazymes_from_table(filename, empty=False):
                 conn.execute(stmt)
                 logger.debug("✅  Table cleaned successfully.")
         except Exception as e:
-            print_log_error(f"Error while cleaning 'cazyme' table: {e}")
+            print_log_error(logger, f"Error while cleaning 'cazyme' table: {e}")
             exit(1)
         
     class_dict = {
@@ -477,7 +394,7 @@ def add_cazymes_from_table(filename, empty=False):
 
         except Exception as e:
             session.rollback()
-            print_log_error(f"Failed while inserting CAZYmes entry number {i + 1}: {e}")
+            print_log_error(logger, f"Failed while inserting CAZYmes entry number {i + 1}: {e}")
             exit(1)
 
 
@@ -500,7 +417,7 @@ def add_go_from_obo(filename, empty=True, compressed=False):
                 conn.execute(stmt)
             logger.debug("✅  Table cleaned successfully.")
         except Exception as e:
-            print_log_error(f"Error while cleaning 'go' table: {e}")
+            print_log_error(logger, f"Error while cleaning 'go' table: {e}")
             exit(1)
 
 
@@ -511,7 +428,7 @@ def add_go_from_obo(filename, empty=True, compressed=False):
         obo_parser.readfile(filename, compressed=compressed)
         obo_parser.extend_go()
     except Exception as e:
-        print_log_error(f"Error reading file: {e}")
+        print_log_error(logger, f"Error reading file: {e}")
         exit(1)
 
 
@@ -540,7 +457,7 @@ def add_go_from_obo(filename, empty=True, compressed=False):
 
     except Exception as e:
         session.rollback()  
-        print_log_error(f"Failed while inserting entry {term.id}: {e}")
+        print_log_error(logger, f"Failed while inserting entry {term.id}: {e}")
         exit(1)
 
 
@@ -580,7 +497,7 @@ try:
         functional_data_count+=1
 
     if functional_data_count == 0:
-        print_log_error("Must add at least one type of functional data file (e.g., --interpro_xml)")
+        print_log_error(logger, "Must add at least one type of functional data file (e.g., --interpro_xml)")
         exit(1)
 
     create_engine_string = "mysql+pymysql://"+db_admin+":"+db_password+"@localhost/"+db_name
@@ -614,7 +531,7 @@ try:
     session.close()
 
 except Exception as e:
-    print_log_error(e)
+    print_log_error(logger, e)
     logger.info(f" ---- ❌ An error occurred while executing {thisFileName}. Please fix the issue and rerun the script. ❌ ---- ")
     exit(1)
 
