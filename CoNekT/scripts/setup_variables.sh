@@ -8,10 +8,10 @@ DB_PASSWORD=          # Use quotes for special characters
 
 # ==================== Directory Paths ====================
 # Base path of your CoNekT project (e.g, /home/user/conekt/conekt_grasses/). Set value here!
-BASE_DIR=
+BASE_DIR=/home/pturquetti/conekt/conekt_grasses/
 
 # Path where your input data files are stored
-DATA_DIR=
+DATA_DIR=/mnt/c/Users/Usuario/Desktop/DadosConekt
 
 # Path to the species data (auto-filled based on DATA_DIR)
 SPECIES_DIR=$DATA_DIR/Species

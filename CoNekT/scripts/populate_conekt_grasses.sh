@@ -60,7 +60,7 @@ $SCRIPTS_DIR/add/add_species.py\
  --db_verbose $DB_VERBOSE\
  --py_verbose $PY_VERBOSE
 
-echo "Populating CoNekT Grasses with gene descriptions"
+echo -e "\nPopulating CoNekT Grasses with gene descriptions"
 for species_code in ${SPECIES_ARRAY[@]};
  do
  if [ -f $SPECIES_DIR/"$species_code"/"$species_code"_cds_description.txt ]; then
@@ -68,9 +68,17 @@ for species_code in ${SPECIES_ARRAY[@]};
   --gene_descriptions $SPECIES_DIR/"$species_code"/"$species_code"_cds_description.txt\
   --db_admin $DB_ADMIN\
   --db_name $DB_NAME\
-  --db_password $DB_PASSWORD
+  --db_password $DB_PASSWORD\
+  --logdir $LOG_DIR\
+  --db_verbose $DB_VERBOSE\
+  --py_verbose $PY_VERBOSE
  fi
 done;
+
+# From this point on, insertion scripts use the populate virtual environment. 
+# Custom logs not yet implemented.
+deactivate
+source $SCRIPTS_DIR/Populate_CoNekT/bin/activate
 
 echo "Populating CoNekT Grasses with functional annotation data"
 for species_code in ${SPECIES_ARRAY[@]};
