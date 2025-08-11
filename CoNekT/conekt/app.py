@@ -110,7 +110,6 @@ def configure_blueprints(app):
     from conekt.controllers.clade import clade
     from conekt.controllers.ecc import ecc
     from conekt.controllers.specificity_comparison import specificity_comparison
-    from conekt.controllers.admin.controls import admin_controls
     from conekt.controllers.tree import tree
     from conekt.controllers.literature import literature
 
@@ -120,7 +119,6 @@ def configure_blueprints(app):
     app.register_blueprint(main)
     if LOGIN_ENABLED:
         app.register_blueprint(auth, url_prefix='/auth')
-        app.register_blueprint(admin_controls, url_prefix='/admin_controls')
     else:
         app.register_blueprint(no_login, url_prefix='/auth')
         app.register_blueprint(no_login, url_prefix='/admin_controls')
@@ -156,194 +154,25 @@ def configure_admin_panel(app):
     if LOGIN_ENABLED:
         from conekt.controllers.admin.views import MyAdminIndexView
 
-        from conekt.controllers.admin.views.ecc import ECCView
-        from conekt.controllers.admin.views.sequences import AddSequenceDescriptionsView
-        from conekt.controllers.admin.views.expression_profiles import AddExpressionProfilesView
-        from conekt.controllers.admin.views.expression_networks import AddCoexpressionNetworkView
-        from conekt.controllers.admin.views.expression_networks import ExpressionNetworkMethodAdminView
-        from conekt.controllers.admin.views.expression_specificity import AddSpecificityView
-        from conekt.controllers.admin.views.expression_specificity import ConditionTissueAdminView
-        from conekt.controllers.admin.views.expression_specificity import ExpressionSpecificityMethodAdminView
-        from conekt.controllers.admin.views.functional_data import AddInterProView
-        from conekt.controllers.admin.views.functional_data import AddGOView
-        from conekt.controllers.admin.views.functional_data import AddCAZYmeView
-        from conekt.controllers.admin.views.functional_data import AddFunctionalDataView
-        from conekt.controllers.admin.views.functional_data import GOEnrichmentView
-        from conekt.controllers.admin.views.functional_data import PredictGOView
-        from conekt.controllers.admin.views.families import AddFamiliesView, AddFamilyAnnotationView
-        from conekt.controllers.admin.views.families import GeneFamilyMethodAdminView
-        from conekt.controllers.admin.views.species import AddSpeciesView
-        from conekt.controllers.admin.views.species import SpeciesAdminView
-        from conekt.controllers.admin.views.trees import AddTreesView
-        from conekt.controllers.admin.views.expression_clusters import BuildNeighorhoodToClustersView
-        from conekt.controllers.admin.views.expression_clusters import BuildCoexpressionClustersView
-        from conekt.controllers.admin.views.expression_clusters import AddCoexpressionClustersView
-        from conekt.controllers.admin.views.expression_clusters import ClusterSimilaritiesView
-        from conekt.controllers.admin.views.expression_clusters import CoexpressionClusteringMethodAdminView
-        from conekt.controllers.admin.views.clades import AddCladesView
-        from conekt.controllers.admin.views.clades import CladesAdminView
-        from conekt.controllers.admin.views.xrefs import AddXRefsFamiliesView
-        from conekt.controllers.admin.views.xrefs import AddXRefsView
-        from conekt.controllers.admin.views.controls import ControlsView
         from conekt.controllers.admin.views.news import NewsAdminView
-        from conekt.controllers.admin.views.trees import TreeMethodAdminView
-        from conekt.controllers.admin.views.trees import ReconcileTreesView
-        from conekt.controllers.admin.views.ontology import AddOntologyView
 
-        from conekt.models.users import User
-        from conekt.models.species import Species
-        from conekt.models.gene_families import GeneFamilyMethod
-        from conekt.models.expression.coexpression_clusters import CoexpressionClusteringMethod
-        from conekt.models.expression.networks import ExpressionNetworkMethod
-        from conekt.models.expression.specificity import ExpressionSpecificityMethod
-        from conekt.models.condition_tissue import ConditionTissue
-        from conekt.models.clades import Clade
         from conekt.models.news import News
-        from conekt.models.trees import TreeMethod
-        from conekt.models.ontologies import PlantOntology
 
         admin = Admin(template_mode='bootstrap3', base_template='admin/my_base.html')
 
         admin.init_app(app, index_view=MyAdminIndexView(template='admin/home.html'))
 
-        # Add views used to build the database
-
-        admin.add_view(AddSpeciesView(name='Species', endpoint='admin.add.species', url='add/species/', category='Add'))
-        admin.add_view(AddSequenceDescriptionsView(name='Sequence Descriptions',
-                                                   endpoint='admin.add.sequence_descriptions',
-                                                   url='add/sequence_descriptions/', category='Add'))
-
-        admin.add_menu_item(MenuLink("------------", class_name="divider", url='#'), target_category='Add')
-        admin.add_menu_item(MenuLink("Functional Annotation", class_name="disabled", url="#"), target_category='Add')
-
-        admin.add_view(AddFunctionalDataView(name='Functional Data',
-                                             endpoint='admin.add.functional_data',
-                                             url='add/functional_data/', category='Add'))
-
-        admin.add_view(AddGOView(name='GO Genes',
-                                 endpoint='admin.add.go_sequences',
-                                 url='add/go/', category='Add'))
-
-        admin.add_view(AddInterProView(name='InterPro Genes',
-                                       endpoint='admin.add.interpro_sequences',
-                                       url='add/interpro/', category='Add'))
-
-        admin.add_view(AddCAZYmeView(name='CAZYme Genes',
-                                    endpoint='admin.add.cazyme_sequences',
-                                    url='add/cazyme/', category='Add'))
-
-        admin.add_menu_item(MenuLink("------------", class_name="divider", url='#'), target_category='Add')
-        admin.add_menu_item(MenuLink("Ontology", class_name="disabled", url="#"), target_category='Add')
-        admin.add_view(AddOntologyView(name='Ontology definitions',
-                                                 endpoint='admin.add.ontology',
-                                                 url='add/ontology/', category='Add'))
-
-
-        admin.add_menu_item(MenuLink("------------", class_name="divider", url='#'), target_category='Add')
-        admin.add_menu_item(MenuLink("Expression", class_name="disabled", url="#"), target_category='Add')
-
-        admin.add_view(AddExpressionProfilesView(name='Expression profiles',
-                                                 endpoint='admin.add.expression_profiles',
-                                                 url='add/expression_profiles/', category='Add'))
-
-        admin.add_view(AddCoexpressionNetworkView(name='Coexpression network',
-                                                  endpoint='admin.add.coexpression_network',
-                                                  url='add/coexpression_network/', category='Add'))
-
-        admin.add_view(AddCoexpressionClustersView(name='Coexpression clusters',
-                                                   endpoint='admin.add.coexpression_clusters',
-                                                   url='add/coexpression_clusters/', category='Add'))
-
-        admin.add_view(AddSpecificityView(name='Expression Specificity',
-                                          endpoint='admin.add.expression_specificity',
-                                          url='add/expression_specificity/', category='Add'))
-
-        admin.add_menu_item(MenuLink("------------", class_name="divider", url='#'), target_category='Add')
-        admin.add_menu_item(MenuLink("Comparative Genomics", class_name="disabled", url="#"), target_category='Add')
-
-        admin.add_view(AddFamiliesView(name='Gene Families',
-                                       endpoint='admin.add.families',
-                                       url='add/families/', category='Add'))
-
-        admin.add_view(AddTreesView(name='Trees',
-                                    endpoint='admin.add.trees',
-                                    url='add/trees/', category='Add'))
-
-        admin.add_view(AddCladesView(name='Clades',
-                                     endpoint='admin.add.clades',
-                                     url='add/clades/', category='Add'))
-
-        admin.add_menu_item(MenuLink("------------", class_name="divider", url='#'), target_category='Add')
-        admin.add_menu_item(MenuLink("Misc.", class_name="disabled", url="#"), target_category='Add')
-
-        admin.add_view(AddXRefsView(name='XRefs Genes',
-                                    endpoint='admin.add.xrefs',
-                                    url='add/xrefs/', category='Add'))
-
-        admin.add_view(AddXRefsFamiliesView(name='XRefs Families',
-                                            endpoint='admin.add.xrefs_families',
-                                            url='add/xrefs_families/', category='Add'))
-
-        # Build Menu
-        admin.add_menu_item(MenuLink("Update Counts", url="/admin_controls/update/counts", class_name="confirmation"),
-                            target_category='Build')
-        admin.add_menu_item(MenuLink("------------", class_name="divider", url='#'), target_category='Build')
-        admin.add_menu_item(MenuLink("Assign Clades", url="/admin_controls/update/clades", class_name="confirmation"),
-                            target_category='Build')
-
-        admin.add_view(AddFamilyAnnotationView(name='Family-wise annotation',
-                                               endpoint='admin.add.family_annotation',
-                                               url='build/family_annotation/', category='Build'))
-
-        admin.add_view(ReconcileTreesView(name='Reconcile Trees', endpoint='admin.reconcile_trees',
-                                          url='build/reconciled_trees', category='Build'))
-
-        admin.add_view(ECCView(name='Expression Context Conservations (ECC)', endpoint='admin.ecc',
-                               url='build/ecc/', category='Build'))
-        admin.add_menu_item(MenuLink("------------", class_name="divider", url='#'), target_category='Build')
-        admin.add_menu_item(MenuLink("Co-expression Clusters", class_name="disabled", url="#"), target_category='Build')
-
-        admin.add_view(ClusterSimilaritiesView(name='Cluster Similarities', endpoint='admin.clustersimilarities',
-                                               url='build/cluster_similarities/',
-                                               category='Build'))
-        admin.add_view(GOEnrichmentView(name='Cluster GO Enrichment', endpoint='admin.goenrichment',
-                                        url='build/go_enrichment/',
-                                        category='Build'))
-        admin.add_view(BuildCoexpressionClustersView(name='HCCA Clusters',
-                                                     endpoint='admin.build.hcca_clusters',
-                                                     url='build/hcca_clusters/', category='Build'))
-        admin.add_view(BuildNeighorhoodToClustersView(name='Neighborhood to clusters',
-                                                      endpoint='admin.build.neighborhood_to_clusters',
-                                                      url='build/neighborhood_to_clusters/', category='Build'))
-        admin.add_menu_item(MenuLink("------------", class_name="divider", url='#'), target_category='Build')
-        admin.add_view(PredictGOView(name='Predict GO from neighborhood', endpoint='admin.predict.go',
-                                     url='predict/go', category='Build'))
-
-        # Control panel
-        admin.add_view(ControlsView(name='Controls', endpoint='admin.controls', url='controls/'))
-
         # CRUD for various database tables
-        admin.add_view(NewsAdminView(News, db.session,
-                                     endpoint='admin.news',
-                                     url='news', category='Browse'))
-        admin.add_view(SpeciesAdminView(Species, db.session, url='species', category='Browse'))
-        admin.add_view(CladesAdminView(Clade, db.session, url='clades', category='Browse', name='Clades'))
-        admin.add_view(ConditionTissueAdminView(ConditionTissue, db.session, url='condition_tissue/',
-                                                category="Browse", name='Condition to Tissue'))
+        admin.add_view(
+            NewsAdminView(
+                News,
+                db.session,
+                endpoint='admin.news',
+                url='news',
+                name='News'
+            )
+        )
 
-        admin.add_menu_item(MenuLink("------------", class_name="divider", url='#'), target_category='Browse')
-        admin.add_menu_item(MenuLink("Methods", class_name="disabled", url="#"), target_category='Browse')
-
-        admin.add_view(GeneFamilyMethodAdminView(GeneFamilyMethod, db.session, url='families', category="Browse",
-                                                 name='Gene Families'))
-        admin.add_view(TreeMethodAdminView(TreeMethod, db.session, url='trees', category="Browse",
-                                           name='Tree Methods'))
-        admin.add_view(ExpressionNetworkMethodAdminView(ExpressionNetworkMethod, db.session, url='networks',
-                                                        category="Browse", name='Expression Networks'))
-        admin.add_view(CoexpressionClusteringMethodAdminView(CoexpressionClusteringMethod, db.session, url='clusters',
-                                                             category="Browse", name='Coexpression Clustering'))
-        admin.add_view(ExpressionSpecificityMethodAdminView(ExpressionSpecificityMethod, db.session, url='specificity',
-                                                            category="Browse", name='Expression Specificity'))
 
 
 def configure_error_handlers(app):
