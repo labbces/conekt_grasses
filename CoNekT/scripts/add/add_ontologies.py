@@ -14,6 +14,8 @@ from sqlalchemy.sql import delete
 
 from log_functions import *
 
+from utils.obo import Parser as OBOParser
+
 # Create arguments
 parser = argparse.ArgumentParser(description='Add ontology data to the database')
 parser.add_argument('--plant_ontology', type=str, metavar='plant_ontology.txt',
@@ -62,97 +64,113 @@ else:
 
 
 
-def add_tabular_peco(filename, empty=True, compressed=False):
+def add_obo_peco(filename, empty=True, compressed=False):
+	"""
+	Add the Plant Experimental Conditions Ontology from an OBO file to the database.
+	If empty is True, it will first empty the table.
+	"""
+	
+	logger.info("______________________________________________________________________")
+	logger.info("➡️  Adding Plant Experimental Conditions Ontology (PECO) data:")
 
-    logger.info("______________________________________________________________________")
-    logger.info("➡️  Adding Plant Experimental Conditions Ontology (PECO) data:")
+	# If required empty the table first
+	file_size = os.stat(filename).st_size
+	if empty and file_size > 0:
+		try:
+			# If required empty the table first
+			logger.debug("Cleaning 'plant_experimental_conditions_ontology' table...")
+			with engine.connect() as conn:
+				stmt = delete(PlantExperimentalConditionsOntology)
+				conn.execute(stmt)
+			logger.debug("✅  Table cleaned successfully.")
+		except Exception as e:
+			print_log_error(f"Error while cleaning 'plant_experimental_conditions_ontology' table: {e}")
+			exit(1)
 
-    # If required empty the table first
-    file_size = os.stat(filename).st_size
-    if empty and file_size > 0:
-        try:
-            # If required empty the table first
-            logger.debug("Cleaning 'plant_experimental_conditions_ontology' table...")
-            with engine.connect() as conn:
-                stmt = delete(PlantExperimentalConditionsOntology)
-                conn.execute(stmt)
-            logger.debug("✅  Table cleaned successfully.")
-        except Exception as e:
-            print_log_error(logger, f"Error while cleaning 'plant_experimental_conditions_ontology' table: {e}")
-            exit(1)
+	obo_parser = OBOParser()
+	obo_parser.readfile(filename, compressed=compressed)
 
-    logger.debug(f"Reading PECO file: {filename}")
-    with open(filename, 'r') as fin:
-        _ = fin.readline()
-        i = 0
-        try:
-            for line in fin:
-                if line.startswith('PECO:'):
-                    parts = line.strip().split('\t')
-                    if len(parts) == 3:
-                        peco_id, peco_name, peco_defn = parts[0], parts[1], parts[2]
-                        peco = PlantExperimentalConditionsOntology(peco_term=peco_id, peco_class=peco_name, peco_annotation=peco_defn)
-                        session.add(peco)
-                        i += 1
-                if i % 40 == 0:
-                # commit to the db frequently to allow WHOOSHEE's indexing function to work without timing out
-                    session.commit()
-                if i % 500 == 0:
-                    logger.debug(f"{i} entries processed and committed...")
-                        
-            session.commit()
-            logger.info(f"✅  All {i} entries added to table 'peco' successfully!")
-        except Exception as e:
-            session.rollback()
-            print_log_error(logger, f"Failed while inserting Peco entry number {i + 1}: {e}")
-            exit(1)
+	for i, term in enumerate(obo_parser.terms):
+		if term.id.startswith("PECO:"):
+			peco = PlantExperimentalConditionsOntology(
+				peco_term=term.id,
+				peco_class=term.name,
+				peco_annotation=term.definition
+			)
+			session.add(peco)
+		
+		if i % 500 == 0:
+			# commit to the db frequently to allow WHOOSHEE's indexing function to work without timing out
+			try:
+				session.commit()
+				logger.debug(f"{i} entries processed and committed...")
+			except Exception as e:
+				session.rollback()
+				print(e)
+					
+		
+	try:
+		session.commit()
+		logger.info(f"✅  All {i} entries added to table 'peco' successfully!")
+	except Exception as e:
+		session.rollback()
+		print_log_error(f"Failed while inserting Peco entry number {i + 1}: {e}")
+		exit(1)
 
-def add_tabular_po(filename, empty=True, compressed=False):
+def add_obo_po(filename, empty=True, compressed=False):
+	"""
+	Add the Plant Ontology from an OBO file to the database.
+	If empty is True, it will first empty the table.
+	"""
 
-    logger.info("______________________________________________________________________")
-    logger.info("➡️  Adding Plant Ontology data:")
+	logger.info("______________________________________________________________________")
+	logger.info("➡️  Adding Plant Ontology data:")
 
-    # If required empty the table first
-    file_size = os.stat(filename).st_size
-    if empty and file_size > 0:
-        try:
-            # If required empty the table first
-            logger.debug("Cleaning 'plant_ontology' table...")
-            with engine.connect() as conn:
-                stmt = delete(PlantOntology)
-                conn.execute(stmt)
-            logger.debug("✅  Table cleaned successfully.")
-        except Exception as e:
-            print_log_error(logger, f"Error while cleaning 'plant_ontology' table: {e}")
-            exit(1)
+	# If required empty the table first
+	file_size = os.stat(filename).st_size
+	if empty and file_size > 0:
+		try:
+			# If required empty the table first
+			logger.debug("Cleaning 'plant_ontology' table...")
+			with engine.connect() as conn:
+				stmt = delete(PlantOntology)
+				conn.execute(stmt)
+			logger.debug("✅  Table cleaned successfully.")
+		except Exception as e:
+			print_log_error(f"Error while cleaning 'plant_ontology' table: {e}")
+			exit(1)
 
-    logger.debug(f"Reading Plant Ontology file: {filename}")
-    with open(filename, 'r') as fin:
-        i = 0
+	logger.debug(f"Reading Plant Ontology file: {filename}")
+	
+	obo_parser = OBOParser()
+	obo_parser.readfile(filename, compressed=compressed)
 
-        try:
-            for line in fin:
-                if line.startswith('PO:'):
-                    parts = line.strip().split('\t')
-                    if len(parts) == 6:
-                        po_id, po_name, po_defn = parts[0], parts[1], parts[2]
-                        po = PlantOntology(po_term=po_id, po_class=po_name, po_annotation=po_defn)
-                        session.add(po)
-                        i += 1
-                if i % 40 == 0:
-                # commit to the db frequently to allow WHOOSHEE's indexing function to work without timing out
-                    session.commit()
-                
-                if i % 500 == 0:
-                    logger.debug(f"{i} entries processed and committed...")
+	for i, term in enumerate(obo_parser.terms):
+		if term.id.startswith("PO:"):
+			po = PlantOntology(
+				po_term=term.id,
+				po_class=term.name,
+				po_annotation=term.definition
+			)
+			session.add(po)
+			
+		if i % 500 == 0:
+			# commit to the db frequently to allow WHOOSHEE's indexing function to work without timing out
+			try:
+				session.commit()
+				logger.debug(f"{i} entries processed and committed...")
+			except Exception as e:
+				session.rollback()
+				print_log_error(f"Failed while inserting Plant Ontology entry number {i + 1}: {e}")
+				exit(1)
 
-            session.commit()
-            logger.info(f"✅  All {i} entries added to table 'plant_ontology' successfully!")
-        
-        except Exception as e:
-            session.rollback()
-            print_log_error(logger, f"Failed while inserting Plant Ontology entry number {i + 1}: {e}")
-            exit(1)
+	try:
+		session.commit()
+		logger.info(f"✅  All {i} entries added to table 'plant_ontology' successfully!")
+	except Exception as e:
+		session.rollback()
+		print_log_error(f"Failed while inserting Plant Ontology entry number {i + 1}: {e}")
+		exit(1)
 
 
 
@@ -192,11 +210,11 @@ try:
 
     if peco_file:
         ontology_data_count+=1
-        add_tabular_peco(peco_file)
+        add_obo_peco(peco_file)
 
     if po_file:
         ontology_data_count+=1
-        add_tabular_po(po_file)
+        add_obo_po(po_file)
 
     if ontology_data_count == 0:
         print_log_error(logger, "Must add at least one type of ontology file (e.g., --plant_ontology)")

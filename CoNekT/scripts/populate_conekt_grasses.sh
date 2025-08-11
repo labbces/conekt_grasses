@@ -40,8 +40,8 @@ $SCRIPTS_DIR/add/add_functional_data.py\
 
 echo -e "\nPopulating CoNekT Grasses with ontology data"
 $SCRIPTS_DIR/add/add_ontologies.py\
- --plant_ontology $DATA_DIR/Ontology/plant-ontology.txt\
- --plant_e_c_ontology $DATA_DIR/Ontology/peco.tsv\
+ --plant_ontology $DATA_DIR/Ontology/po.obo\
+ --plant_e_c_ontology $DATA_DIR/Ontology/peco.obo\
  --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
  --db_password $DB_PASSWORD\
