@@ -8,13 +8,16 @@
 /CoNekT/build/
 /CoNekT/migrations/
 
-tmp
+tmpgit
 bin
 lib
 include
 pip-selfcheck.json
 
 /CoNekT/config.py
+# /CoNekT/scripts/populate_conekt_grasses.sh
+/CoNekT/scripts/clear_database.sh
+/CoNekT/scripts/setup_variables.sh
 
 /ftp
 
@@ -25,7 +28,4 @@ pip-selfcheck.json
 
 __pycache__/
 
-venv
-.tool-versions
-
-mariadb_credentials.txt
+/CoNekT/scripts/add/logs_populate
