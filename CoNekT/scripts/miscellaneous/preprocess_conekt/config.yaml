@@ -7,3 +7,4 @@ software:
         filter_salmon_output: ./filter_salmon_output.py
         jq: ./jq-linux64
         parse_filter: ./parse_filters.py
+        generate_correlations_corals: ./generate_correlations_corals.py
