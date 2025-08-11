@@ -1,10 +1,6 @@
 from conekt import db, whooshee
 from conekt.models.relationships import sequence_interpro
 from conekt.models.relationships.sequence_interpro import SequenceInterproAssociation
-from conekt.models.sequences import Sequence
-
-from utils.parser.interpro import Parser as InterproParser
-from utils.parser.interpro import DomainParser as InterproDomainParser
 
 from sqlalchemy.orm import joinedload
 
@@ -112,8 +108,6 @@ class Interpro(db.Model):
 
     @property
     def interpro_stats(self):
-        sequence_ids = [s.id for s in self.sequences.all()]
-
         return Interpro.sequence_stats_subquery(self.sequences)
 
     @property
@@ -127,146 +121,3 @@ class Interpro(db.Model):
         from conekt.models.gene_families import GeneFamily
 
         return GeneFamily.sequence_stats_subquery(self.sequences)
-
-    @staticmethod
-    def add_from_xml(filename, empty=True):
-        """
-        Populates interpro table with domains and descriptions from the official website's XML file
-
-        :param filename: path to XML file
-        :param empty: If True the interpro table will be cleared before uploading the new domains, default = True
-        """
-        # If required empty the table first
-        if empty:
-            try:
-                db.session.query(Interpro).delete()
-                db.session.commit()
-            except Exception as e:
-                db.session.rollback()
-                print(e)
-
-        interpro_parser = InterproParser()
-
-        interpro_parser.readfile(filename)
-
-        for i, domain in enumerate(interpro_parser.domains):
-            interpro = Interpro(domain.label, domain.description)
-
-            db.session.add(interpro)
-
-            if i % 40 == 0:
-                # commit to the db frequently to allow WHOOSHEE's indexing function to work without timing out
-                try:
-                    db.session.commit()
-                except Exception as e:
-                    db.session.rollback()
-                    print(e)
-
-        try:
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            print(e)
-
-    @staticmethod
-    def add_interpro_from_plaza(filename):
-        """
-        Adds GO annotation from PLAZA 3.0 to the database
-
-        :param filename: Path to the annotation file
-        :return:
-        """
-        interpro_parser = InterproDomainParser()
-
-        interpro_parser.read_plaza_interpro(filename)
-
-        gene_hash = {}
-        domain_hash = {}
-
-        all_sequences = Sequence.query.all()
-        all_domains = Interpro.query.all()
-
-        for sequence in all_sequences:
-            gene_hash[sequence.name] = sequence
-
-        for domain in all_domains:
-            domain_hash[domain.label] = domain
-
-        new_domains = []
-
-        for gene, domains in interpro_parser.annotation.items():
-            if gene in gene_hash.keys():
-                current_sequence = gene_hash[gene]
-                for domain in domains:
-                    if domain["id"] in domain_hash.keys():
-                        current_domain = domain_hash[domain["id"]]
-
-                        new_domain = {"sequence_id": current_sequence.id,
-                                      "interpro_id": current_domain.id,
-                                      "start": domain["start"],
-                                      "stop": domain["stop"]}
-
-                        new_domains.append(new_domain)
-
-                    else:
-                        print(domain["id"], "not found in the database.")
-            else:
-                print("Gene", gene, "not found in the database.")
-
-            if len(new_domains) > 400:
-                db.engine.execute(SequenceInterproAssociation.__table__.insert(), new_domains)
-                new_domains = []
-
-        db.engine.execute(SequenceInterproAssociation.__table__.insert(), new_domains)
-
-    @staticmethod
-    def add_interpro_from_interproscan(filename, species_id):
-        """
-        Adds GO annotation from InterProScan Output
-
-        :param filename: Path to the annotation file
-        :return:
-        """
-        interpro_parser = InterproDomainParser()
-
-        interpro_parser.read_interproscan(filename)
-
-        gene_hash = {}
-        domain_hash = {}
-
-        all_sequences = Sequence.query.filter(Sequence.species_id == species_id, Sequence.type == 'protein_coding')
-        all_domains = Interpro.query.all()
-
-        for sequence in all_sequences:
-            gene_hash[sequence.name] = sequence
-
-        for domain in all_domains:
-            domain_hash[domain.label] = domain
-
-        new_domains = []
-
-        for gene, domains in interpro_parser.annotation.items():
-            if gene in gene_hash.keys():
-                current_sequence = gene_hash[gene]
-                for domain in domains:
-                    if domain["id"] in domain_hash.keys():
-                        current_domain = domain_hash[domain["id"]]
-
-                        new_domain = {"sequence_id": current_sequence.id,
-                                      "interpro_id": current_domain.id,
-                                      "ipr_source_db": domain["ipr_source_db"],
-                                      "start": domain["start"],
-                                      "stop": domain["stop"]}
-
-                        new_domains.append(new_domain)
-
-                    else:
-                        print(domain["id"], "not found in the database.")
-            else:
-                print("Gene", gene, "not found in the database.")
-
-            if len(new_domains) > 400:
-                db.engine.execute(SequenceInterproAssociation.__table__.insert(), new_domains)
-                new_domains = []
-
-        db.engine.execute(SequenceInterproAssociation.__table__.insert(), new_domains)

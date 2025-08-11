@@ -24,3 +24,8 @@ pip-selfcheck.json
 .coverage
 
 __pycache__/
+
+venv
+.tool-versions
+
+mariadb_credentials.txt
