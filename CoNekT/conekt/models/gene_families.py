@@ -105,6 +105,20 @@ class GeneFamily(db.Model):
 
         return output
 
+    @property
+    def trs_associations(self):
+        """Return unique TRs from sequences in this family, ordered by TR family name."""
+        from conekt.models.tr import TranscriptionRegulator
+        from conekt.models.sequences import Sequence
+        from conekt.models.relationships.sequence_family import SequenceFamilyAssociation
+
+        return (TranscriptionRegulator.query
+                .join(TranscriptionRegulator.sequences) 
+                .join(SequenceFamilyAssociation, Sequence.id == SequenceFamilyAssociation.sequence_id)
+                .filter(SequenceFamilyAssociation.gene_family_id == self.id)
+                .distinct()
+                .all())
+
     def ecc_associations_paginated(self, page=1, page_items=30):
         sequence_ids = [s.id for s in self.sequences.all()]
 
