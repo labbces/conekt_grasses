@@ -1,19 +1,7 @@
 #!/usr/bin/env bash
 
-BASE_DIR=/home/conekt_admin/populate_conekt/conekt_grasses
-SCRIPTS_DIR=$BASE_DIR/CoNekT/scripts
-DATA_DIR=/DataBig/CoNeKt/Backups/01052024/v0.3
-SPECIES_TABLE=$DATA_DIR/Species/species_info.tsv
-SPECIES_ARRAY=( Svi Bdi Osa Sit Sbi Pvi Zma Scp1 Shc1 Shc2 Shc3 Shc4 Shc5 Shc6 Shc7 Shc8 Shc9 Shc10 Shc11 Shc12 Shc13 Shc14 Shc15 Shc16 Shc17 Shc18 Shc19 Shc20 Shc21 Shc22 Shc23 Shc24 Shc25 Shc26 Shc27 Shc28 Shc29 Shc30 Shc31 Shc32 Shc33 Shc34 Shc35 Shc36 Shc37 Shc38 Shc39 Shc40 Shc41 Shc42 Shc43 Shc44 Shc45 Shc46 Shc47 Shc48 Shc49 Shc50 )
-SPECIES_EXPRESSION_PROFILES=(  )
-
-# Description of method to generate gene families
-GENE_FAMILIES_DESCRIPTION="OrthoFinder Gene Families v0.3"
-
-#Database credentials for CoNekT Grasses from file
-#Expected variables: DB_ADMIN, DB_NAME and DB_PASSWORD
-MARIADB_CREDENTIALS_FILE=$SCRIPTS_DIR/mariadb_credentials.txt
-source $MARIADB_CREDENTIALS_FILE
+# Get variables from 'setup_variables.sh' file (copy/paste your full path to file here)
+source /home/pturquetti/conekt/conekt_grasses/CoNekT/scripts/setup_variables.sh
 
 export FLASK_APP=run.py
 
@@ -29,41 +17,71 @@ flask db init
 # Deactivate virtual environment
 # Currently it is necessary because libraries in the virtual environment
 # are not compatible with the libraries in the system used by the scripts
+# deactivate
+# source $SCRIPTS_DIR/Populate_CoNekT/bin/activate
+
+# Activating virtual environment
 deactivate
-source $SCRIPTS_DIR/Populate_CoNekT/bin/activate
+source $BASE_DIR/CoNekT/bin/activate
+echo -e "Ready to start populating!"
 
-echo "Populating CoNekT Grasses with functional data"
-$SCRIPTS_DIR/add/add_functional_data.py --db_admin $DB_ADMIN\
- --db_name $DB_NAME\
- --interpro_xml $DATA_DIR/FunctionalData/interpro.xml\
- --gene_ontology_obo $DATA_DIR/FunctionalData/go.obo\
- --cazyme $DATA_DIR/FunctionalData/CAZyDB.07302020.fam-activities.txt\
- --db_password $DB_PASSWORD
-
-echo "Populating CoNekT Grasses with ontology data"
-$SCRIPTS_DIR/add/add_ontologies.py --plant_ontology $DATA_DIR/Ontology/plant-ontology.txt\
- --plant_e_c_ontology $DATA_DIR/Ontology/peco.tsv\
+echo -e "\nPopulating CoNekT Grasses with functional data"
+$SCRIPTS_DIR/add/add_functional_data.py\
  --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
- --db_password $DB_PASSWORD
+ --db_password $DB_PASSWORD\
+ --interpro_xml $DATA_DIR"/Functional Data/interpro.xml"\
+ --gene_ontology_obo $DATA_DIR"/Functional Data/go.obo"\
+ --cazyme $DATA_DIR"/Functional Data/CAZyDB.07302020.fam-activities.txt"\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE
+ 
 
-echo "Populating CoNekT Grasses with species data"
-$SCRIPTS_DIR/add/add_species.py --input_table $SPECIES_TABLE\
+echo -e "\nPopulating CoNekT Grasses with ontology data"
+$SCRIPTS_DIR/add/add_ontologies.py\
+ --plant_ontology $DATA_DIR/Ontology/po.obo\
+ --plant_e_c_ontology $DATA_DIR/Ontology/peco.obo\
+ --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE
+
+echo -e "\nPopulating CoNekT Grasses with species data"
+$SCRIPTS_DIR/add/add_species.py\
+ --input_table $SPECIES_TABLE\
  --db_admin $DB_ADMIN \
  --db_name $DB_NAME \
- --db_password $DB_PASSWORD
+ --db_password $DB_PASSWORD\
+ --species_dir $SPECIES_DIR\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE
 
-echo "Populating CoNekT Grasses with gene descriptions"
+echo -e "\nPopulating CoNekT Grasses with gene descriptions"
+first_run=true
 for species_code in ${SPECIES_ARRAY[@]};
  do
- if [ -f $DATA_DIR/Species/"$species_code"/"$species_code"_cds_description.txt ]; then
+ if [ -f $SPECIES_DIR/"$species_code"/"$species_code"_cds_description.txt ]; then
   $SCRIPTS_DIR/add/add_gene_descriptions.py --species_code "$species_code"\
-  --gene_descriptions $DATA_DIR/Species/"$species_code"/"$species_code"_cds_description.txt\
+  --gene_descriptions $SPECIES_DIR/"$species_code"/"$species_code"_cds_description.txt\
   --db_admin $DB_ADMIN\
   --db_name $DB_NAME\
-  --db_password $DB_PASSWORD
+  --db_password $DB_PASSWORD\
+  --logdir $LOG_DIR\
+  --db_verbose $DB_VERBOSE\
+  --py_verbose $PY_VERBOSE\
+  --first_run $first_run
+  first_run=false
  fi
 done;
+
+# From this point on, insertion scripts use the populate virtual environment. 
+# Custom logs not yet implemented.
+deactivate
+source $SCRIPTS_DIR/Populate_CoNekT/bin/activate
 
 echo "Populating CoNekT Grasses with functional annotation data"
 for species_code in ${SPECIES_ARRAY[@]};

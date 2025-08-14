@@ -24,11 +24,12 @@ salmon = config["software"]["salmon"]
 filter_salmon_output = config["software"]["filter_salmon_output"]
 jq = config["software"]["jq"]
 parse_filter = config["software"]["parse_filter"]
+generate_correlations_corals = config["software"]["generate_correlations_corals"]
 
 rule all:
 	input:
 		"preliminar_report.tsv",
-		expand("{genotype}_{seqtype}_quantmerge.txt", genotype=GENOTYPE, seqtype=SEQTYPE)
+		expand("{genotype}_{seqtype}_network.tsv", genotype=GENOTYPE, seqtype=SEQTYPE)
 
 rule download_fastq:
 	"""
@@ -356,4 +357,28 @@ rule merge_quantification_results:
 	shell:
 		"""
 		/usr/bin/time -v {salmon} quantmerge --quants {params.filter_low_mapping_samples} -o {params.genotype}_{params.seqtype}_quantmerge.txt > {log} 2>&1
+		"""
+
+rule build_network:
+	"""
+	Gera a rede de co-expressão com corALS 
+    """
+	priority: 1
+	input:
+		expand("{genotype}_{seqtype}_quantmerge.txt", genotype=GENOTYPE, seqtype=SEQTYPE),
+	output:
+		"{genotype}_{seqtype}_network.tsv"
+	threads: 1
+	resources:
+		load=1
+	params:
+		genotype="{genotype}",
+		seqtype="{seqtype}",
+		server="figsrv"
+	log:
+		"datasets_{genotype}/logs/build_network/{genotype}_{seqtype}_build_network.log"
+	name: "build_network"
+	shell:
+		"""
+        /usr/bin/time -v {generate_correlations_corals} --expression_matrix {params.genotype}_{params.seqtype}_quantmerge.txt --output_network {params.genotype}_{params.seqtype}_network.tsv > {log} 2>&1
 		"""

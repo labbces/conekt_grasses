@@ -2,13 +2,20 @@
 
 import getpass
 import argparse
+import os
+import sys
+import logging
 
-from sqlalchemy import create_engine
+#import psutil
+
+from sqlalchemy import create_engine, and_
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import select, update
 
 from crossref.restful import Works
+
+from log_functions import *
 
 parser = argparse.ArgumentParser(description='Add gene descriptions for species in the database')
 parser.add_argument('--species_code', type=str, metavar='Svi',
@@ -31,6 +38,25 @@ parser.add_argument('--db_password', type=str, metavar='DB password',
                     dest='db_password',
                     help='The database password',
                     required=False)
+parser.add_argument('--logdir', type=str, metavar='Log diretory',
+                    dest='log_dir',
+                    help='The directory containing temporary populate logs',
+                    required=False)
+parser.add_argument('--db_verbose', type=str, metavar='Database verbose',
+                    dest='db_verbose',
+                    help='Enable databaseverbose logging (true/false)',
+                    required=False,
+                    default="false")
+parser.add_argument('--py_verbose', type=str, metavar='Python script verbose',
+                    dest='py_verbose',
+                    help='Enable python verbose logging (true/false)',
+                    required=False,
+                    default="true")
+parser.add_argument('--first_run', type=str, metavar='Flag indicating first execution of the file',
+                    dest='first_run',
+                    help='Controls log file openning type',
+                    required=False,
+                    default="true")
 
 args = parser.parse_args()
 
@@ -40,59 +66,128 @@ else:
     db_password = getpass.getpass("Enter the database password: ")
 
 
+
+
+
+
 def add_descriptions(filename, species_code, engine):
+
+    logger.info("______________________________________________________________________")
+    logger.info(f"➡️  Adding Gene Descriptions for species '{species_code}':")
     
-    with engine.connect() as conn:
-            stmt = select(Species).where(Species.__table__.c.code == species_code)
-            species = conn.execute(stmt).first()
+    try:
+        with engine.connect() as conn:
+                stmt = select([Species.__table__]).where(Species.__table__.c.code == species_code)
+                result = conn.execute(stmt)
+                species = result.fetchone()
+    except Exception as e:
+        print_log_error(logger, f"Error while querying species '{species_code}': {e}")
+        exit(1)
 
     # species is not in the DB yet, add it
     if not species:
-        print(f'Species {species_code} not found in DB')
+        print_log_error(logger, f"Species '{species_code}' not found in database.")
         exit(1)
 
-    with engine.connect() as conn:
-        stmt = select(Sequence).where(Sequence.__table__.c.type == 'protein_coding', Sequence.__table__.c.species_id == species.id)
-        all_sequences = conn.execute(stmt).all()
+    try:
+        with engine.connect() as conn:
+            stmt = select([Sequence.__table__]).where(
+                and_(
+                    Sequence.__table__.c.type == 'protein_coding',
+                    Sequence.__table__.c.species_id == species['id']
+                )
+            )
+            result = conn.execute(stmt)
+            all_sequences = result.fetchall()
+    except Exception as e:
+        print_log_error(logger, f"Error while retrieving sequences for species '{species_code}': {e}")
+        exit(1)
 
     seq_dict = {}
 
     for s in all_sequences:
-        seq_dict[s.name] = s
+        seq_dict[s['name']] = s
 
-    with open(filename, "r") as f_in:
-        for i, line in enumerate(f_in):
-            name, description = line.strip().split('\t')
-                        
-            if name in seq_dict.keys():
-                with engine.connect() as conn:
-                    stmt = update(Sequence).where(Sequence.__table__.c.id == seq_dict[name].id).values(description=description)
-                    conn.execute(stmt)
-                    conn.commit()
+    try:
+        with open(filename, "r") as f_in:
+            notFound = 0
+            for i, line in enumerate(f_in):
+                try:
+                    name, description = line.strip().split('\t')
+                except ValueError as ve:
+                    logger.warning(f"⚠️  Line {i} in '{filename}' is malformed: '{line.strip()}'. Skipping.")
+                    continue
+                
+                
+                if name in seq_dict.keys():
+                    try:
+                        with engine.connect() as conn:
+                            stmt = Sequence.__table__.update().where(
+                                Sequence.__table__.c.id == seq_dict[name]['id']  
+                            ).values(description=description)
+                            conn.execute(stmt)
+                            conn.execute("COMMIT")  
 
-db_admin = args.db_admin
-db_name = args.db_name
+                            if i % 10000 == 0:
+                                logger.debug(f"{i} sequence descriptions updated...")
+                            
+                    except Exception as e:
+                        logger.error(f"Failed to update description for sequence '{name}': {e}")
+                else:
+                    #logger.warning(f"⚠️  Sequence '{name}' not found in database.")
+                    notFound+=1
+            
+            logger.info(f"✅  {i - notFound} gene descriptions updated successfully.")
+            if notFound > 0:
+                logger.warning(f"⚠️  {notFound} sequences in '{species_code}' gene description file were not found in database.")
+    except Exception as e:
+        print_log_error(logger, f"Error while processing file '{filename}': {e}")
+        exit(1)
 
-create_engine_string = "mysql+pymysql://"+db_admin+":"+db_password+"@localhost/"+db_name
+try:
 
-engine = create_engine(create_engine_string, echo=True)
+    thisFileName = os.path.basename(__file__)
+    #log variables
+    log_dir = args.log_dir  #log dir path
+    log_file_name = "gene_descriptions"   #log file names
+    db_verbose = str2bool(args.db_verbose)
+    py_verbose = str2bool(args.py_verbose)
+    first_run = str2bool(args.first_run)
 
-# Reflect an existing database into a new model
-Base = automap_base()
+    logger = setup_logger(log_dir=log_dir, base_filename=log_file_name, DBverbose=db_verbose, PYverbose=py_verbose, overwrite_logs=first_run)
 
-Base.prepare(engine, reflect=True)
+    db_admin = args.db_admin
+    db_name = args.db_name
 
-Species = Base.classes.species
-Sequence = Base.classes.sequences
+    create_engine_string = "mysql+pymysql://"+db_admin+":"+db_password+"@localhost/"+db_name
 
-# Create a Session
-Session = sessionmaker(bind=engine)
-session = Session()
+    engine = create_engine(create_engine_string, echo=db_verbose)
 
-gene_descriptions_file = args.gene_desc_file
-species_code = args.species_code
+    # Reflect an existing database into a new model
+    Base = automap_base()
 
-# Loop over gene description file and add to DB
-add_descriptions(gene_descriptions_file, species_code, engine)
+    Base.prepare(engine, reflect=True)
 
-session.close()
+    Species = Base.classes.species
+    Sequence = Base.classes.sequences
+
+    # Create a Session
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    gene_descriptions_file = args.gene_desc_file
+    species_code = args.species_code
+
+    # Loop over gene description file and add to DB
+    add_descriptions(gene_descriptions_file, species_code, engine)
+
+    session.close()
+
+except Exception as e:
+    print_log_error(logger, e)
+    logger.info(f" ---- ❌ An error occurred while executing {thisFileName}. Please fix the issue and rerun the script. ❌ ---- ")
+    exit(1)
+
+
+logger.info(f" ---- ✅ SUCCESS: All operations for '{species_code}' from {thisFileName} finished without errors! ✅ ---- ")
+

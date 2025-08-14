@@ -1,8 +1,0 @@
-{% extends 'admin/my_base.html' %}
-
-{% block body %}
-<h1>GO-Enrichment</h1>
-<p><strong>Note:</strong> Calculating the GO enrichment will remove previous calculations from the database !</p>
-<a class="btn btn-default" href="{{ url_for('admin_controls.calculate_enrichment') }}">GO enrichment</a> <a class="btn btn-default" href="{{ url_for('admin_controls.delete_enrichment') }}">Delete enrichment</a>
-
-{% endblock %}

@@ -5,12 +5,18 @@ import argparse
 import xml.etree.ElementTree as ET
 from copy import deepcopy
 import gzip
+import sys
+import os
+import math
 
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import delete
+import logging
+
+from log_functions import *
 
 # Create arguments
 parser = argparse.ArgumentParser(description='Add functional data to the database')
@@ -38,6 +44,20 @@ parser.add_argument('--db_password', type=str, metavar='DB password',
                     dest='db_password',
                     help='The database password',
                     required=False)
+parser.add_argument('--logdir', type=str, metavar='Log diretory',
+                    dest='log_dir',
+                    help='The directory containing temporary populate logs',
+                    required=False)
+parser.add_argument('--db_verbose', type=str, metavar='Database verbose',
+                    dest='db_verbose',
+                    help='Enable databaseverbose logging (true/false)',
+                    required=False,
+                    default="false")
+parser.add_argument('--py_verbose', type=str, metavar='Python script verbose',
+                    dest='py_verbose',
+                    help='Enable python verbose logging (true/false)',
+                    required=False,
+                    default="true")
 
 args = parser.parse_args()
 
@@ -45,6 +65,8 @@ if args.db_password:
     db_password = args.db_password
 else:
     db_password = getpass.getpass("Enter the database password: ")
+
+
 
 
 class OboEntry:
@@ -250,6 +272,7 @@ class InterProParser:
 
             self.domains.append(new_domain)
 
+
 def add_interpro_from_xml(filename, empty=True):
     """
     Populates interpro table with domains and descriptions from the official website's XML file
@@ -257,28 +280,58 @@ def add_interpro_from_xml(filename, empty=True):
     :param filename: path to XML file
     :param empty: If True the interpro table will be cleared before uploading the new domains, default = True
     """
+    logger.info("______________________________________________________________________")
+    logger.info("➡️  Adding InterPro data:")
     # If required empty the table first
     if empty:
-        with engine.connect() as conn:
-            stmt = delete(Interpro)
-            conn.execute(stmt)
-
-    interpro_parser = InterProParser()
-
-    interpro_parser.readfile(filename)
-
-    for i, domain in enumerate(interpro_parser.domains):
-        interpro = Interpro(**domain.__dict__)
-
-        session.add(interpro)
-
-        if i % 40 == 0:
-            # commit to the db frequently to allow WHOOSHEE's indexing function to work without timing out
+        logger.debug("Cleaning 'interpro' table...")
+        try:
+            session.query(Interpro).delete()
             session.commit()
+            logger.debug("✅  Table cleaned successfully.")
+        except Exception as e:
+            print_log_error(logger, f"Error while cleaning 'interpro' table: {e}")
+            exit(1)
+            
 
-    session.commit()
+    logger.debug(f"Reading InterPro file: {filename}")
+    try:
+        interpro_parser = InterProParser()
+        interpro_parser.readfile(filename)
+        total_entries = len(interpro_parser.domains)
+    except Exception as e:
+        print_log_error(logger, e)
+        exit(1)
 
-def add_cazymes_from_table(filename, empty=True):
+    logger.debug(f"Found {total_entries} entries in the file.")
+
+    try:
+        for i, domain in enumerate(interpro_parser.domains):
+        
+            interpro = Interpro(**domain.__dict__)
+
+            session.add(interpro)
+
+            if i % 40 == 0:
+                # commit to the db frequently to allow WHOOSHEE's indexing function to work without timing out
+                session.commit()
+            
+            step = 10 ** int(math.log10(total_entries))
+            if i % step == 0:
+                logger.debug(f"{i}/{total_entries} entries processed and committed...")
+
+    
+        session.commit()
+        logger.info(f"✅  All {total_entries} entries added to table 'interpro' successfully!")
+
+
+    except Exception as e:
+        session.rollback()
+        print_log_error(logger, f"Failed while inserting entry number {i}: {e}")
+        exit(1)
+
+    
+def add_cazymes_from_table(filename, empty=False):
     """
     Populates CAZYme table with domains and descriptions from the dbCAN2 TXT file
 
@@ -286,12 +339,19 @@ def add_cazymes_from_table(filename, empty=True):
     :param empty: If True the cazyme table will be cleared before uploading the new domains, default = True
 
     """
-
+    logger.info("______________________________________________________________________")
+    logger.info("➡️  Adding CAZYme data:")
     # If required empty the table first
     if empty:
-        with engine.connect() as conn:
-            stmt = delete(CAZYme)
-            conn.execute(stmt)
+        try:
+            logger.debug("Cleaning 'cazyme' table...")
+            with engine.begin() as conn:  
+                stmt = delete(CAZYme)
+                conn.execute(stmt)
+                logger.debug("✅  Table cleaned successfully.")
+        except Exception as e:
+            print_log_error(logger, f"Error while cleaning 'cazyme' table: {e}")
+            exit(1)
         
     class_dict = {
         'GH':'Glycoside Hydrolase',
@@ -302,28 +362,40 @@ def add_cazymes_from_table(filename, empty=True):
         'CBM':'Carbohydrate-Binding Module'
     }
 
+    logger.debug(f"Reading CAZYmes file: {filename}")
     with open(filename, 'r') as fin:
         i = 0
-        for line in fin:
-            parts = line.strip().split('\t')
-            if len(parts) == 2:
-                family, cazyme_class, activities = parts[0], '', parts[1]
-                    
-                string = ''
-                for char in parts[0]:
-                    if char.isalpha():
-                        string += char
-                cazyme_class = class_dict[string]
 
-                cazyme = CAZYme(family=family, cazyme_class=cazyme_class, activities=activities)
-                session.add(cazyme)
-                    
-                i += 1
-                if i % 40 == 0:
-                    # commit to the db frequently to allow WHOOSHEE's indexing function to work without timing out
-                    session.commit()
-        
-        session.commit()
+        try:
+            for line in fin:
+                parts = line.strip().split('\t')
+                if len(parts) == 2:
+                    family, cazyme_class, activities = parts[0], '', parts[1]
+                        
+                    string = ''
+                    for char in parts[0]:
+                        if char.isalpha():
+                            string += char
+                    cazyme_class = class_dict[string]
+
+                    cazyme = CAZYme(family=family, cazyme_class=cazyme_class, activities=activities)
+                    session.add(cazyme)
+                        
+                    i += 1
+                    if i % 40 == 0:
+                        # commit to the db frequently to allow WHOOSHEE's indexing function to work without timing out
+                        session.commit()
+
+                    if i % 500 == 0:
+                        logger.debug(f"{i} entries processed and committed...")
+
+            session.commit()
+            logger.info(f"✅  All {i} entries added to table 'cazyme' successfully!")
+
+        except Exception as e:
+            session.rollback()
+            print_log_error(logger, f"Failed while inserting CAZYmes entry number {i + 1}: {e}")
+            exit(1)
 
 
 def add_go_from_obo(filename, empty=True, compressed=False):
@@ -334,83 +406,140 @@ def add_go_from_obo(filename, empty=True, compressed=False):
     :param compressed: load data from .gz file if true (default: False)
     :param empty: Empty the database first when true (default: True)
     """
-    # If required empty the table first
+    logger.info("______________________________________________________________________")
+    logger.info("➡️  Adding GO data:")
+    #If required empty the table first
     if empty:
-        with engine.connect() as conn:
-            stmt = delete(GO)
-            conn.execute(stmt)
-
-    obo_parser = OBOParser()
-    obo_parser.readfile(filename, compressed=compressed)
-
-    obo_parser.extend_go()
-
-    for i, term in enumerate(obo_parser.terms):
-        go = GO(label=term.id, name=term.name, description=term.definition,
-                type=term.namespace, obsolete=term.is_obsolete,
-                is_a=";".join(term.is_a), extended_go=";".join(term.extended_go))
-
-        session.add(go)
-
-        if i % 40 == 0:
-            # commit to the db frequently to allow WHOOSHEE's indexing function to work without timing out
-            session.commit()
-
-    session.commit()
+        try:
+            logger.debug("Cleaning 'go' table...")
+            with engine.begin() as conn:
+                stmt = delete(GO)
+                conn.execute(stmt)
+            logger.debug("✅  Table cleaned successfully.")
+        except Exception as e:
+            print_log_error(logger, f"Error while cleaning 'go' table: {e}")
+            exit(1)
 
 
-interpro_file = ''
-go_file = ''
-cazymes_file = ''
+    logger.debug(f"Reading GO file: {filename}")
 
-db_admin = args.db_admin
-db_name = args.db_name
-interpro_file = args.interpro_file
-go_file = args.go_file
-cazymes_file = args.cazymes_file
+    try:
+        obo_parser = OBOParser()
+        obo_parser.readfile(filename, compressed=compressed)
+        obo_parser.extend_go()
+    except Exception as e:
+        print_log_error(logger, f"Error reading file: {e}")
+        exit(1)
 
-functional_data_count = 0
 
-if cazymes_file:
-    functional_data_count+=1
+    total_entries = len(obo_parser.terms)
+    logger.debug(f"Found {total_entries} entries in the file.")
 
-if interpro_file:
-    functional_data_count+=1
+    try:
+        for i, term in enumerate(obo_parser.terms):
+            go = GO(label=term.id, name=term.name, description=term.definition,
+                    type=term.namespace, obsolete=term.is_obsolete,
+                    is_a=";".join(term.is_a), extended_go=";".join(term.extended_go))
 
-if go_file:
-    functional_data_count+=1
+            session.add(go)
 
-if functional_data_count == 0:
-    print("Must add at least one type of functional data (e.g., --interpro_xml)\
-          to the database!")
+            if i % 40 == 0:
+                # commit to the db frequently to allow WHOOSHEE's indexing function to work without timing out
+                session.commit()
+
+            step = 10 ** int(math.log10(total_entries))
+            if i % step == 0:
+                logger.debug(f"{i}/{total_entries} entries processed and committed...")
+
+        session.commit()
+        logger.info(f"✅  All {total_entries} entries added to table 'go' successfully!")
+        
+
+    except Exception as e:
+        session.rollback()  
+        print_log_error(logger, f"Failed while inserting entry {term.id}: {e}")
+        exit(1)
+
+
+
+try:
+    thisFileName = os.path.basename(__file__)
+    #log variables
+    log_dir = args.log_dir  #log dir path
+    log_file_name = "functional_data"   #log file names
+    db_verbose = str2bool(args.db_verbose)
+    py_verbose = str2bool(args.py_verbose)
+    logger = setup_logger(log_dir=log_dir, base_filename=log_file_name, DBverbose=db_verbose, PYverbose=py_verbose)
+
+    interpro_file = ''
+    go_file = ''
+    cazymes_file = ''
+
+    db_admin = args.db_admin
+    db_name = args.db_name
+    interpro_file = args.interpro_file
+    go_file = args.go_file
+    cazymes_file = args.cazymes_file
+
+
+    
+    
+
+    functional_data_count = 0
+
+    if cazymes_file:
+        functional_data_count+=1
+
+    if interpro_file:
+        functional_data_count+=1
+
+    if go_file:
+        functional_data_count+=1
+
+    if functional_data_count == 0:
+        print_log_error(logger, "Must add at least one type of functional data file (e.g., --interpro_xml)")
+        exit(1)
+
+    create_engine_string = "mysql+pymysql://"+db_admin+":"+db_password+"@localhost/"+db_name
+
+    engine = create_engine(create_engine_string, echo=db_verbose)
+
+    # Reflect an existing database into a new model
+    Base = automap_base()
+
+    # Use the engine to reflect the database
+    Base.prepare(engine, reflect=True)
+
+    Interpro = Base.classes.interpro
+    GO = Base.classes.go
+    CAZYme = Base.classes.cazyme
+
+    # Create a Session
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    # Run the functional data to CoNekT Grasses
+    if interpro_file:
+        add_interpro_from_xml(interpro_file)
+
+    if go_file:
+        add_go_from_obo(go_file)
+
+    if cazymes_file:
+        add_cazymes_from_table(cazymes_file)
+
+    session.close()
+
+except Exception as e:
+    print_log_error(logger, e)
+    logger.info(f" ---- ❌ An error occurred while executing {thisFileName}. Please fix the issue and rerun the script. ❌ ---- ")
     exit(1)
 
-create_engine_string = "mysql+pymysql://"+db_admin+":"+db_password+"@localhost/"+db_name
 
-engine = create_engine(create_engine_string, echo=True)
 
-# Reflect an existing database into a new model
-Base = automap_base()
+logger.info(f" ---- ✅ SUCCESS: All operations from {thisFileName} finished without errors! ✅ ---- ")
 
-# Use the engine to reflect the database
-Base.prepare(engine, reflect=True)
 
-Interpro = Base.classes.interpro
-GO = Base.classes.go
-CAZYme = Base.classes.cazyme
 
-# Create a Session
-Session = sessionmaker(bind=engine)
-session = Session()
 
-# Run the functional data to CoNekT Grasses
-if interpro_file:
-    add_interpro_from_xml(interpro_file)
 
-if go_file:
-    add_go_from_obo(go_file)
-
-if cazymes_file:
-    add_cazymes_from_table(cazymes_file)
-
-session.close()
