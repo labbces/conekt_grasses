@@ -83,30 +83,46 @@ done;
 deactivate
 source $SCRIPTS_DIR/Populate_CoNekT/bin/activate
 
-echo "Populating CoNekT Grasses with functional annotation data"
+
+
+echo -e "\nPopulating CoNekT Grasses with functional annotation data"
+first_run=true
 for species_code in ${SPECIES_ARRAY[@]};
  do
-  if [ -f $DATA_DIR/Species/"$species_code"/"$species_code".aa.nonStop.interpro.tsv.gz ]; then
-   gzip -d $DATA_DIR/Species/"$species_code"/"$species_code".aa.nonStop.interpro.tsv.gz
+  if [ -f $DATA_DIR/Species/"$species_code"/"$species_code"_interproscan.tsv ]; then
+  #  gzip -d $DATA_DIR/Species/"$species_code"/"$species_code".aa.nonStop.interpro.tsv.gz
    $SCRIPTS_DIR/add/add_interproscan.py --db_admin $DB_ADMIN\
     --db_name $DB_NAME\
     --db_password $DB_PASSWORD\
-    --interproscan_tsv $DATA_DIR/Species/"$species_code"/"$species_code".aa.nonStop.interpro.tsv\
-    --species_code "$species_code"
-   gzip $DATA_DIR/Species/"$species_code"/"$species_code".aa.nonStop.interpro.tsv
+    --interproscan_tsv $DATA_DIR/Species/"$species_code"/"$species_code"_interproscan.tsv\
+    --species_code "$species_code"\
+    --logdir $LOG_DIR\
+    --db_verbose $DB_VERBOSE\
+    --py_verbose $PY_VERBOSE\
+    --first_run $first_run
+    first_run=false
+  #  gzip $DATA_DIR/Species/"$species_code"/"$species_code".aa.nonStop.interpro.tsv
   fi
 done;
 
-echo "Populating CoNekT Grasses with species GO annotation"
+
+
+echo -e "\nPopulating CoNekT Grasses with species GO annotation"
+first_run=true
 for species_code in ${SPECIES_ARRAY[@]};
  do
  if [ -f $DATA_DIR/Species/"$species_code"/"$species_code"_go.txt ]; then
  $SCRIPTS_DIR/add/add_go.py --db_admin $DB_ADMIN\
- --db_name $DB_NAME\
- --db_password $DB_PASSWORD\
- --go_tsv $DATA_DIR/Species/"$species_code"/"$species_code"_go.txt\
- --species_code "$species_code"\
- --annotation_source "GOs from InterProScan"
+    --db_name $DB_NAME\
+    --db_password $DB_PASSWORD\
+    --go_tsv $DATA_DIR/Species/"$species_code"/"$species_code"_go.txt\
+    --species_code "$species_code"\
+    --annotation_source "GOs from InterProScan"\
+    --logdir $LOG_DIR\
+    --db_verbose $DB_VERBOSE\
+    --py_verbose $PY_VERBOSE\
+    --first_run $first_run
+ first_run=false
  fi
 done;
 
