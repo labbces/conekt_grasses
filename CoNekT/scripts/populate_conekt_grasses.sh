@@ -78,10 +78,7 @@ for species_code in ${SPECIES_ARRAY[@]};
  fi
 done;
 
-# From this point on, insertion scripts use the populate virtual environment. 
-# Custom logs not yet implemented.
-deactivate
-source $SCRIPTS_DIR/Populate_CoNekT/bin/activate
+
 
 
 
@@ -125,6 +122,13 @@ for species_code in ${SPECIES_ARRAY[@]};
  first_run=false
  fi
 done;
+
+
+
+# From this point on, insertion scripts use the populate virtual environment. 
+# Custom logs not yet implemented.
+deactivate
+source $SCRIPTS_DIR/Populate_CoNekT/bin/activate
 
 echo "Populating CoNekT Grasses with species CAZyme annotation"
 for species_code in ${SPECIES_ARRAY[@]};
