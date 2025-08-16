@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
-
-#Deixar para 3.10 com a outra versão do sqlalchemy
+#Uses CoNekT virtual environment (python3.8)
 
 import getpass
 import argparse
@@ -77,12 +76,12 @@ def add_tr_families(filename):
     with open(filename, 'r') as fin:
         i = 0
         for line in fin:
-            parts = line.strip().split(';')
-            print(parts)
-            if len(parts) == 3:
-                type, family, description = parts[0], parts[1], parts[2]
-                tr = TranscriptionRegulator(family=family, type=type, description=description)
-                print(tr)
+            parts = line.strip().split(':')
+            if len(parts) == 2:
+                family, type_domains = parts[0], parts[1]
+                parts2 = type_domains.strip().split(';')
+                type = parts2[0].strip()
+                tr = TranscriptionRegulator(family=family, type=type)
                 session.add(tr)
                 i += 1
             if i % 40 == 0:
@@ -130,7 +129,7 @@ def add_tr_associations(filename, species_code):
     existing_tr_associations = set()
     existing_domain_associations = set()
     with engine.connect() as conn:
-        stmt = select([SequenceTRAssociation.sequence_id, SequenceTRAssociation.tr_id, SequenceTRAssociation.type])
+        stmt = select([SequenceTRAssociation.sequence_id, SequenceTRAssociation.tr_id])
         result = conn.execute(stmt)
         for row in result:
             existing_tr_associations.add((row.sequence_id, row.tr_id, row.type))
@@ -154,15 +153,13 @@ def add_tr_associations(filename, species_code):
                 current_sequence = gene_hash[gene]
                 if family in tr_hash.keys():
                     current_tr = tr_hash[family]
-                    key = (current_sequence.id, current_tr.id, type)
+                    key = (current_sequence.id, current_tr.id)
                     key2 = (current_sequence.id, domain, int(query_start), int(query_end))
-                    print(key)
                     if key not in existing_tr_associations:
                         print(f"Adding association for {gene} with TR {family}")
                         association = SequenceTRAssociation(
                             sequence_id=current_sequence.id,
-                            tr_id=current_tr.id,
-                            type=type
+                            tr_id=current_tr.id
                         )
                         session.add(association)
                         existing_tr_associations.add(key)
