@@ -7,7 +7,6 @@ class SequenceTRAssociation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sequence_id = db.Column(db.Integer, db.ForeignKey('sequences.id', ondelete='CASCADE'))
     tr_id = db.Column(db.Integer, db.ForeignKey('transcription_regulator.id', ondelete='CASCADE'))
-    type = db.Column(db.Text, default=None)
 
     sequence = db.relationship('Sequence', backref=db.backref('tr_associations',
                                                               lazy='dynamic',

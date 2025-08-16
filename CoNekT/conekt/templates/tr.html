@@ -19,9 +19,18 @@
         <li>Transcription Regulator</li>
         <li class="active"><strong>{{ tr.family }}</strong></li>
     </ol>
-    <h1>{{ tr.family }}</h1>
+    <h1>{{ tr.family }} ({{ tr.type }}) </h1>
 
-	<p>{{ tr.description }}</p>
+    {% if tr.description %}
+
+    <p><strong>Description: </strong> {{tr.description}}</p>
+
+    {% else %}
+
+    <p><span class="text-muted"><em>No description available</em></span></p>
+
+    {% endif %}
+    
     <br/>
 
     <div class="row">
@@ -47,15 +56,6 @@
         'tr'
     ) }}
     <h3 class="banner-green" id="associated_things">Associations</h3>
-
-    {% if (count < 5000) %}
-    {{ ajax.ajax_table(
-        'Other Domains',
-        url_for('tr.tr_tr_ajax', tr_id=tr.id),
-        none,
-        'tr_ajax'
-    ) }}
-    {% endif %}
 
     {% if (count < 5000) %}
     {{ ajax.ajax_table(
