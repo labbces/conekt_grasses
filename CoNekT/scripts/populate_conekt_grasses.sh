@@ -125,12 +125,10 @@ done;
 
 
 
-# From this point on, insertion scripts use the populate virtual environment. 
-# Custom logs not yet implemented.
-deactivate
-source $SCRIPTS_DIR/Populate_CoNekT/bin/activate
+
 
 echo "Populating CoNekT Grasses with species CAZyme annotation"
+first_run=true
 for species_code in ${SPECIES_ARRAY[@]};
  do
  if [ -f $DATA_DIR/Species/"$species_code"/"$species_code"_cazymes.txt ]; then
@@ -138,9 +136,20 @@ for species_code in ${SPECIES_ARRAY[@]};
  --db_name $DB_NAME\
  --db_password $DB_PASSWORD\
  --cazyme_tsv $DATA_DIR/Species/"$species_code"/"$species_code"_cazymes.txt\
- --species_code "$species_code"
+ --species_code "$species_code"\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE\
+ --first_run $first_run
+ first_run=false
  fi
 done;
+
+
+# From this point on, insertion scripts use the populate virtual environment. 
+# Custom logs not yet implemented.
+deactivate
+source $SCRIPTS_DIR/Populate_CoNekT/bin/activate
 
 echo "Populating CoNekT Grasses with expression profiles"
 for species_code in ${SPECIES_ARRAY[@]};
