@@ -29,3 +29,7 @@ pip-selfcheck.json
 __pycache__/
 
 /CoNekT/scripts/add/logs_populate
+
+venv
+mariadb_credentials.txt
+.tool-versions

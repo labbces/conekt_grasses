@@ -13,15 +13,6 @@ TESTING = True
 
 SECRET_KEY = os.urandom(24)
 
-# Login settings + admin account
-LOGIN_ENABLED = True
-
-# Credentials for admin account
-# Remove this after creating the database !
-# the debug toolbar will show these settings with debug mode enabled
-ADMIN_PASSWORD = 'admin'
-ADMIN_EMAIL = 'admin@web.com'
-
 # Database settings, database location and path to migration scripts
 SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'db', 'conekt.db')
 SQLALCHEMY_MIGRATE_REPO = os.path.join(basedir, 'migration')

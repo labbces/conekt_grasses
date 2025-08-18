@@ -13,13 +13,22 @@ Everything that needs to be set up to get flask running is initialized in this f
 
   * set up global things like the search form and custom 403/404 error messages
 """
-from flask import Flask, render_template, g, request, url_for, flash, redirect
-from flask_admin.menu import MenuLink
-from flask_login import current_user
-from flask_admin import Admin
+from flask import (
+    Flask,
+    g
+)
 
-from conekt.extensions import toolbar, db, login_manager, cache, htmlmin, \
-    blast_thread, compress, whooshee, migrate, csrf
+from conekt.extensions import (
+    toolbar,
+    db,
+    cache,
+    htmlmin,
+    blast_thread,
+    compress,
+    whooshee,
+    migrate,
+    csrf
+)
 
 import coloredlogs
 
@@ -35,8 +44,6 @@ def create_app(config):
     app.config.from_object(config)
     configure_extensions(app)
     configure_blueprints(app)
-    configure_admin_panel(app)
-    configure_error_handlers(app)
     configure_hooks(app)
 
     return app
@@ -48,10 +55,6 @@ def configure_extensions(app):
 
     # Enable Whooshee
     whooshee.init_app(app)
-
-    # Enable login manager
-    login_manager.init_app(app)
-    login_manager.login_view = 'auth.login'
 
     # Enable cach
     cache.init_app(app)
@@ -76,21 +79,10 @@ def configure_extensions(app):
     if BLAST_ENABLED:
         blast_thread.init_app(app)
 
-    from conekt.models.users import User
-
-    @login_manager.user_loader
-    def load_user(user_id):
-        return User.get(user_id)
-
-    @login_manager.unauthorized_handler
-    def unauthorized():
-        return render_template('error/403.html'), 403
-
 
 def configure_blueprints(app):
     # Import controllers and register as blueprint
     from conekt.controllers.main import main
-    from conekt.controllers.auth import auth, no_login
     from conekt.controllers.blast import blast
     from conekt.controllers.sequence import sequence
     from conekt.controllers.species import species
@@ -113,15 +105,9 @@ def configure_blueprints(app):
     from conekt.controllers.tree import tree
     from conekt.controllers.literature import literature
 
-    LOGIN_ENABLED = app.config['LOGIN_ENABLED']
     BLAST_ENABLED = app.config['BLAST_ENABLED']
 
     app.register_blueprint(main)
-    if LOGIN_ENABLED:
-        app.register_blueprint(auth, url_prefix='/auth')
-    else:
-        app.register_blueprint(no_login, url_prefix='/auth')
-        app.register_blueprint(no_login, url_prefix='/admin_controls')
 
     if BLAST_ENABLED:
         app.register_blueprint(blast, url_prefix='/blast')
@@ -148,67 +134,11 @@ def configure_blueprints(app):
     app.register_blueprint(tree, url_prefix='/tree')
 
 
-def configure_admin_panel(app):
-    # Admin panel
-    LOGIN_ENABLED = app.config['LOGIN_ENABLED']
-    if LOGIN_ENABLED:
-        from conekt.controllers.admin.views import MyAdminIndexView
-
-        from conekt.controllers.admin.views.news import NewsAdminView
-
-        from conekt.models.news import News
-
-        admin = Admin(template_mode='bootstrap3', base_template='admin/my_base.html')
-
-        admin.init_app(app, index_view=MyAdminIndexView(template='admin/home.html'))
-
-        # CRUD for various database tables
-        admin.add_view(
-            NewsAdminView(
-                News,
-                db.session,
-                endpoint='admin.news',
-                url='news',
-                name='News'
-            )
-        )
-
-
-
-def configure_error_handlers(app):
-    # Custom error handler for 404 errors
-
-    from flask_wtf.csrf import CSRFError
-
-    @app.errorhandler(CSRFError)
-    def handle_csrf_error(e):
-        flash("Could not handle request, CSRF token has expired. Please try again...", "warning")
-        return redirect(url_for('main.screen'))
-
-    @app.errorhandler(405)
-    def method_not_allowed(e):
-        return render_template('error/405.html'), 405
-
-    @app.errorhandler(404)
-    def page_not_found(e):
-        return render_template('error/404.html'), 404
-
-    @app.errorhandler(403)
-    def access_denied(e):
-        next_page = request.url_rule
-        if not current_user.is_authenticated:
-            flash("Log in first...", "info")
-            return redirect(url_for('auth.login', next=next_page))
-        else:
-            flash("Not permitted! Admin rights required.", "warning")
-            return render_template('error/403.html'), 403
-
 
 def configure_hooks(app):
     # Register form for basic searches, needs to be done here as it is included on every page!
     from conekt.forms.search import BasicSearchForm
 
-    LOGIN_ENABLED = app.config['LOGIN_ENABLED']
     BLAST_ENABLED = app.config['BLAST_ENABLED']
     TWITTER_HANDLE = app.config['TWITTER_HANDLE'] if 'TWITTER_HANDLE' in app.config.keys() else None
     TUTORIAL_URL = app.config['TUTORIAL_URL'] if 'TUTORIAL_URL' in app.config.keys() else None
@@ -217,7 +147,6 @@ def configure_hooks(app):
 
     @app.before_request
     def before_request():
-        g.login_enabled = LOGIN_ENABLED
         g.blast_enabled = BLAST_ENABLED
         g.search_form = BasicSearchForm()
         g.twitter_handle = TWITTER_HANDLE
