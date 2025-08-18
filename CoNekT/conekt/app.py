@@ -89,6 +89,7 @@ def configure_blueprints(app):
     from conekt.controllers.go import go
     from conekt.controllers.interpro import interpro
     from conekt.controllers.cazyme import cazyme
+    from conekt.controllers.tr import tr
     from conekt.controllers.family import family
     from conekt.controllers.expression_cluster import expression_cluster
     from conekt.controllers.expression_profile import expression_profile
@@ -117,6 +118,7 @@ def configure_blueprints(app):
     app.register_blueprint(go, url_prefix='/go')
     app.register_blueprint(interpro, url_prefix='/interpro')
     app.register_blueprint(cazyme, url_prefix='/cazyme')
+    app.register_blueprint(tr, url_prefix='/tr')
     app.register_blueprint(family, url_prefix='/family')
     app.register_blueprint(expression_cluster, url_prefix='/cluster')
     app.register_blueprint(expression_profile, url_prefix='/profile')

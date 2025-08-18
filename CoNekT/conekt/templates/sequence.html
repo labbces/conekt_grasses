@@ -196,6 +196,7 @@
                 <li><a href="#tab2default" data-toggle="tab">Predicted GO</a></li>
                 <li><a href="#tab3default" data-toggle="tab">InterPro</a></li>
                 <li><a href="#tab4default" data-toggle="tab">CAZYme</a></li>
+                <li><a href="#tab5default" data-toggle="tab">Transcription Factors</a></li>
             </ul>
     </div>
     <div>
@@ -351,6 +352,64 @@
                 {% else %}
                 <div class="panel-body">
                     <p>No CAZYmes available for this sequence</p>
+                </div>
+                {% endif %}
+            </div>
+             <div class="tab-pane fade" id="tab5default">
+                {% if tr_associations|count > 0 %}
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="tr_table">
+                            <thead>
+                                <tr>
+                                    <th class="col-xs-2">Family</th>
+                                    <th class="col-xs-2">Type</th>
+                                    <th class="col-xs-2">Domain</th>
+                                    <th class="col-xs-2">Query Start</th>
+                                    <th class="col-xs-2">Query End</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for association in tr_associations %}
+                                {% set domains = tr_domain_associations %}
+                                {% if domains|length > 0 %}
+                                    <tr>
+                                        <td class="col-xs-2" style="vertical-align: middle;" rowspan="{{ domains|length }}">
+                                            <a href="{{ url_for('tr.tr_view', tr_id=association.tr.id) }}">
+                                                {{ association.tr.family }}
+                                            </a>
+                                        </td>
+                                        <td class="col-xs-2" style="vertical-align: middle;" rowspan="{{ domains|length }}">
+                                            {{ association.tr.type }}
+                                        </td>
+                                        <td class="col-xs-2">{{ domains[0].domain }}</td>
+                                        <td class="col-xs-2">{{ domains[0].query_start }}</td>
+                                        <td class="col-xs-2">{{ domains[0].query_end }}</td>
+                                    </tr>
+                                    {% for domain in domains[1:] %}
+                                    <tr>
+                                        <td class="col-xs-2">{{ domain.domain }}</td>
+                                        <td class="col-xs-2">{{ domain.query_start }}</td>
+                                        <td class="col-xs-2">{{ domain.query_end }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td class="col-xs-2">
+                                            <a href="{{ url_for('tr.tr_view', tr_id=association.tr.id) }}">
+                                                {{ association.tr.family }}
+                                            </a>
+                                        </td>
+                                        <td class="col-xs-2">{{ association.type }}</td>
+                                        <td class="col-xs-2" colspan="3">No domains found</td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                <div class="panel-body">
+                    <p>No Transcription Factors available for this sequence</p>
                 </div>
                 {% endif %}
             </div>

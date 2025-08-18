@@ -153,3 +153,13 @@ def family_family_ajax(family_id):
 
     return render_template('async/family_stats.html',
                            family_stats={k: v for k, v in f.family_stats.items() if str(k) != str(family_id)})
+
+@family.route('/ajax/tr/<family_id>')
+@cache.cached()
+def family_tr_ajax(family_id):
+    """
+    Return all TRs associated with sequences in this family
+    """
+    f = GeneFamily.query.get_or_404(family_id)
+    trs_list = f.trs_associations
+    return render_template('async/family_trs_stats.html', tr_stats=trs_list)
