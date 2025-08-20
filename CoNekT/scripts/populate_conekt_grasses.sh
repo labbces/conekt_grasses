@@ -127,7 +127,7 @@ done;
 
 
 
-echo "Populating CoNekT Grasses with species CAZyme annotation"
+echo -e "\nPopulating CoNekT Grasses with species CAZyme annotation"
 first_run=true
 for species_code in ${SPECIES_ARRAY[@]};
  do
@@ -146,24 +146,37 @@ for species_code in ${SPECIES_ARRAY[@]};
 done;
 
 
+
+
+echo -e "\nPopulating CoNekT Grasses with expression profiles"
+first_run=true
+for species_code in ${SPECIES_ARRAY[@]};
+ do
+ if [ -f $DATA_DIR/Species/"$species_code"/"$species_code"_expression_matrix.txt ]; then
+ $SCRIPTS_DIR/add/add_expression_data.py --db_admin $DB_ADMIN\
+  --db_name $DB_NAME\
+  --db_password $DB_PASSWORD\
+  --species_code "$species_code"\
+  --expression_matrix $DATA_DIR/Species/"$species_code"/"$species_code"_expression_matrix.txt\
+  --sample_annotation $DATA_DIR/Species/"$species_code"/"$species_code"_expression_annotation.txt\
+  --logdir $LOG_DIR\
+  --db_verbose $DB_VERBOSE\
+  --py_verbose $PY_VERBOSE\
+  --first_run $first_run
+  first_run=false
+  SPECIES_EXPRESSION_PROFILES+=($species_code)
+ fi
+done;
+
+
+
+
+
 # From this point on, insertion scripts use the populate virtual environment. 
 # Custom logs not yet implemented.
 deactivate
 source $SCRIPTS_DIR/Populate_CoNekT/bin/activate
 
-echo "Populating CoNekT Grasses with expression profiles"
-for species_code in ${SPECIES_ARRAY[@]};
- do
- if [ -f $DATA_DIR/Species/"$species_code"/expression/"$species_code"_expression_matrix.txt ]; then
- $SCRIPTS_DIR/add/add_expression_data.py --db_admin $DB_ADMIN\
-  --db_name $DB_NAME\
-  --db_password $DB_PASSWORD\
-  --species_code "$species_code"\
-  --expression_matrix $DATA_DIR/Species/"$species_code"/expression/"$species_code"_expression_matrix.txt\
-  --sample_annotation $DATA_DIR/Species/"$species_code"/expression/"$species_code"_expression_annotation.txt
-  SPECIES_EXPRESSION_PROFILES+=($species_code)
- fi
-done;
 
 echo "Populating CoNekT Grasses with expression specificity"
 for species_code in ${SPECIES_EXPRESSION_PROFILES[@]};
@@ -189,26 +202,26 @@ $SCRIPTS_DIR/add/add_network.py --db_admin $DB_ADMIN\
  --network $DATA_DIR/Species/Zma/expression/Zma_PRJNA190188_network.txt\
  --description "Maize network (PRJNA190188, leaf sections)"
 
-$SCRIPTS_DIR/add/add_network.py --db_admin $DB_ADMIN\
- --db_name $DB_NAME\
- --db_password $DB_PASSWORD\
- --species_code "Scp1"\
- --network $DATA_DIR/Species/Scp1/expression/PRJEB38368_network.txt\
- --description "Sugarcane network (Correr, 2020 - PRJEB38368)"
+# $SCRIPTS_DIR/add/add_network.py --db_admin $DB_ADMIN\
+#  --db_name $DB_NAME\
+#  --db_password $DB_PASSWORD\
+#  --species_code "Scp1"\
+#  --network $DATA_DIR/Species/Scp1/expression/PRJEB38368_network.txt\
+#  --description "Sugarcane network (Correr, 2020 - PRJEB38368)"
 
-$SCRIPTS_DIR/add/add_network.py --db_admin $DB_ADMIN\
- --db_name $DB_NAME\
- --db_password $DB_PASSWORD\
- --species_code "Scp1"\
- --network $DATA_DIR/Species/Scp1/expression/Hoang2017_network.txt\
- --description "Sugarcane network (Hoang, 2017)"
+# $SCRIPTS_DIR/add/add_network.py --db_admin $DB_ADMIN\
+#  --db_name $DB_NAME\
+#  --db_password $DB_PASSWORD\
+#  --species_code "Scp1"\
+#  --network $DATA_DIR/Species/Scp1/expression/Hoang2017_network.txt\
+#  --description "Sugarcane network (Hoang, 2017)"
 
-$SCRIPTS_DIR/add/add_network.py --db_admin $DB_ADMIN\
- --db_name $DB_NAME\
- --db_password $DB_PASSWORD\
- --species_code "Scp1"\
- --network $DATA_DIR/Species/Scp1/expression/Perlo2022_network.txt\
- --description "Sugarcane network (Perlo, 2022)"
+# $SCRIPTS_DIR/add/add_network.py --db_admin $DB_ADMIN\
+#  --db_name $DB_NAME\
+#  --db_password $DB_PASSWORD\
+#  --species_code "Scp1"\
+#  --network $DATA_DIR/Species/Scp1/expression/Perlo2022_network.txt\
+#  --description "Sugarcane network (Perlo, 2022)"
 
 echo "Populating CoNekT Grasses with gene families"
 $SCRIPTS_DIR/add/add_gene_families.py --db_admin $DB_ADMIN\
