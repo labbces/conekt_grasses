@@ -6,7 +6,7 @@
 /CoNekT/whooshee/
 /CoNekT/dist/
 /CoNekT/build/
-/CoNekT/migrations/
+/CoNekT/scripts/mariadb_credentials.txt
 
 tmpgit
 bin
@@ -24,12 +24,10 @@ pip-selfcheck.json
 *.swp
 *.*cfg
 
+.vscode
 .coverage
 
 __pycache__/
 
 /CoNekT/scripts/add/logs_populate
-
-venv
-mariadb_credentials.txt
-.tool-versions
+/CoNekT/scripts/add/dados(excluir).txt
