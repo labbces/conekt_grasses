@@ -186,25 +186,34 @@ for species_code in ${SPECIES_EXPRESSION_PROFILES[@]};
  first_run=false
 done;
 
-# From this point on, insertion scripts use the populate virtual environment. 
-# Custom logs not yet implemented.
-deactivate
-source $SCRIPTS_DIR/Populate_CoNekT/bin/activate
+
+
 
 echo "Populating CoNekT Grasses with expression networks"
+first_run=true
 $SCRIPTS_DIR/add/add_network.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
  --db_password $DB_PASSWORD\
  --species_code "Osa"\
- --network $DATA_DIR/Species/Osa/expression/Osa_PRJNA190188_network.txt\
- --description "Rice network (PRJNA190188, leaf sections)"
+ --network $DATA_DIR/Species/Osa/Rice_PRJNA190188_network.txt\
+ --description "Rice network (PRJNA190188, leaf sections)"\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE\
+ --first_run $first_run
+ first_run=false
+
 
 $SCRIPTS_DIR/add/add_network.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
  --db_password $DB_PASSWORD\
  --species_code "Zma"\
- --network $DATA_DIR/Species/Zma/expression/Zma_PRJNA190188_network.txt\
- --description "Maize network (PRJNA190188, leaf sections)"
+ --network $DATA_DIR/Species/Zma/Maize_PRJNA551002_network.txt\
+ --description "Maize network (PRJNA190188, leaf sections)"\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE\
+ --first_run $first_run
 
 # $SCRIPTS_DIR/add/add_network.py --db_admin $DB_ADMIN\
 #  --db_name $DB_NAME\
@@ -226,6 +235,11 @@ $SCRIPTS_DIR/add/add_network.py --db_admin $DB_ADMIN\
 #  --species_code "Scp1"\
 #  --network $DATA_DIR/Species/Scp1/expression/Perlo2022_network.txt\
 #  --description "Sugarcane network (Perlo, 2022)"
+
+# From this point on, insertion scripts use the populate virtual environment. 
+# Custom logs not yet implemented.
+deactivate
+source $SCRIPTS_DIR/Populate_CoNekT/bin/activate
 
 echo "Populating CoNekT Grasses with gene families"
 $SCRIPTS_DIR/add/add_gene_families.py --db_admin $DB_ADMIN\
