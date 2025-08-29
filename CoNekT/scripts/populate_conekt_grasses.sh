@@ -60,6 +60,7 @@ $SCRIPTS_DIR/add/add_species.py\
  --db_verbose $DB_VERBOSE\
  --py_verbose $PY_VERBOSE
 
+
 echo -e "\nPopulating CoNekT Grasses with gene descriptions"
 first_run=true
 for species_code in ${SPECIES_ARRAY[@]};
@@ -170,22 +171,25 @@ done;
 
 
 
-
-
-# From this point on, insertion scripts use the populate virtual environment. 
-# Custom logs not yet implemented.
-deactivate
-source $SCRIPTS_DIR/Populate_CoNekT/bin/activate
-
-
-echo "Populating CoNekT Grasses with expression specificity"
+echo -e "\nPopulating CoNekT Grasses with expression specificity"
+first_run=true
 for species_code in ${SPECIES_EXPRESSION_PROFILES[@]};
  do
  $SCRIPTS_DIR/build/calculate_specificities.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
  --db_password $DB_PASSWORD\
- --species_code "$species_code"
+ --species_code "$species_code"\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE\
+ --first_run $first_run
+ first_run=false
 done;
+
+# From this point on, insertion scripts use the populate virtual environment. 
+# Custom logs not yet implemented.
+deactivate
+source $SCRIPTS_DIR/Populate_CoNekT/bin/activate
 
 echo "Populating CoNekT Grasses with expression networks"
 $SCRIPTS_DIR/add/add_network.py --db_admin $DB_ADMIN\

@@ -5,11 +5,19 @@ import json
 from statistics import mean
 from math import sqrt, log2
 from bisect import bisect
+from collections import defaultdict
+
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import select
+
+import sys, os
+
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from add.log_functions import *
 
 # Create arguments
 parser = argparse.ArgumentParser(description='Calculate specificity for a species')
@@ -29,6 +37,28 @@ parser.add_argument('--db_password', type=str, metavar='DB password',
                     dest='db_password',
                     help='The database password',
                     required=False)
+parser.add_argument('--logdir', type=str, metavar='Log diretory',
+                    dest='log_dir',
+                    help='The directory containing temporary populate logs',
+                    required=False)
+
+parser.add_argument('--db_verbose', type=str, metavar='Database verbose',
+                    dest='db_verbose',
+                    help='Enable database verbose logging (true/false)',
+                    required=False,
+                    default="false")
+
+parser.add_argument('--py_verbose', type=str, metavar='Python script verbose',
+                    dest='py_verbose',
+                    help='Enable python verbose logging (true/false)',
+                    required=False,
+                    default="true")
+
+parser.add_argument('--first_run', type=str, metavar='Flag indicating first execution of the file',
+                    dest='first_run',
+                    help='Controls log file opening type',
+                    required=False,
+                    default="true")
 
 args = parser.parse_args()
 
@@ -136,153 +166,223 @@ def entropy_from_values(values, num_bins=20):
 
 def calculate_specificities(species_code, engine):
     """
-    Function calculates specific genes based on the expression.
+    Calculates expression specificities for a given species and stores them in the database.
 
-    :param species_id: internal species ID
-    :param description: description for the method to determine the specificity
-    :return id of the new method
+    :param species_code: Species code to identify the species in the database
+    :param engine: SQLAlchemy engine
     """
 
-    with engine.connect() as conn:
-        stmt = select(Species).where(Species.__table__.c.code == species_code)
-        species_id = conn.execute(stmt).first().id
+    logger.info("______________________________________________________________________")
+    logger.info(f"➡️  Calculating expression specificities for species '{species_code}'")
+
+    try:
+        logger.debug(f"Searching species '{species_code}' in database")
+        species = session.query(Species).filter(Species.code == species_code).first()
+        if species:
+            species_id = species.id
+            logger.debug(f"✅ Species '{species_code}' found (ID: {species_id})")
+        else:
+            logger.error(f"❌ Species '{species_code}' not found in database.")
+            exit(1)
+    except Exception as e:
+        print_log_error(logger, f"Error while querying species '{species_code}': {e}")
+        exit(1)
 
     if not species_id:
-        print(f'Species not found in database: {species_code}')
+        print_log_error(logger, f"Species '{species_code}' not found in database.")
         exit(1)
-    
-    # get profile from the database (ORM free for speed)
-    with engine.connect() as conn:
-        stmt = select(ExpressionProfile.__table__.c.id,
-                        ExpressionProfile.__table__.c.profile)\
-                        .where(ExpressionProfile.__table__.c.species_id == species_id)
-        profiles = conn.execute(stmt).all()
 
-    sample_literature_items = {}
+    try:
+        # Retrieve expression profiles (ORM free for performance)
+        logger.debug(f"Retrieving expression profiles for '{species_code}'")
+        with engine.connect() as conn:
+            stmt = select([
+                ExpressionProfile.__table__.c.id,
+                ExpressionProfile.__table__.c.profile
+            ]).where(ExpressionProfile.__table__.c.species_id == species_id)
+            profiles = conn.execute(stmt).fetchall()   # ✅ fetchall em vez de all()
 
+        logger.debug(f"Retrieved {len(profiles)} expression profiles for species '{species_code}'")
+    except Exception as e:
+        print_log_error(logger, f"Error while retrieving expression profiles: {e}")
+        exit(1)
+
+
+    # Collect all literature items (DOIs) from profiles
+    sample_literature_items = set()
     for profile_id, profile in profiles:
-        profile_data = json.loads(profile)
-        sample_literature_items = set(sample_literature_items).union(set(profile_data['data']['lit_doi'].values()))
+        try:
+            profile_data = json.loads(profile)
+            sample_literature_items |= set(profile_data['data']['lit_doi'].values())
+        except Exception as e:
+            logger.warning(f"⚠️  Failed to parse profile {profile_id}: {e}")
 
+    logger.debug(f"Found {len(sample_literature_items)} unique literature items.")
+
+    # Iterate through categories of conditions
     for sample_category in ['annotation', 'po_anatomy_class', 'po_dev_stage_class', 'peco_class']:
 
+        logger.info(f"Processing category '{sample_category}'")
+
         for lit_doi in sample_literature_items:
+            try:
+                # Retrieve literature record
+                with engine.connect() as conn:
+                    stmt = select([LiteratureItem.__table__.c.id,
+                                LiteratureItem.__table__.c.author_names,
+                                LiteratureItem.__table__.c.public_year,
+                                LiteratureItem.__table__.c.doi])\
+                        .where(LiteratureItem.__table__.c.doi == lit_doi)
+                    literature = conn.execute(stmt).fetchone()
 
-            # detect all sample annotations
-            sample_annotations = {}
+                if not literature:
+                    logger.warning(f"⚠️ Literature '{lit_doi}' not found in database. Skipping.")
+                    continue
 
-            with engine.connect() as conn:
-                stmt = select(LiteratureItem).where(LiteratureItem.__table__.c.doi == lit_doi)
-                literature = conn.execute(stmt).first()
+            except Exception as e:
+                print_log_error(logger, f"Error while retrieving literature '{lit_doi}': {e}")
+                continue
 
-            if not literature:
-                print(f'Literature not found in database: {lit_doi}')
-                exit(1)
-
+            # Create new specificity method
             sample_category_method = sample_category.replace('_class', '')
-
             new_method = ExpressionSpecificityMethod()
             new_method.species_id = species_id
-            new_method.description = f'{sample_category_method} ({literature.author_names}, {literature.public_year} - {literature.doi})'
+            new_method.description = f"{sample_category_method} ({literature.author_names}, {literature.public_year} - {literature.doi})"
             new_method.literature_id = literature.id
-            new_method.data_type = 'condition'
+            new_method.data_type = "condition"
             new_method.menu_order = 0
 
+            # Collect annotations for this category and literature
+            sample_annotations = set()
             for profile_id, profile in profiles:
                 profile_data = json.loads(profile)
                 for k, v in profile_data['data'][sample_category].items():
                     if profile_data['data']['lit_doi'][k] == lit_doi:
-                        sample_annotations = set(sample_annotations).union(set([profile_data['data'][sample_category][k]]))
+                        sample_annotations.add(v)
 
             if len(sample_annotations) < 2:
+                logger.debug(f"Skipping {sample_category} - not enough annotations for lit_doi {lit_doi}.")
                 continue
 
             new_method.conditions = json.dumps(list(sample_annotations))
 
-            session.add(new_method)
-            session.commit()
+            try:
+                session.add(new_method)
+                session.commit()
+                logger.info(f"✅ Added new specificity method: {new_method.description}")
+            except Exception as e:
+                session.rollback()
+                print_log_error(logger, f"Failed to add specificity method '{new_method.description}': {e}")
+                continue
 
-            # detect specifities and add to the database
+            # Now calculate specificities for each profile
             specificities = []
-
             for profile_id, profile in profiles:
+                try:
+                    profile_data = json.loads(profile)
 
-                # prepare profile data for calculation
-                profile_data = json.loads(profile)
+                    # Collect expression values grouped by condition
+                    profile_annotation_values = defaultdict(list)
+                    for k, v in profile_data['data']['tpm'].items():
+                        if profile_data['data']['lit_doi'][k] == lit_doi:
+                            if k in profile_data['data'][sample_category]:
+                                condition = profile_data['data'][sample_category][k]
+                                profile_annotation_values[condition].append(v)
 
-                profile_annotation_values = {}
-                profile_annotation_means = {}
+                    # Calculate mean TPM per condition
+                    profile_annotation_means = {k: mean(v) for k, v in profile_annotation_values.items()}
 
-                for k, v in profile_data['data']['tpm'].items():
-                    if profile_data['data']['lit_doi'][k] == lit_doi:
-                        if k in profile_data['data'][sample_category].keys():
-                            if profile_data['data'][sample_category][k] in profile_annotation_values.keys():
-                                profile_annotation_values[profile_data['data'][sample_category][k]].append(v)
-                            else:
-                                profile_annotation_values[profile_data['data'][sample_category][k]] = [v]
-                
-                for k, v in profile_annotation_values.items():
-                    profile_annotation_means[k] = mean(v)
-            
-                # determine spm score for each condition
-                profile_specificities = []
-                profile_tau = tau(profile_annotation_means.values())
-                profile_entropy = entropy_from_values(profile_annotation_means.values())
+                    # Calculate SPM-related metrics
+                    profile_tau = tau(profile_annotation_means.values())
+                    profile_entropy = entropy_from_values(profile_annotation_means.values())
 
-                for sample_annotation in profile_annotation_values.keys():
-                    score = expression_specificity(sample_annotation, profile_annotation_means)
-                    new_specificity = {
-                        'profile_id': profile_id,
-                        'condition': sample_annotation,
-                        'score': score,
-                        'entropy': profile_entropy,
-                        'tau': profile_tau,
-                        'method_id': new_method.id,
-                    }
+                    # Calculate specificity scores
+                    profile_specificities = []
+                    for condition in profile_annotation_values.keys():
+                        score = expression_specificity(condition, profile_annotation_means)
+                        new_specificity = {
+                            "profile_id": profile_id,
+                            "condition": condition,
+                            "score": score,
+                            "entropy": profile_entropy,
+                            "tau": profile_tau,
+                            "method_id": new_method.id,
+                        }
+                        profile_specificities.append(new_specificity)
 
-                    profile_specificities.append(new_specificity)
+                    # Sort and keep only the top condition
+                    profile_specificities.sort(key=lambda x: x["score"], reverse=True)
+                    if profile_specificities:
+                        top_specificity = profile_specificities[0]
+                        specificities.append(top_specificity)
+                        session.add(ExpressionSpecificity(**top_specificity))
 
-                # sort conditions and add top one
-                profile_specificities = sorted(profile_specificities, key=lambda x: x['score'], reverse=True)
+                    # Commit in batches for performance
+                    if len(specificities) > 400:
+                        session.commit()
+                        specificities.clear()
 
-                specificities.append(profile_specificities[0])
-                session.add(ExpressionSpecificity(**profile_specificities[0]))
+                except Exception as e:
+                    print_log_error(logger, f"Failed to calculate specificities for profile {profile_id}: {e}")
 
-                # write specificities to db if there are more than 400 (ORM free for speed)
-                if len(specificities) > 400:
-                    session.commit()
-                    specificities = []
+            # Commit remaining specificities
+            try:
+                session.commit()
+                logger.info(f"✅ Specificities committed for category '{sample_category}' and literature '{lit_doi}'")
+            except Exception as e:
+                session.rollback()
+                print_log_error(logger, f"Failed to commit specificities for '{lit_doi}': {e}")
 
-            # write remaining specificities to the db
-            session.commit()
 
+try:
+    thisFileName = os.path.basename(__file__)
+
+    # Log variables
+    log_dir = args.log_dir
+    log_file_name = "calculate_specificities"  # e.g. "gene_ontologies"
+    db_verbose = str2bool(args.db_verbose)
+    py_verbose = str2bool(args.py_verbose)
+    first_run = str2bool(args.first_run)
+
+    logger = setup_logger(log_dir=log_dir,
+                          base_filename=log_file_name,
+                          DBverbose=db_verbose,
+                          PYverbose=py_verbose,
+                          overwrite_logs=first_run)
         
-db_admin = args.db_admin
-db_name = args.db_name
+    db_admin = args.db_admin
+    db_name = args.db_name
 
-create_engine_string = "mysql+pymysql://"+db_admin+":"+db_password+"@localhost/"+db_name
+    create_engine_string = "mysql+pymysql://"+db_admin+":"+db_password+"@localhost/"+db_name
 
-engine = create_engine(create_engine_string, echo=True)
+    engine = create_engine(create_engine_string, echo=db_verbose)
 
-# Reflect an existing database into a new model
-Base = automap_base()
+    # Reflect an existing database into a new model
+    Base = automap_base()
 
-# Use the engine to reflect the database
-Base.prepare(engine, reflect=True)
+    # Use the engine to reflect the database
+    Base.prepare(engine, reflect=True)
 
-Species = Base.classes.species
-ExpressionSpecificityMethod = Base.classes.expression_specificity_method
-ExpressionSpecificity = Base.classes.expression_specificity
-ExpressionProfile = Base.classes.expression_profiles
-LiteratureItem = Base.classes.literature
+    Species = Base.classes.species
+    ExpressionSpecificityMethod = Base.classes.expression_specificity_method
+    ExpressionSpecificity = Base.classes.expression_specificity
+    ExpressionProfile = Base.classes.expression_profiles
+    LiteratureItem = Base.classes.literature
 
-# Create a Session
-Session = sessionmaker(bind=engine)
-session = Session()
+    # Create a Session
+    Session = sessionmaker(bind=engine)
+    session = Session()
 
-species_code = args.species_code
+    species_code = args.species_code
 
-# Run function(s) to calculate expression specificity
-calculate_specificities(species_code, engine)
+    # Run function(s) to calculate expression specificity
+    calculate_specificities(species_code, engine)
 
-session.close()
+    session.close()
+
+except Exception as e:
+    print_log_error(logger, e)
+    logger.info(f" ---- ❌ An error occurred while executing {thisFileName}. Please fix the issue and rerun the script. ❌ ---- ")
+    exit(1)
+
+logger.info(f" ---- ✅ SUCCESS: All operations from {thisFileName} for '{species_code}' finished without errors! ✅ ---- ")
