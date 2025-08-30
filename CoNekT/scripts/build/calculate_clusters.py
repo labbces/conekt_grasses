@@ -2,16 +2,19 @@
 
 import argparse
 import json
+import os
 import sys
-
 from sqlalchemy import create_engine
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import select
 from sqlalchemy.pool import NullPool
 
-# Create arguments
-parser = argparse.ArgumentParser(description='Clusterize network and add to')
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from add.log_functions import *
+
+parser = argparse.ArgumentParser(description='Clusterize network and add to CoNekT')
 parser.add_argument('--network_method_id', type=int, metavar='1',
                     dest='network_method_id',
                     help='The network method ID',
@@ -32,60 +35,47 @@ parser.add_argument('--db_password', type=str, metavar='DB password',
                     dest='db_password',
                     help='The database password',
                     required=False)
+parser.add_argument('--logdir', type=str, metavar='Log diretory',
+                    dest='log_dir',
+                    help='The directory containing temporary populate logs',
+                    required=False)
+parser.add_argument('--db_verbose', type=str, metavar='Database verbose',
+                    dest='db_verbose',
+                    help='Enable database verbose logging (true/false)',
+                    required=False,
+                    default="false")
+parser.add_argument('--py_verbose', type=str, metavar='Python script verbose',
+                    dest='py_verbose',
+                    help='Enable python verbose logging (true/false)',
+                    required=False,
+                    default="true")
 
 args = parser.parse_args()
 
-if args.db_password:
-    db_password = args.db_password
-else:
-    db_password = input("Enter the database password: ")
+db_password = args.db_password if args.db_password else input("Enter the database password: ")
 
 
 class HCCA:
     """
-    The HCCA class to create clusters from a Rank Based Network
-
+    HCCA class to create clusters from a Rank Based Network
     """
-    def __init__(self, step_size=3, hrr_cutoff=50, min_cluster_size=40, max_cluster_size=200):
-        """
-        Clear lists and store settings
 
-        :param step_size: desired step size
-        :param hrr_cutoff: desired hrr_cutoff
-        :param min_cluster_size: minimal size of a cluster
-        :param max_cluster_size: maximal size of a cluster
-        """
-        # Settings
+    def __init__(self, step_size=3, hrr_cutoff=50, min_cluster_size=40, max_cluster_size=200):
         self.hrrCutoff = hrr_cutoff
         self.stepSize = step_size
-
         self.min_cluster_size = min_cluster_size
         self.max_cluster_size = max_cluster_size
-
-        # Dicts to store the network
         self.scoreDic = {}
         self.curDic = {}
-
-        # Temp variables
         self.loners = []
         self.clustered = []
         self.clustets = []
 
     def __clustettes(self, nodes):
-        """
-        Detect islands of nodes smaller than max_cluster_size
-
-        :param nodes:
-        :return:
-        """
         cons = []
-
         for l in nodes:
             cons += self.curDic[l]
-
         cons = list(set(cons + nodes))
-
-        # If the network is larger than the max_cluster size it is not a clustet, skip
         if len(cons) <= self.max_cluster_size:
             if len(cons) == len(nodes):
                 cons.sort()
@@ -95,85 +85,44 @@ class HCCA:
                 self.__clustettes(cons)
 
     def __remove_loners(self):
-        """
-        Removes nodes contained in islands (smaller than min_size) from the analysis
-        """
-        print("Detecting loners...", end='')
-
+        logger.info("Detecting loners...")
         node_count = len(self.curDic)
-
-        # Detect nodes forming small islands
         for node in self.curDic.keys():
             self.__clustettes([node])
-
-        # Removes nodes from small islands
         deleted_count = 0
         for clustet in self.clustets:
             for c in clustet:
                 del self.curDic[c]
                 deleted_count += 1
-
-        print("Done!\nFound %d loners (out of %d nodes)" % (deleted_count, node_count))
+        logger.info(f"Found {deleted_count} loners (out of {node_count} nodes)")
 
     def __surrounding_step(self, node_list, whole, step):
-        """
-
-        :param node_list:
-        :param whole:
-        :param step:
-        :return:
-        """
         if step < self.stepSize:
             nvn = [l for l in node_list]
             for l in node_list:
                 nvn += self.curDic[l]
-
             nvn = list(set(nvn))
-
             self.__surrounding_step(nvn, whole, step + 1)
         else:
             whole.append(node_list)
 
     def __chisel(self, nvn, clusters):
-        """
-        this function recursively removes nodes from NVN. Only nodes that are connected more to the inside of NVN are retained
-
-        :param nvn:
-        :param clusters:
-        :return:
-        """
         temp = []
         seta = set(nvn)
-
         for n in nvn:
             connections = self.curDic[n]
-
             inside = set(nvn) & set(connections)
-            outside = (set(connections) - set(inside))
-            in_score = 0
-            out_score = 0
-            for j in inside:
-                in_score += self.scoreDic[n][j]
-            for j in outside:
-                out_score += self.scoreDic[n][j]
+            outside = set(connections) - set(inside)
+            in_score = sum(self.scoreDic[n][j] for j in inside)
+            out_score = sum(self.scoreDic[n][j] for j in outside)
             if in_score > out_score:
                 temp.append(n)
-
         if len(temp) == len(seta):
             clusters.append(temp)
         else:
             self.__chisel(temp, clusters)
 
     def __biggest_isle(self, lista, cluster_set, cur_seed):
-        """
-        Sometimes the NVN is split into to islands after chiseling. This function finds the biggest island
-        and keeps it. The smaller island is discarded.
-
-        :param lista:
-        :param cluster_set:
-        :param cur_seed:
-        :return:
-        """
         temp = []
         for k in range(len(lista)):
             temp += self.scoreDic[lista[k]].keys()
@@ -184,32 +133,16 @@ class HCCA:
             self.__biggest_isle(list(nodes), cluster_set, cur_seed)
 
     def __find_non_overlapping(self, clusters):
-        """
-        This function accepts a list of Stable Putative Clusters and greedily extracts non overlapping
-        clusters with highest modularity.
-
-        :param clusters:
-        :return:
-        """
         ranked_clust = []
         for cluster in clusters:
-            in_score = 0
-            out_score = 0
+            in_score = out_score = 0
             for node in cluster:
                 connections = set(self.scoreDic[node].keys())
                 in_cons = list(connections & set(cluster))
                 out_cons = list(connections - set(cluster))
-                in_score = 0
-                out_score = 0
-
-                for in_con in in_cons:
-                    in_score += self.scoreDic[node][in_con]
-
-                for out_con in out_cons:
-                    out_score += self.scoreDic[node][out_con]
-
-            ranked_clust.append([out_score / in_score, cluster])
-
+                in_score += sum(self.scoreDic[node][in_con] for in_con in in_cons)
+                out_score += sum(self.scoreDic[node][out_con] for out_con in out_cons)
+            ranked_clust.append([out_score / in_score if in_score != 0 else float('inf'), cluster])
         ranked_clust.sort()
         best_clust = [ranked_clust[0][1]]
         for i in range(len(ranked_clust)):
@@ -223,69 +156,43 @@ class HCCA:
         return best_clust
 
     def __network_editor(self, clustered):
-        """
-        This function removes nodes in accepted clusters from the current network.
-
-        :param clustered:
-        """
         connected = []
         clustered_nodes = []
-        for i in range(len(clustered)):
-            clustered_nodes += clustered[i]
-            for j in range(len(clustered[i])):
-                connected += self.curDic[clustered[i][j]]
-                del self.curDic[clustered[i][j]]
+        for cl in clustered:
+            clustered_nodes += cl
+            for node in cl:
+                connected += self.curDic[node]
+                del self.curDic[node]
         connections = list(set(connected) - set(clustered_nodes))
-        for i in range(len(connections)):
-            self.curDic[connections[i]] = list(set(self.curDic[connections[i]]) - set(clustered_nodes))
+        for node in connections:
+            self.curDic[node] = list(set(self.curDic[node]) - set(clustered_nodes))
 
     def __filler(self, left_overs):
-        """
-        This function assigns nodes that were not clustered by HCCA to clusters they are having highest connectivity to.
-
-        :param left_overs:
-        :return:
-        """
-        con_score_mat = [[]] * len(self.clustered)
+        con_score_mat = [0] * len(self.clustered)
         clustera = []
-        print("Leftovers : %d" % len(left_overs))
         if len(left_overs) != 0:
-            for i in range(len(left_overs)):
-                for j in range(len(self.clustered)):
-                    connections = list(set(self.scoreDic[left_overs[i]].keys()) & set(self.clustered[j]))
-                    score = 0
-                    for k in range(len(connections)):
-                        score += self.scoreDic[left_overs[i]][connections[k]]
-                    con_score_mat[j] = score
-
+            for i, node in enumerate(left_overs):
+                for j, cluster in enumerate(self.clustered):
+                    connections = list(set(self.scoreDic[node].keys()) & set(cluster))
+                    con_score_mat[j] = sum(self.scoreDic[node][c] for c in connections)
                 top_score = max(con_score_mat)
                 if top_score != 0:
-                    size_list = []
-                    for j in range(len(con_score_mat)):
-                        if con_score_mat[j] == top_score:
-                            size_list.append([len(self.clustered[j]), j])
+                    size_list = [[len(self.clustered[j]), j] for j, score in enumerate(con_score_mat) if score == top_score]
                     size_list.sort()
-                    self.clustered[size_list[0][1]] += [left_overs[i]]
-                    clustera.append(left_overs[i])
+                    self.clustered[size_list[0][1]] += [node]
+                    clustera.append(node)
             left_overs = list(set(left_overs) - set(clustera))
             self.__filler(left_overs)
 
     def __iterate(self):
-        """
-        Runs one iteration of CCA
-
-        :return:
-        """
         save = []
         not_clustered = list(self.curDic.keys())
-        for i in range(len(not_clustered)):
-
-            sys.stdout.write("\rNode " + str(i) + " out of " + str(len(not_clustered)))
+        for i, node in enumerate(not_clustered):
+            sys.stdout.write(f"\rNode {i} out of {len(not_clustered)}")
             sys.stdout.flush()
-
             whole = []
             clusters = []
-            self.__surrounding_step([not_clustered[i]], whole, 0)
+            self.__surrounding_step([node], whole, 0)
             self.__chisel(whole[0], clusters)
             if len(clusters[0]) > 20:
                 checked = []
@@ -294,244 +201,196 @@ class HCCA:
                         cur_seed = []
                         self.__biggest_isle([clusters[0][j]], set(clusters[0]), cur_seed)
                         checked += cur_seed[0]
-                        # Check if cluster is withing the desired size range
                         if self.max_cluster_size > len(cur_seed[0]) > self.min_cluster_size:
                             save.append(cur_seed[0])
                             break
-
-        print("\nFinding non-overlappers...", end='')
         new_cluster = self.__find_non_overlapping(save)
-        print("Done!\nFound %s non overlapping SPCs. Making a cluster list..." % len(new_cluster), end='')
-        for i in range(len(new_cluster)):
-            self.clustered.append(new_cluster[i])
-
-        print("Done!\n\nCurrent number of clusters %d. Starting the network edit..." % len(self.clustered))
+        self.clustered += new_cluster
         self.__network_editor(new_cluster)
-        print("Done!\nFinished the edits.")
 
     def build_clusters(self):
-        """
-        Function that will build clusters from the current network
-        """
         self.__remove_loners()
-
         iteration = 1
-
         while True:
             try:
-                print("\n-------------")
-                print("Iteration: %s" % iteration)
-                print("-------------")
-
+                logger.info(f"Iteration {iteration}...")
                 self.__iterate()
-
                 iteration += 1
             except IndexError:
-                # When no additional clusters can be found, and IndexError (out of range) is produced.
-                # Catch and handle gracefully
                 leftovers = list(self.curDic.keys())
-
-                print("\nClustering completed, handling left overs...")
                 self.__filler(leftovers)
                 break
 
     def load_data(self, data):
-        """
-        Loads curDict and scoreDict from dictionary
-
-        {
-            "GeneA": {
-                "GeneB" : 1 (rank),
-                "GeneC" : 2,
-                ...
-            },
-            "GeneB": {
-                "GeneA" : 1,
-                ...
-            },
-            ...
-        }
-
-        :param data: dictionary with co-expressed pairs and their ranks
-        :return:
-        """
-        print("Loading network from dict...", sep='')
-
+        logger.info("Loading network from dictionary...")
         self.curDic = {}
         self.scoreDic = {}
         self.loners = []
-
         for gene, scores in data.items():
             neighbors = [k for k, score in scores.items() if score < self.hrrCutoff]
             if len(neighbors) == 0:
                 self.loners.append(gene)
             else:
                 self.curDic[gene] = neighbors
-
         for gene, scores in data.items():
             self.scoreDic[gene] = {k: 1/(score + 1) for k, score in scores.items() if score < self.hrrCutoff}
 
-        print("Done!")
-
     @property
     def clusters(self):
-        """
-        Returns a list of all members of clusters and clustets, with a name for the cluster/clustet.
-
-        :return: List of tuples [(member, clustername, clustet (bool)), ...]
-        """
         output = []
         count = 1
         for cluster in self.clustered:
             for member in cluster:
-                output.append((member, "Cluster_%d" % count, False))
+                output.append((member, f"Cluster_{count}", False))
             count += 1
-
         for clustet in self.clustets:
             for member in clustet:
-                output.append((member, "Cluster_%d" % count, True))
+                output.append((member, f"Cluster_{count}", True))
             count += 1
-
         return output
 
 
-def build_hcca_clusters(clustering_method, network_method_id, step_size=3, hrr_cutoff=30, min_cluster_size=40, max_cluster_size=200):
-    """
-    method to build HCCA clusters for a certain network
 
-    :param clustering_method: Name for the current clustering method
-    :param network_method_id: ID for the network to cluster
-    :param step_size: desired step_size for the HCCA algorithm
-    :param hrr_cutoff: desired hrr_cutoff for the HCCA algorithm
-    :param min_cluster_size: minimal cluster size
-    :param max_cluster_size: maximum cluster size
-    """
-
+def build_hcca_clusters(clustering_method, network_method_id, step_size=3, hrr_cutoff=30,
+                        min_cluster_size=40, max_cluster_size=200):
     network_data = {}
     sequence_probe = {}
 
-    # Get network from DB
+    logger.info(f"🔍 Retrieving network method ID {network_method_id} for clustering '{clustering_method}'...")
+
+    # Retrieve ExpressionNetworkMethod
     with engine.connect() as conn:
-        stmt = select(ExpressionNetworkMethod).where(ExpressionNetworkMethod.__table__.c.id == network_method_id)
-        method = conn.execute(stmt).first()
-    
+        stmt = select([ExpressionNetworkMethod]).where(
+            ExpressionNetworkMethod.__table__.c.id == network_method_id
+        )
+        method = conn.execute(stmt).fetchone()
+
     if not method:
-        print("Network method not found!")
+        logger.error("❌ Network method not found!")
         exit(1)
+    else:
+        logger.debug(f"✅ Network method retrieved: {method.method if hasattr(method, 'method') else 'N/A'}")
 
+    # Retrieve ExpressionNetwork records
+    logger.info("📥 Loading expression network records from DB...")
     with engine.connect() as conn:
-        stmt = select(ExpressionNetwork).where(ExpressionNetwork.__table__.c.method_id == network_method_id)
-        probes = conn.execute(stmt).all()
+        stmt = select([ExpressionNetwork]).where(
+            ExpressionNetwork.__table__.c.method_id == network_method_id
+        )
+        probes = conn.execute(stmt).fetchall()
+        logger.info(f"✅ Retrieved {len(probes)} probes from ExpressionNetwork")
 
+    # Build adjacency data
+    logger.info("🧩 Building adjacency data from probes...")
     for p in probes:
-        # Loop over probes and store hrr for all neighbors
         if p.sequence_id is not None:
             neighborhood = json.loads(p.network)
-            network_data[p.sequence_id] = {nb["gene_id"]: nb["hrr"] for nb in neighborhood
-                                            if "gene_id" in nb.keys()
-                                            and "hrr" in nb.keys()
-                                            and nb["gene_id"] is not None}
-
+            network_data[p.sequence_id] = {
+                nb["gene_id"]: nb["hrr"]
+                for nb in neighborhood
+                if "gene_id" in nb and "hrr" in nb and nb["gene_id"] is not None
+            }
             sequence_probe[p.sequence_id] = p.probe
+    logger.debug(f"📊 Adjacency data prepared for {len(network_data)} sequences")
 
-    # Double check edges are reciprocally defined
-    for sequence, data in network_data.items():
+    # Ensure reciprocity
+    logger.info("🔄 Ensuring network reciprocity...")
+    for seq, data in network_data.items():
         for neighbor, score in data.items():
-            if neighbor not in network_data.keys():
-                network_data[neighbor] = {sequence: score}
-            else:
-                if sequence not in network_data[neighbor].keys():
-                    network_data[neighbor][sequence] = score
+            if neighbor not in network_data:
+                network_data[neighbor] = {seq: score}
+            elif seq not in network_data[neighbor]:
+                network_data[neighbor][seq] = score
+    logger.debug("✅ Reciprocity ensured")
 
-    print("Done!\nStarting to build Clusters...\n")
-
-    # Build clusters
-    hcca_util = HCCA(
-        step_size=step_size,
-        hrr_cutoff=hrr_cutoff,
-        min_cluster_size=min_cluster_size,
-        max_cluster_size=max_cluster_size
-    )
-
+    # Run HCCA
+    logger.info("🏗 Running HCCA clustering...")
+    hcca_util = HCCA(step_size=step_size, hrr_cutoff=hrr_cutoff,
+                     min_cluster_size=min_cluster_size, max_cluster_size=max_cluster_size)
     hcca_util.load_data(network_data)
-
     hcca_util.build_clusters()
+    logger.info(f"✅ HCCA completed, {len(hcca_util.clusters)} cluster assignments generated")
 
-    # Add new method to DB
     clusters = list(set([t[1] for t in hcca_util.clusters]))
-    if len(clusters) > 0:
-        print("Done building clusters, adding clusters to DB")
+    if clusters:
+        logger.info(f"📌 Adding {len(clusters)} unique clusters to the database")
 
-        # Add new method first
         new_method = CoexpressionClusteringMethod()
-
         new_method.network_method_id = network_method_id
         new_method.method = clustering_method
         new_method.cluster_count = len(clusters)
-
         session.add(new_method)
         session.commit()
-        
-        # Add cluster and store as dict
+        logger.debug(f"✅ Clustering method '{clustering_method}' added with ID {new_method.id}")
+
+        # Create cluster objects
         cluster_dict = {}
-
         for c in clusters:
-            cluster_dict[c] = CoexpressionCluster()
-            cluster_dict[c].method_id = new_method.id
-            cluster_dict[c].name = c
-
-            session.add(cluster_dict[c])
+            cluster_obj = CoexpressionCluster()
+            cluster_obj.method_id = new_method.id
+            cluster_obj.name = c
+            session.add(cluster_obj)
             session.commit()
+            cluster_dict[c] = cluster_obj
+        logger.debug(f"✅ {len(cluster_dict)} CoexpressionCluster objects created")
 
-        # Link sequences to clusters
+        # Add associations in batches
+        logger.info("🔗 Adding sequence-cluster associations...")
         for i, t in enumerate(hcca_util.clusters):
             gene_id, cluster_name, _ = t
+            cluster_obj = cluster_dict.get(cluster_name)
+            if not cluster_obj:
+                logger.warning(f"⚠️ Cluster '{cluster_name}' not found for gene ID {gene_id}")
+                continue
 
             relation = SequenceCoexpressionClusterAssociation()
-
-            relation.probe = sequence_probe[gene_id] if gene_id in sequence_probe.keys() else None
+            relation.probe = sequence_probe.get(gene_id)
             relation.sequence_id = gene_id
-            relation.coexpression_cluster_id = cluster_dict[cluster_name].id if cluster_name in cluster_dict.keys() else None
-
-            if relation.coexpression_cluster_id is not None:
-                session.add(relation)
+            relation.coexpression_cluster_id = cluster_obj.id
+            session.add(relation)
 
             if i > 0 and i % 400 == 0:
-                # Add relations in sets of 400
+                logger.debug(f"📦 Committing batch of {i} associations...")
                 session.commit()
 
-        # Add remaining relations
         session.commit()
-
+        logger.info(f"✅ All {len(hcca_util.clusters)} sequence-cluster associations committed")
     else:
-        print("No clusters found! Not adding anything to DB !")
+        logger.warning("⚠️ No clusters found! Nothing added to DB")
 
-network_method_id = args.network_method_id
-clustering_method_description = args.clustering_method_description
-db_admin = args.db_admin
-db_name = args.db_name
 
-create_engine_string = "mysql+pymysql://"+db_admin+":"+db_password+"@localhost/"+db_name
 
-engine = create_engine(create_engine_string, echo=True, poolclass=NullPool)
 
-# Reflect an existing database into a new model
-Base = automap_base()
+try:
+    thisFileName = os.path.basename(__file__)
+    log_dir = args.log_dir
+    log_file_name = "calculate_clusters"
+    db_verbose = str2bool(args.db_verbose)
+    py_verbose = str2bool(args.py_verbose)
+    logger = setup_logger(log_dir=log_dir, base_filename=log_file_name, DBverbose=db_verbose, PYverbose=py_verbose)
 
-# Use the engine to reflect the database
-Base.prepare(engine, reflect=True)
+    create_engine_string = f"mysql+pymysql://{args.db_admin}:{db_password}@localhost/{args.db_name}"
+    engine = create_engine(create_engine_string, echo=db_verbose, poolclass=NullPool)
 
-CoexpressionClusteringMethod = Base.classes.coexpression_clustering_methods
-CoexpressionCluster = Base.classes.coexpression_clusters
-ExpressionNetworkMethod = Base.classes.expression_network_methods
-ExpressionNetwork = Base.classes.expression_networks
-SequenceCoexpressionClusterAssociation = Base.classes.sequence_coexpression_cluster
+    Base = automap_base()
+    Base.prepare(engine, reflect=True)
 
-# Create a Session
-Session = sessionmaker(bind=engine)
-session = Session()
+    CoexpressionClusteringMethod = Base.classes.coexpression_clustering_methods
+    CoexpressionCluster = Base.classes.coexpression_clusters
+    ExpressionNetworkMethod = Base.classes.expression_network_methods
+    ExpressionNetwork = Base.classes.expression_networks
+    SequenceCoexpressionClusterAssociation = Base.classes.sequence_coexpression_cluster
 
-# Run the function to clusterize the network
-build_hcca_clusters(clustering_method_description, network_method_id)
+    Session = sessionmaker(bind=engine)
+    session = Session()
 
-session.close()
+    build_hcca_clusters(args.clustering_method_description, args.network_method_id)
+
+    session.close()
+
+except Exception as e:
+    print_log_error(logger, e)
+    logger.info(f" ---- ❌ An error occurred while executing {thisFileName}. Please fix the issue and rerun the script. ❌ ---- ")
+    exit(1)
+
+logger.info(f" ---- ✅ SUCCESS: All operations from {thisFileName} finished without errors! ✅ ---- ")

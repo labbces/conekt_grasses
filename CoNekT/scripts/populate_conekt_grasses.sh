@@ -185,39 +185,48 @@ echo "Populating CoNekT Grasses with gene families"
 $SCRIPTS_DIR/add/add_gene_families.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
  --db_password $DB_PASSWORD\
- --orthogroups $DATA_DIR/OrthoFinder/Orthogroups.txt\
- --description "$GENE_FAMILIES_DESCRIPTION"
+ --orthogroups "$DATA_DIR/Comparative Genomics/Orthogroups.txt"\
+ --description "$GENE_FAMILIES_DESCRIPTION"\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE
 
 echo "Populating CoNekT Grasses with coexpression clusters"
 $SCRIPTS_DIR/build/calculate_clusters.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
  --db_password $DB_PASSWORD\
  --network_method_id 1\
- --description "Rice coexpression clusters (PRJNA190188, leaf sections)"
+ --description "Rice coexpression clusters (PRJNA190188, leaf sections)"\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE
 
 $SCRIPTS_DIR/build/calculate_clusters.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
  --db_password $DB_PASSWORD\
  --network_method_id 2\
- --description "Maize coexpression clusters (PRJNA190188, leaf sections)"
+ --description "Maize coexpression clusters (PRJNA190188, leaf sections)"\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE
 
-$SCRIPTS_DIR/build/calculate_clusters.py --db_admin $DB_ADMIN\
- --db_name $DB_NAME\
- --db_password $DB_PASSWORD\
- --network_method_id 3\
- --description "Sugarcane coexpression clusters (Correr, 2020)"
+#$SCRIPTS_DIR/build/calculate_clusters.py --db_admin $DB_ADMIN\
+# --db_name $DB_NAME\
+# --db_password $DB_PASSWORD\
+# --network_method_id 3\
+# --description "Sugarcane coexpression clusters (Correr, 2020)"
 
-$SCRIPTS_DIR/build/calculate_clusters.py --db_admin $DB_ADMIN\
- --db_name $DB_NAME\
- --db_password $DB_PASSWORD\
- --network_method_id 4\
- --description "Sugarcane coexpression clusters (Hoang, 2017)"
+#$SCRIPTS_DIR/build/calculate_clusters.py --db_admin $DB_ADMIN\
+# --db_name $DB_NAME\
+# --db_password $DB_PASSWORD\
+# --network_method_id 4\
+# --description "Sugarcane coexpression clusters (Hoang, 2017)"
 
-$SCRIPTS_DIR/build/calculate_clusters.py --db_admin $DB_ADMIN\
- --db_name $DB_NAME\
- --db_password $DB_PASSWORD\
- --network_method_id 5\
- --description "Sugarcane coexpression clusters (Perlo, 2022)"
+#$SCRIPTS_DIR/build/calculate_clusters.py --db_admin $DB_ADMIN\
+# --db_name $DB_NAME\
+# --db_password $DB_PASSWORD\
+# --network_method_id 5\
+# --description "Sugarcane coexpression clusters (Perlo, 2022)"
 
 echo "Update all counts in the database"
 $SCRIPTS_DIR/build/update_counts.py --db_admin $DB_ADMIN\
