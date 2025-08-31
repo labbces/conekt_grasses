@@ -222,4 +222,34 @@ $SCRIPTS_DIR/build/calculate_clusters.py --db_admin $DB_ADMIN\
 echo "Update all counts in the database"
 $SCRIPTS_DIR/build/update_counts.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
- --db_password $DB_PASSWORD
+ --db_password $DB_PASSWORD\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE
+
+echo "Populating CoNekT Grasses with species TR families annotation"
+ $SCRIPTS_DIR/add/add_trs.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --tr_families $DATA_DIR/"Functional Data/TRs/RulesFull_Jennifer_JEIN_05122024.txt"\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE
+
+echo "Populating CoNekT Grasses with species TR annotation"
+first_run=true
+for species_code in ${SPECIES_ARRAY[@]};
+ do
+ if [ -f $DATA_DIR/Species/"$species_code"/*_v2.1_list_TFs_OTRs_Orphans.txt ]; then
+ $SCRIPTS_DIR/add/add_trs.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --tr_associations $DATA_DIR/Species/"$species_code"/*_v2.1_list_TFs_OTRs_Orphans.txt\
+ --species_code "$species_code"\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE\
+ --first_run $first_run
+ first_run=false
+ fi
+done;
