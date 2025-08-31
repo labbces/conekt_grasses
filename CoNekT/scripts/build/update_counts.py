@@ -11,14 +11,34 @@ from sqlalchemy.orm import sessionmaker
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from add.log_functions import *  # logging utilities
 
-# ------------------ Argument Parsing ------------------ #
+# Create arguments
 parser = argparse.ArgumentParser(description='Update all counts in the CoNekT Grasses database')
-parser.add_argument('--db_admin', type=str, required=True, help='The database admin user')
-parser.add_argument('--db_name', type=str, required=True, help='The database name')
-parser.add_argument('--db_password', type=str, required=False, help='The database password')
-parser.add_argument('--logdir', type=str, required=False, help='The directory containing populate logs')
-parser.add_argument('--db_verbose', type=str, default="false", help='Enable database verbose logging (true/false)')
-parser.add_argument('--py_verbose', type=str, default="true", help='Enable python verbose logging (true/false)')
+parser.add_argument('--db_admin', type=str, metavar='DB admin',
+                    dest='db_admin',
+                    help='The database admin user',
+                    required=True)
+parser.add_argument('--db_name', type=str, metavar='DB name',
+                    dest='db_name',
+                    help='The database name',
+                    required=True)
+parser.add_argument('--db_password', type=str, metavar='DB password',
+                    dest='db_password',
+                    help='The database password',
+                    required=False)
+parser.add_argument('--logdir', type=str, metavar='Log directory',
+                    dest='log_dir',
+                    help='The directory containing temporary populate logs',
+                    required=False)
+parser.add_argument('--db_verbose', type=str, metavar='Database verbose',
+                    dest='db_verbose',
+                    help='Enable database verbose logging (true/false)',
+                    required=False,
+                    default="false")
+parser.add_argument('--py_verbose', type=str, metavar='Python script verbose',
+                    dest='py_verbose',
+                    help='Enable python verbose logging (true/false)',
+                    required=False,
+                    default="true")
 
 args = parser.parse_args()
 db_password = args.db_password or input("Enter the database password: ")
@@ -39,10 +59,13 @@ try:
     engine_string = f"mysql+pymysql://{args.db_admin}:{db_password}@localhost/{args.db_name}"
     engine = create_engine(engine_string, echo=db_verbose)
 
+    # Reflect an existing database into a new model
     Base = automap_base()
+
+    # Use the engine to reflect the database
     Base.prepare(engine, reflect=True)
 
-    # --- Map tables --- #
+    # Map tables
     Sequence = Base.classes.sequences
     CoexpressionClusteringMethod = Base.classes.coexpression_clustering_methods
     CoexpressionCluster = Base.classes.coexpression_clusters
@@ -54,10 +77,11 @@ try:
     Species = Base.classes.species
     GO = Base.classes.go
 
+    # Create a Session
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    # ------------------ Update Functions ------------------ #
+    # Update Functions
     def update_coexpression_cluster_count():
         try:
             logger.info("Updating coexpression cluster counts...")
@@ -146,12 +170,16 @@ try:
             print_log_error(logger, e)
             raise
 
-    # ------------------ Run All Updates ------------------ #
+    """
+    Updates pre-computed counts in the database.
+
+    """
     logger.info("Starting all count updates...")
     update_coexpression_cluster_count()
     update_network_count()
     update_gene_family_count()
     update_species_counts()
+    #TODO: implement GO.update_species_counts()
     logger.info("All count updates completed successfully.")
 
     session.close()
