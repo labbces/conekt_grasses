@@ -78,9 +78,13 @@ Next steps:
 
 ## Developers
 
- * Dr. Renato Augusto Correa dos Santos
+ * Dr. Renato Augusto Correa dos Santos (dev leader)
  * Prof. Dr. Diego M. Riaño-Pachón (group leader)
-
+ * Gustavo Lelli
+ * João Leite Novoletti
+ * Andreza Cunha
+ * Paulo Turquetti
+ * Luis Bezerra
 
 ## Collaborators
 
