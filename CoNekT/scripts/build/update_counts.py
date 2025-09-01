@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
 import argparse
+import os
+import sys
 
-from sqlalchemy import create_engine, func
+from sqlalchemy import create_engine, func, update
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import sessionmaker
 
-from sqlalchemy.sql import select, update
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+from add.log_functions import *  # logging utilities
 
 # Create arguments
 parser = argparse.ArgumentParser(description='Update all counts in the CoNekT Grasses database')
@@ -22,137 +25,168 @@ parser.add_argument('--db_password', type=str, metavar='DB password',
                     dest='db_password',
                     help='The database password',
                     required=False)
+parser.add_argument('--logdir', type=str, metavar='Log directory',
+                    dest='log_dir',
+                    help='The directory containing temporary populate logs',
+                    required=False)
+parser.add_argument('--db_verbose', type=str, metavar='Database verbose',
+                    dest='db_verbose',
+                    help='Enable database verbose logging (true/false)',
+                    required=False,
+                    default="false")
+parser.add_argument('--py_verbose', type=str, metavar='Python script verbose',
+                    dest='py_verbose',
+                    help='Enable python verbose logging (true/false)',
+                    required=False,
+                    default="true")
 
 args = parser.parse_args()
+db_password = args.db_password or input("Enter the database password: ")
 
-if args.db_password:
-    db_password = args.db_password
-else:
-    db_password = input("Enter the database password: ")
+try:
+    thisFileName = os.path.basename(__file__)
+    log_dir = args.logdir
+    log_file_name = "update_counts"
+    db_verbose = str2bool(args.db_verbose)
+    py_verbose = str2bool(args.py_verbose)
 
-def update_coexpression_cluster_count(engine):
-    """
-    To avoid long counts the number of clusters per method can be precalculated and stored in the database
-    using this function.
-    """
-    with engine.connect() as conn:
-        stmt = select(CoexpressionClusteringMethod)
-        methods = conn.execute(stmt).all()
+    logger = setup_logger(log_dir=log_dir,
+                          base_filename=log_file_name,
+                          DBverbose=db_verbose,
+                          PYverbose=py_verbose,
+                          overwrite_logs=True)
 
-    for m in methods:
-        with engine.connect() as conn:
-            stmt = select(CoexpressionCluster).where(CoexpressionCluster.__table__.c.method_id == m.id)
-            m_clusters_count = conn.execute(stmt).rowcount
-            stmt = update(CoexpressionClusteringMethod).where(CoexpressionClusteringMethod.__table__.c.id == m.id).values(cluster_count=m_clusters_count)
-            conn.execute(stmt)
-            conn.commit()
+    engine_string = f"mysql+pymysql://{args.db_admin}:{db_password}@localhost/{args.db_name}"
+    engine = create_engine(engine_string, echo=db_verbose)
 
-def update_network_count(engine):
-        """
-        To avoid long count queries the number of networks for each method can be precalculated and stored in the
-        database using this function
-        """
+    # Reflect an existing database into a new model
+    Base = automap_base()
 
-        with engine.connect() as conn:
-            stmt = select(ExpressionNetworkMethod)
-            methods = conn.execute(stmt).all()
+    # Use the engine to reflect the database
+    Base.prepare(engine, reflect=True)
 
-        for m in methods:
-            with engine.connect() as conn:
-                stmt = select(ExpressionNetwork).where(ExpressionNetwork.__table__.c.method_id == m.id)
-                m_probes_count = conn.execute(stmt).rowcount
-                stmt = update(ExpressionNetworkMethod).where(ExpressionNetworkMethod.__table__.c.id == m.id).values(probe_count=m_probes_count)
-                conn.execute(stmt)
-                conn.commit()
+    # Map tables
+    Sequence = Base.classes.sequences
+    CoexpressionClusteringMethod = Base.classes.coexpression_clustering_methods
+    CoexpressionCluster = Base.classes.coexpression_clusters
+    ExpressionNetwork = Base.classes.expression_networks
+    ExpressionNetworkMethod = Base.classes.expression_network_methods
+    ExpressionProfile = Base.classes.expression_profiles
+    GeneFamily = Base.classes.gene_families
+    GeneFamilyMethod = Base.classes.gene_family_methods
+    Species = Base.classes.species
+    GO = Base.classes.go
 
-def update_gene_family_count(engine):
-        """
-        To avoid long count queries, the number of families for a given method can be precalculated and stored in
-        the database using this function.
-        """
-        with engine.connect() as conn:
-            stmt = select(GeneFamilyMethod)
-            methods = conn.execute(stmt).all()
-        
-        for m in methods:
-            with engine.connect() as conn:
-                stmt = select(GeneFamily).where(GeneFamily.__table__.c.method_id == m.id)
-                m_family_count = conn.execute(stmt).rowcount
-                stmt = update(GeneFamilyMethod).where(GeneFamilyMethod.__table__.c.id == m.id).values(family_count=m_family_count)
-                conn.execute(stmt)
-                conn.commit()
+    # Create a Session
+    Session = sessionmaker(bind=engine)
+    session = Session()
 
-def update_species_counts(engine):
-    """
-    To avoid long counts the number of sequences, profiles and networks can be precalculated and stored in the
-    database using this function.
-    """
+    # Update Functions
+    def update_coexpression_cluster_count():
+        try:
+            logger.info("Updating coexpression cluster counts...")
+            methods = session.query(CoexpressionClusteringMethod).all()
+            for m in methods:
+                count = session.query(func.count()).filter(CoexpressionCluster.method_id == m.id).scalar()
+                session.execute(
+                    update(CoexpressionClusteringMethod)
+                    .where(CoexpressionClusteringMethod.id == m.id)
+                    .values(cluster_count=count)
+                )
+            session.commit()
+            logger.info("Coexpression cluster counts updated successfully.")
+        except Exception as e:
+            session.rollback()
+            print_log_error(logger, e)
+            raise
 
-    with engine.connect() as conn:
-            stmt = select(Species)
-            species = conn.execute(stmt).all()
+    def update_network_count():
+        try:
+            logger.info("Updating network counts...")
+            methods = session.query(ExpressionNetworkMethod).all()
+            for m in methods:
+                count = session.query(func.count()).filter(ExpressionNetwork.method_id == m.id).scalar()
+                session.execute(
+                    update(ExpressionNetworkMethod)
+                    .where(ExpressionNetworkMethod.id == m.id)
+                    .values(probe_count=count)
+                )
+            session.commit()
+            logger.info("Network counts updated successfully.")
+        except Exception as e:
+            session.rollback()
+            print_log_error(logger, e)
+            raise
 
-    for s in species:
-        with engine.connect() as conn:
-            stmt = select(Sequence).where(Sequence.__table__.c.species_id == s.id, Sequence.type=='protein_coding')
-            s_sequences_count = conn.execute(stmt).rowcount
-            stmt = update(Species).where(Species.__table__.c.id == s.id).values(sequence_count=s_sequences_count)
-            conn.execute(stmt)
-            conn.commit()
-        with engine.connect() as conn:
-            stmt = select(ExpressionProfile).where(ExpressionProfile.__table__.c.species_id == s.id)
-            s_profiles_count = conn.execute(stmt).rowcount
-            stmt = update(Species).where(Species.__table__.c.id == s.id).values(profile_count=s_profiles_count)
-            conn.execute(stmt)
-            conn.commit()
-        with engine.connect() as conn:
-            stmt = select(ExpressionNetworkMethod).where(ExpressionNetworkMethod.__table__.c.species_id == s.id)
-            s_network_count = conn.execute(stmt).rowcount
-            stmt = update(Species).where(Species.__table__.c.id == s.id).values(network_count=s_network_count)
-            conn.execute(stmt)
-            conn.commit()
+    def update_gene_family_count():
+        try:
+            logger.info("Updating gene family counts...")
+            methods = session.query(GeneFamilyMethod).all()
+            for m in methods:
+                count = session.query(func.count()).filter(GeneFamily.method_id == m.id).scalar()
+                session.execute(
+                    update(GeneFamilyMethod)
+                    .where(GeneFamilyMethod.id == m.id)
+                    .values(family_count=count)
+                )
+            session.commit()
+            logger.info("Gene family counts updated successfully.")
+        except Exception as e:
+            session.rollback()
+            print_log_error(logger, e)
+            raise
 
-def update_counts(engine):
+    def update_species_counts():
+        try:
+            logger.info("Updating species counts...")
+            species_list = session.query(Species).all()
+            for s in species_list:
+                seq_count = session.query(func.count()).filter(
+                    Sequence.species_id == s.id,
+                    Sequence.type == 'protein_coding'
+                ).scalar()
+
+                profile_count = session.query(func.count()).filter(
+                    ExpressionProfile.species_id == s.id
+                ).scalar()
+
+                network_count = session.query(func.count()).filter(
+                    ExpressionNetworkMethod.species_id == s.id
+                ).scalar()
+
+                session.execute(
+                    update(Species)
+                    .where(Species.id == s.id)
+                    .values(
+                        sequence_count=seq_count,
+                        profile_count=profile_count,
+                        network_count=network_count
+                    )
+                )
+            session.commit()
+            logger.info("Species counts updated successfully.")
+        except Exception as e:
+            session.rollback()
+            print_log_error(logger, e)
+            raise
+
     """
     Updates pre-computed counts in the database.
 
     """
-
-    update_coexpression_cluster_count(engine)
-    update_network_count(engine)
-    update_gene_family_count(engine)
-    update_species_counts(engine)
+    logger.info("Starting all count updates...")
+    update_coexpression_cluster_count()
+    update_network_count()
+    update_gene_family_count()
+    update_species_counts()
     #TODO: implement GO.update_species_counts()
+    logger.info("All count updates completed successfully.")
 
-db_admin = args.db_admin
-db_name = args.db_name
+    session.close()
 
-create_engine_string = "mysql+pymysql://"+db_admin+":"+db_password+"@localhost/"+db_name
+except Exception as e:
+    print_log_error(logger, e)
+    logger.info(f" ---- ❌ An error occurred while executing {thisFileName}. Please fix the issue and rerun the script. ❌ ---- ")
+    exit(1)
 
-engine = create_engine(create_engine_string, echo=True)
-
-# Reflect an existing database into a new model
-Base = automap_base()
-
-# Use the engine to reflect the database
-Base.prepare(engine, reflect=True)
-
-Sequence = Base.classes.sequences
-CoexpressionClusteringMethod = Base.classes.coexpression_clustering_methods
-CoexpressionCluster = Base.classes.coexpression_clusters
-ExpressionNetwork = Base.classes.expression_networks
-ExpressionNetworkMethod = Base.classes.expression_network_methods
-ExpressionProfile = Base.classes.expression_profiles
-GeneFamily = Base.classes.gene_families
-GeneFamilyMethod = Base.classes.gene_family_methods
-Species = Base.classes.species
-GO = Base.classes.go
-
-# Create a Session
-Session = sessionmaker(bind=engine)
-session = Session()
-
-# Run the function to update counts in DB
-update_counts(engine)
-
-session.close()
+logger.info(f" ---- ✅ SUCCESS: All operations from {thisFileName} finished without errors! ✅ ---- ")
