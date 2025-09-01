@@ -7,6 +7,7 @@
 /CoNekT/dist/
 /CoNekT/build/
 /CoNekT/scripts/mariadb_credentials.txt
+/CoNekT/docs/build
 
 tmpgit
 bin
