@@ -14,7 +14,7 @@ TESTING = True
 SECRET_KEY = os.urandom(24)
 
 # Database settings, database location and path to migration scripts
-SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'db', 'conekt.db')
+SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://user:pass@ip_address/database'
 SQLALCHEMY_MIGRATE_REPO = os.path.join(basedir, 'migration')
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 SQLALCHEMY_ECHO = DEBUG
