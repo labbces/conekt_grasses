@@ -48,7 +48,6 @@ Two commands are usually necessary, `initdb` (initialize the database) and `db i
 export FLASK_APP=run.py
 cd CoNekT/
 flask initdb
-flask db init
 ```
 
 
