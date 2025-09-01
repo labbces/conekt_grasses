@@ -45,7 +45,7 @@ db_password = args.db_password or input("Enter the database password: ")
 
 try:
     thisFileName = os.path.basename(__file__)
-    log_dir = args.logdir
+    log_dir = args.log_dir
     log_file_name = "update_counts"
     db_verbose = str2bool(args.db_verbose)
     py_verbose = str2bool(args.py_verbose)
