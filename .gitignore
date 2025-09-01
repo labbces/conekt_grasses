@@ -6,7 +6,6 @@
 /CoNekT/whooshee/
 /CoNekT/dist/
 /CoNekT/build/
-/CoNekT/scripts/mariadb_credentials.txt
 /CoNekT/docs/build
 
 tmpgit
@@ -31,7 +30,6 @@ pip-selfcheck.json
 __pycache__/
 
 /CoNekT/scripts/add/logs_populate
-/CoNekT/scripts/add/dados(excluir).txt
 
 venv
 .tool-versions
