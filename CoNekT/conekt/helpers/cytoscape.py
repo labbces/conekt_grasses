@@ -42,10 +42,9 @@ class CytoscapeHelper:
             seq_id = assoc.sequence_id
             tr = assoc.tr
             tr_data[seq_id] = {
-                "tr_id": tr.id,
                 "tr_family": tr.family,
                 "tr_type": tr.type,
-                "tr_description": tr.description
+                "tr_link": url_for('tr.tr_view', tr_id=tr.id)
             }
 
         # Add TR information directly to node["data"]
@@ -56,10 +55,9 @@ class CytoscapeHelper:
                     node["data"].update(tr_data[seq_id])
                 else:
                     node["data"].update({
-                        "tr_id": None,
                         "tr_family": None,
                         "tr_type": None,
-                        "tr_description": None
+                        "tr_link": None
                     })
 
         return completed_network

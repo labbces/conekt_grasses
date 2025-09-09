@@ -106,6 +106,23 @@ $(function () { // on dom ready
                     content.push({value: '<strong>Expression specificity:</strong> ' + n.data('spm_condition') + '(' + n.data('spm_score').toFixed(2) + ')'});
                 }
 
+                if (n.data('interpro') !== undefined && n.data('interpro') !== null) {
+                    content.push({value: '<strong>InterPro domains:</strong> ' + n.data('interpro').split(';').map(function (d) {
+                        return '<a href="https://www.ebi.ac.uk/interpro/search/sequence-search?query=' + d + '" target="_blank">' + d + '</a>';
+                    }).join(', ')});
+                }
+
+                if (n.data('go_terms') !== undefined && n.data('go_terms') !== null) {
+                    content.push({value: '<strong>GO terms:</strong> ' + n.data('go_terms').split(';').map(function (d) {
+                        var go_id = d.split(' ')[0];
+                        return '<a href="http://amigo.geneontology.org/amigo/term/' + go_id + '" target="_blank">' + d + '</a>';
+                    }).join(', ')});
+                }
+
+                if (n.data('tr_family') !== undefined && n.data('tr_id') !== null) {
+                content.push({value: '<strong>Transcription Regulator:</strong> <a href="' + n.data('tr_link') + '">' + n.data('tr_family') + ' (' + n.data('tr_type') + ')' +  '</a>'});
+                }
+
                 content.push(
                     {
                         value: n.data('family_name') !== null ? '<strong>Family:</strong> <a href="' + n.data('family_url') + '">' + n.data('family_name') + '</a>' : '<span class="text-muted">No family found</span>'
