@@ -91,6 +91,8 @@ def configure_blueprints(app):
     from conekt.controllers.cazyme import cazyme
     from conekt.controllers.tr import tr
     from conekt.controllers.family import family
+    from conekt.controllers.tedistill import tedistill
+    from conekt.controllers.te_class import te_class
     from conekt.controllers.expression_cluster import expression_cluster
     from conekt.controllers.expression_profile import expression_profile
     from conekt.controllers.expression_network import expression_network
@@ -120,6 +122,8 @@ def configure_blueprints(app):
     app.register_blueprint(cazyme, url_prefix='/cazyme')
     app.register_blueprint(tr, url_prefix='/tr')
     app.register_blueprint(family, url_prefix='/family')
+    app.register_blueprint(tedistill, url_prefix='/tedistill')
+    app.register_blueprint(te_class, url_prefix='/te_class')
     app.register_blueprint(expression_cluster, url_prefix='/cluster')
     app.register_blueprint(expression_profile, url_prefix='/profile')
     app.register_blueprint(expression_network, url_prefix='/network')
@@ -134,7 +138,6 @@ def configure_blueprints(app):
     app.register_blueprint(ecc, url_prefix='/ecc')
     app.register_blueprint(specificity_comparison, url_prefix='/specificity_comparison')
     app.register_blueprint(tree, url_prefix='/tree')
-
 
 
 def configure_hooks(app):

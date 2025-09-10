@@ -3,6 +3,8 @@
 # Get variables from 'setup_variables.sh' file (copy/paste your full path to file here)
 source /home/pturquetti/conekt/conekt_grasses/CoNekT/scripts/setup_variables.sh
 
+timestamp_init=$(date +"%Y-%m-%d %H:%M:%S")
+
 export FLASK_APP=run.py
 
 cd $BASE_DIR/CoNekT
@@ -32,7 +34,7 @@ $SCRIPTS_DIR/add/add_functional_data.py\
  --db_password $DB_PASSWORD\
  --interpro_xml $DATA_DIR"/Functional Data/interpro.xml"\
  --gene_ontology_obo $DATA_DIR"/Functional Data/go.obo"\
- --cazyme $DATA_DIR"/Functional Data/CAZyDB.07302020.fam-activities.txt"\
+ --cazyme $DATA_DIR"/Functional Data/CAZyDB.08062022.fam-activities.txt"\
  --logdir $LOG_DIR\
  --db_verbose $DB_VERBOSE\
  --py_verbose $PY_VERBOSE
@@ -49,12 +51,21 @@ $SCRIPTS_DIR/add/add_ontologies.py\
  --db_verbose $DB_VERBOSE\
  --py_verbose $PY_VERBOSE
 
+echo "Populating CoNekT Grasses with TE Classes"
+$SCRIPTS_DIR/add/add_te_classes.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --te_classes $DATA_DIR"/Transposable Elements/TE_Classes.tsv"\
+ --description "$TE_CLASSES_DESCRIPTION"\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE
+
 echo -e "\nPopulating CoNekT Grasses with species data"
-$SCRIPTS_DIR/add/add_species.py\
- --input_table $SPECIES_TABLE\
- --db_admin $DB_ADMIN \
+$SCRIPTS_DIR/add/add_species.py --db_admin $DB_ADMIN \
  --db_name $DB_NAME \
  --db_password $DB_PASSWORD\
+ --input_table $SPECIES_TABLE\
  --species_dir $SPECIES_DIR\
  --logdir $LOG_DIR\
  --db_verbose $DB_VERBOSE\
@@ -238,8 +249,6 @@ $SCRIPTS_DIR/add/add_network.py --db_admin $DB_ADMIN\
 
 # From this point on, insertion scripts use the populate virtual environment. 
 # Custom logs not yet implemented.
-deactivate
-source $SCRIPTS_DIR/Populate_CoNekT/bin/activate
 
 echo "Populating CoNekT Grasses with gene families"
 $SCRIPTS_DIR/add/add_gene_families.py --db_admin $DB_ADMIN\
@@ -247,6 +256,17 @@ $SCRIPTS_DIR/add/add_gene_families.py --db_admin $DB_ADMIN\
  --db_password $DB_PASSWORD\
  --orthogroups "$DATA_DIR/Comparative Genomics/Orthogroups.txt"\
  --description "$GENE_FAMILIES_DESCRIPTION"\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE
+
+echo "Populating CoNekT Grasses with TEdistill sequences"
+$SCRIPTS_DIR/add/add_tedistills.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --sequences $DATA_DIR"/Transposable Elements/TEdistill_sequences.fa"\
+ --orthogroups $DATA_DIR"/Transposable Elements/Orthogroups_TEdistill.txt"\
+ --description "$TEDISTILL_DESCRIPTION"\
  --logdir $LOG_DIR\
  --db_verbose $DB_VERBOSE\
  --py_verbose $PY_VERBOSE
@@ -288,14 +308,6 @@ $SCRIPTS_DIR/build/calculate_clusters.py --db_admin $DB_ADMIN\
 # --network_method_id 5\
 # --description "Sugarcane coexpression clusters (Perlo, 2022)"
 
-echo "Update all counts in the database"
-$SCRIPTS_DIR/build/update_counts.py --db_admin $DB_ADMIN\
- --db_name $DB_NAME\
- --db_password $DB_PASSWORD\
- --logdir $LOG_DIR\
- --db_verbose $DB_VERBOSE\
- --py_verbose $PY_VERBOSE
-
 echo "Populating CoNekT Grasses with species TR families annotation"
  $SCRIPTS_DIR/add/add_trs.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
@@ -322,3 +334,18 @@ for species_code in ${SPECIES_ARRAY[@]};
  first_run=false
  fi
 done;
+
+echo "Update all counts in the database"
+$SCRIPTS_DIR/build/update_counts.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE
+
+timestamp_end=$(date +"%Y-%m-%d %H:%M:%S")
+
+echo "Script started at: $timestamp_init"
+echo "Script ended at: $timestamp_end"
+echo "Time taken: $(date -u -d @$(( $(date -d "$timestamp_end" +%s) - $(date -d "$timestamp_init" +%s) )) +%H:%M:%S)"
+echo "CoNekT Grasses database populated successfully!"

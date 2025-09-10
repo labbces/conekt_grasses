@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+source CoNekT/bin/activate
+export FLASK_APP=run.py
+export FLASK_ENV=development
+cd CoNekT/
+flask run
