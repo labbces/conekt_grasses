@@ -133,29 +133,6 @@ family_tr = db.Table('family_tr',
                         db.Column('gene_family_id', db.Integer, db.ForeignKey('gene_families.id'), index=True),
                         db.Column('tf_id', db.Integer, db.ForeignKey('cazyme.id'), index=True)
                         )
-te_class_xref = db.Table('te_class_xref',
-                       db.Column('id', db.Integer, primary_key=True),
-                       db.Column('te_class_id', db.Integer, db.ForeignKey('te_classes.id'), index=True),
-                       db.Column('xref_id', db.Integer, db.ForeignKey('xrefs.id'), index=True)
-                       )
-
-tedistill_xref = db.Table('tedistill_xref',
-                       db.Column('id', db.Integer, primary_key=True),
-                       db.Column('tedistill_id', db.Integer, db.ForeignKey('tedistills.id'), index=True),
-                       db.Column('xref_id', db.Integer, db.ForeignKey('xrefs.id'), index=True)
-                       )
-
-tedistill_te_class = db.Table('tedistill_te_class',
-                           db.Column('id', db.Integer, primary_key=True),
-                           db.Column('tedistill_id', db.Integer, db.ForeignKey('tedistills.id'), index=True),
-                           db.Column('te_class_id', db.Integer, db.ForeignKey('te_classes.id'), index=True)
-                           )
-
-family_tr = db.Table('family_tr',
-                        db.Column('id', db.Integer, primary_key=True),
-                        db.Column('gene_family_id', db.Integer, db.ForeignKey('gene_families.id'), index=True),
-                        db.Column('tf_id', db.Integer, db.ForeignKey('cazyme.id'), index=True)
-                        )
 
 cluster_go_enrichment = db.Table('cluster_go_enrichment',
                                  db.Column('id', db.Integer, primary_key=True),
