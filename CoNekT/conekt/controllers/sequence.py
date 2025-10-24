@@ -40,7 +40,7 @@ def sequence_view(sequence_id):
     from conekt.models.relationships.sequence_go import SequenceGOAssociation
     from conekt.models.relationships.sequence_cazyme import SequenceCAZYmeAssociation
     from conekt.models.relationships.sequence_tr import SequenceTRAssociation
-    from conekt.models.relationships.sequence_tr_domain import SequenceTRDomain
+    from conekt.models.relationships.sequence_tr_domain import SequenceTRDomainAssociation
 
     current_sequence = Sequence.query.get_or_404(sequence_id)
 

@@ -36,13 +36,18 @@ sequence_tr = db.Table('sequence_tr',
                             db.Column('tr_id', db.Integer, db.ForeignKey('transcription_regulator.id'), index=True)
                             )
 
+sequence_tr_domain = db.Table('sequence_tr_domain',
+                            db.Column('id', db.Integer, primary_key=True),
+                            db.Column('sequence_id', db.Integer, db.ForeignKey('sequences.id'), index=True)
+                            )
+
 sequence_family = db.Table('sequence_family',
                            db.Column('id', db.Integer, primary_key=True),
                            db.Column('sequence_id', db.Integer, db.ForeignKey('sequences.id'), index=True),
                            db.Column('gene_family_id', db.Integer, db.ForeignKey('gene_families.id'), index=True)
                            )
 
-sequence_coexpression_cluster = \
+sequence_cluster = \
     db.Table('sequence_coexpression_cluster',
              db.Column('id', db.Integer, primary_key=True),
              db.Column('sequence_id', db.Integer, db.ForeignKey('sequences.id'), index=True),
