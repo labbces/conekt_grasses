@@ -49,8 +49,6 @@ def custom_network_main():
         network_cytoscape = CytoscapeHelper.add_cluster_data_nodes(network_cytoscape, cluster_method_id)
         network_cytoscape = CytoscapeHelper.add_specificity_data_nodes(network_cytoscape, specificity_method_id)
 
-        print(network_cytoscape)
-
         return render_template("expression_graph.html", graph_data=Markup(json.dumps(network_cytoscape)),
                                cutoff=network_method.hrr_cutoff)
     else:
