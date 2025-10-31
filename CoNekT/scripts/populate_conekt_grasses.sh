@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 
 # Get variables from 'setup_variables.sh' file (copy/paste your full path to file here)
-source /home/pturquetti/conekt/conekt_grasses/CoNekT/scripts/setup_variables.sh
+#source /home/pturquetti/conekt/conekt_grasses/CoNekT/scripts/setup_variables.sh
+source /path/to/setup_variables.sh
 
 export FLASK_APP=run.py
 
 cd $BASE_DIR/CoNekT
-source bin/activate
+
+# Activating virtual environment
+source CoNekT/bin/activate
+
 flask initdb
 if [ -d $BASE_DIR/CoNekT/migrations ]; then
   echo "Removing existing migrations folder, if exists"
@@ -14,15 +18,6 @@ if [ -d $BASE_DIR/CoNekT/migrations ]; then
 fi
 flask db init
 
-# Deactivate virtual environment
-# Currently it is necessary because libraries in the virtual environment
-# are not compatible with the libraries in the system used by the scripts
-# deactivate
-# source $SCRIPTS_DIR/Populate_CoNekT/bin/activate
-
-# Activating virtual environment
-deactivate
-source $BASE_DIR/CoNekT/bin/activate
 echo -e "Ready to start populating!"
 
 echo -e "\nPopulating CoNekT Grasses with functional data"
@@ -32,11 +27,19 @@ $SCRIPTS_DIR/add/add_functional_data.py\
  --db_password $DB_PASSWORD\
  --interpro_xml $DATA_DIR"/Functional Data/interpro.xml"\
  --gene_ontology_obo $DATA_DIR"/Functional Data/go.obo"\
- --cazyme $DATA_DIR"/Functional Data/CAZyDB.07302020.fam-activities.txt"\
+ --cazyme $DATA_DIR"/Functional Data/CAZyDB.08062022.fam-activities.txt"\
  --logdir $LOG_DIR\
  --db_verbose $DB_VERBOSE\
  --py_verbose $PY_VERBOSE
- 
+
+ echo "Populating CoNekT Grasses with species TR families annotation"
+ $SCRIPTS_DIR/add/add_trs.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --tr_families $DATA_DIR/"Functional Data/TRs/RulesFull_Jennifer_JEIN_05122024.txt"\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE
 
 echo -e "\nPopulating CoNekT Grasses with ontology data"
 $SCRIPTS_DIR/add/add_ontologies.py\
@@ -79,10 +82,6 @@ for species_code in ${SPECIES_ARRAY[@]};
  fi
 done;
 
-
-
-
-
 echo -e "\nPopulating CoNekT Grasses with functional annotation data"
 first_run=true
 for species_code in ${SPECIES_ARRAY[@]};
@@ -124,10 +123,6 @@ for species_code in ${SPECIES_ARRAY[@]};
  fi
 done;
 
-
-
-
-
 echo -e "\nPopulating CoNekT Grasses with species CAZyme annotation"
 first_run=true
 for species_code in ${SPECIES_ARRAY[@]};
@@ -146,8 +141,23 @@ for species_code in ${SPECIES_ARRAY[@]};
  fi
 done;
 
-
-
+echo "Populating CoNekT Grasses with species TR annotation"
+first_run=true
+for species_code in ${SPECIES_ARRAY[@]};
+ do
+ if [ -f $DATA_DIR/Species/"$species_code"/*_list_TFs_OTRs_Orphans.txt ]; then
+ $SCRIPTS_DIR/add/add_trs.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --tr_associations $DATA_DIR/Species/"$species_code"/*_list_TFs_OTRs_Orphans.txt\
+ --species_code "$species_code"\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE\
+ --first_run $first_run
+ first_run=false
+ fi
+done;
 
 echo -e "\nPopulating CoNekT Grasses with expression profiles"
 first_run=true
@@ -238,8 +248,6 @@ $SCRIPTS_DIR/add/add_network.py --db_admin $DB_ADMIN\
 
 # From this point on, insertion scripts use the populate virtual environment. 
 # Custom logs not yet implemented.
-deactivate
-source $SCRIPTS_DIR/Populate_CoNekT/bin/activate
 
 echo "Populating CoNekT Grasses with gene families"
 $SCRIPTS_DIR/add/add_gene_families.py --db_admin $DB_ADMIN\
@@ -295,30 +303,3 @@ $SCRIPTS_DIR/build/update_counts.py --db_admin $DB_ADMIN\
  --logdir $LOG_DIR\
  --db_verbose $DB_VERBOSE\
  --py_verbose $PY_VERBOSE
-
-echo "Populating CoNekT Grasses with species TR families annotation"
- $SCRIPTS_DIR/add/add_trs.py --db_admin $DB_ADMIN\
- --db_name $DB_NAME\
- --db_password $DB_PASSWORD\
- --tr_families $DATA_DIR/"Functional Data/TRs/RulesFull_Jennifer_JEIN_05122024.txt"\
- --logdir $LOG_DIR\
- --db_verbose $DB_VERBOSE\
- --py_verbose $PY_VERBOSE
-
-echo "Populating CoNekT Grasses with species TR annotation"
-first_run=true
-for species_code in ${SPECIES_ARRAY[@]};
- do
- if [ -f $DATA_DIR/Species/"$species_code"/*_list_TFs_OTRs_Orphans.txt ]; then
- $SCRIPTS_DIR/add/add_trs.py --db_admin $DB_ADMIN\
- --db_name $DB_NAME\
- --db_password $DB_PASSWORD\
- --tr_associations $DATA_DIR/Species/"$species_code"/*_list_TFs_OTRs_Orphans.txt\
- --species_code "$species_code"\
- --logdir $LOG_DIR\
- --db_verbose $DB_VERBOSE\
- --py_verbose $PY_VERBOSE\
- --first_run $first_run
- first_run=false
- fi
-done;
