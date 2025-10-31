@@ -145,11 +145,11 @@ echo "Populating CoNekT Grasses with species TR annotation"
 first_run=true
 for species_code in ${SPECIES_ARRAY[@]};
  do
- if [ -f $DATA_DIR/Species/"$species_code"/*_list_TFs_OTRs_Orphans.txt ]; then
+ if [ -f $DATA_DIR/Species/"$species_code"/"$species_code"_list_TFs_OTRs_Orphans_Domains.txt ]; then
  $SCRIPTS_DIR/add/add_trs.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
  --db_password $DB_PASSWORD\
- --tr_associations $DATA_DIR/Species/"$species_code"/*_list_TFs_OTRs_Orphans.txt\
+ --tr_associations $DATA_DIR/Species/"$species_code"/"$species_code"_list_TFs_OTRs_Orphans_Domains.txt\
  --species_code "$species_code"\
  --logdir $LOG_DIR\
  --db_verbose $DB_VERBOSE\
