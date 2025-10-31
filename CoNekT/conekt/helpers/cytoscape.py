@@ -16,6 +16,51 @@ from utils.color import family_to_shape_and_color, index_to_shape_and_color
 
 
 class CytoscapeHelper:
+    @staticmethod
+    def add_trs_data_nodes(network):
+        """
+        Adds Transcription Regulator (TR) information to nodes in a cytoscape.js compatible network.
+
+        :param network: dict containing the network
+        :return: Network with TR information added to nodes
+        """
+        from conekt.models.relationships.sequence_tr import SequenceTRAssociation
+        from conekt.models.tr import TranscriptionRegulator
+        completed_network = deepcopy(network)
+
+        sequence_ids = []
+        for node in completed_network["nodes"]:
+            if "data" in node.keys() and "gene_id" in node["data"].keys():
+                sequence_ids.append(node["data"]["gene_id"])
+
+        # Fetch TR associations for the present genes
+        tr_associations = SequenceTRAssociation.query.filter(SequenceTRAssociation.sequence_id.in_(sequence_ids)).all()
+
+        # Build dictionary: sequence_id -> TR info
+        tr_data = {}
+        for assoc in tr_associations:
+            seq_id = assoc.sequence_id
+            tr = assoc.tr
+            tr_data[seq_id] = {
+                "tr_family": tr.family,
+                "tr_type": tr.type,
+                "tr_link": url_for('tr.tr_view', tr_id=tr.id)
+            }
+
+        # Add TR information directly to node["data"]
+        for node in completed_network["nodes"]:
+            if "data" in node.keys() and "gene_id" in node["data"].keys():
+                seq_id = node["data"]["gene_id"]
+                if seq_id in tr_data:
+                    node["data"].update(tr_data[seq_id])
+                else:
+                    node["data"].update({
+                        "tr_family": None,
+                        "tr_type": None,
+                        "tr_link": None
+                    })
+
+        return completed_network
 
     @staticmethod
     def parse_network(network):
