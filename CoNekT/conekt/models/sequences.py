@@ -47,14 +47,14 @@ class Sequence(db.Model):
 	go_labels = db.relationship('GO', secondary=sequence_go, lazy='dynamic')
 	interpro_domains = db.relationship('Interpro', secondary=sequence_interpro, lazy='dynamic')
 	cazymes = db.relationship('CAZYme', secondary=sequence_cazyme, lazy='dynamic')
-  families = db.relationship('GeneFamily', secondary=sequence_family, lazy='dynamic')
+	families = db.relationship('GeneFamily', secondary=sequence_family, lazy='dynamic')
 	te_classes = db.relationship('TEClass', secondary=sequence_te_class, lazy='dynamic')
 	tedistills = db.relationship('TEdistill', secondary=sequence_tedistill, lazy='dynamic')
 
-  trs = db.relationship('TranscriptionRegulator',
-                          secondary=sequence_tr,
-                          backref=db.backref('sequences_trs', lazy='dynamic'),
-                          lazy='dynamic')
+	trs = db.relationship('TranscriptionRegulator',
+						  secondary=sequence_tr,
+						  backref=db.backref('sequences_trs', lazy='dynamic'),
+						  lazy='dynamic')
 	
 	coexpression_clusters = db.relationship('CoexpressionCluster', secondary=sequence_cluster,
 											backref=db.backref('sequences', lazy='dynamic'),
