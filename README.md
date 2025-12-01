@@ -2,7 +2,7 @@
 
 ## What is CoNekT Grasses?
 
-CoNekT Grasses derives from CoNekT, described in Proost *et al*. 2018. ( [https://doi.org/10.1093/nar/gky336](https://doi.org/10.1093/nar/gky336) )
+CoNekT Grasses derives from CoNekT (Co-expression Network Toolkit), described in Proost *et al*. 2018 ([https://doi.org/10.1093/nar/gky336](https://doi.org/10.1093/nar/gky336)), an interactive and open-source web server dedicated to grasses expression data analysis.
 
 
 ## Tutorials
@@ -16,10 +16,7 @@ CoNekT Grasses derives from CoNekT, described in Proost *et al*. 2018. ( [https:
 
 ## Quick Start for developers
 
-CoNekT Grasses currently requires:
- * Python 3.8
-
-To install Python 3.8 execute the following codes:
+CoNekT Grasses currently requires Python 3.8. To install Python 3.8 execute the following codes:
 
 ```bash
 sudo add-apt-repository ppa:deadsnakes/ppa
@@ -31,10 +28,10 @@ Dependencies are usually installed using `apt` and `pip`:
 
 
 ```bash
-apt install python3.8-venv python3.8-dev
+sudo apt install python3.8-venv python3.8-dev
 python3.8 -m ensurepip --default-pip
 python3.8 -m pip install --upgrade pip setuptools wheel
-pip3.8 install virtualenv
+pip3 install virtualenv
 ```
 
 To set up the environment from the root directory of the repository, run:
@@ -43,13 +40,14 @@ To set up the environment from the root directory of the repository, run:
 virtualenv --python=python3.8 CoNekT
 source CoNekT/bin/activate
 sudo apt-get install python3.8-dev libmysqlclient-dev apache2 apache2-dev libapache2-mod-wsgi-py3
-pip install -r requirements.txt
+cd ../
+pip3 install -r requirements.txt
 ```
 
 Next steps:
 
  * [Running tests](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/run_tests.md)
- * [Build the datatase](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/connect_mysql.md)
+ * [Build the database](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/connect_mysql.md)
  * [Add data to CoNekT Grasses](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/building_conekt.md)
 
 ## Building documentation with Sphinx
