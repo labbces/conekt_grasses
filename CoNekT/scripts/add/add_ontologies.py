@@ -19,50 +19,57 @@ from utils.obo import Parser as OBOParser
 # Create arguments
 parser = argparse.ArgumentParser(description='Add ontology data to the database')
 parser.add_argument('--plant_ontology', type=str, metavar='plant_ontology.txt',
-                    dest='po_file',
-                    help='The plant ontology file from Plant Ontology',
-                    required=False)
+					dest='po_file',
+					help='The plant ontology file from Plant Ontology',
+					required=False)
 parser.add_argument('--plant_e_c_ontology', type=str, metavar='peco.txt',
-                    dest='peco_file',
-                    help='The plant experimental condition ontology file',
-                    required=False)
+					dest='peco_file',
+					help='The plant experimental condition ontology file',
+					required=False)
 parser.add_argument('--db_admin', type=str, metavar='DB admin',
-                    dest='db_admin',
-                    help='The database admin user',
-                    required=True)
+					dest='db_admin',
+					help='The database admin user',
+					required=True)
 parser.add_argument('--db_name', type=str, metavar='DB name',
-                    dest='db_name',
-                    help='The database name',
-                    required=True)
+					dest='db_name',
+					help='The database name',
+					required=True)
 parser.add_argument('--db_password', type=str, metavar='DB password',
-                    dest='db_password',
-                    help='The database password',
-                    required=False)
+					dest='db_password',
+					help='The database password',
+					required=False)
 parser.add_argument('--logdir', type=str, metavar='Log diretory',
-                    dest='log_dir',
-                    help='The directory containing temporary populate logs',
-                    required=False)
+					dest='log_dir',
+					help='The directory containing temporary populate logs',
+					required=False)
 parser.add_argument('--db_verbose', type=str, metavar='Database verbose',
-                    dest='db_verbose',
-                    help='Enable databaseverbose logging (true/false)',
-                    required=False,
-                    default="false")
+					dest='db_verbose',
+					help='Enable databaseverbose logging (true/false)',
+					required=False,
+					default="false")
 parser.add_argument('--py_verbose', type=str, metavar='Python script verbose',
-                    dest='py_verbose',
-                    help='Enable python verbose logging (true/false)',
-                    required=False,
-                    default="true")
+					dest='py_verbose',
+					help='Enable python verbose logging (true/false)',
+					required=False,
+					default="true")
 
 args = parser.parse_args()
 
 if args.db_password:
-    db_password = args.db_password
+	db_password = args.db_password
 else:
-    db_password = getpass.getpass("Enter the database password: ")
+	db_password = getpass.getpass("Enter the database password: ")
 
 
 
-
+def add_obo_peco(filename, empty=True, compressed=False):
+	"""
+	Add the Plant Experimental Conditions Ontology from an OBO file to the database.
+	If empty is True, it will first empty the table.
+	"""
+	
+	logger.info("______________________________________________________________________")
+	logger.info("➡️  Adding Plant Experimental Conditions Ontology (PECO) data:")
 
 def add_obo_peco(filename, empty=True, compressed=False):
 	"""
@@ -84,7 +91,7 @@ def add_obo_peco(filename, empty=True, compressed=False):
 				conn.execute(stmt)
 			logger.debug("✅  Table cleaned successfully.")
 		except Exception as e:
-			print_log_error(f"Error while cleaning 'plant_experimental_conditions_ontology' table: {e}")
+			print_log_error(logger, f"Error while cleaning 'plant_experimental_conditions_ontology' table: {e}")
 			exit(1)
 
 	obo_parser = OBOParser()
@@ -114,7 +121,7 @@ def add_obo_peco(filename, empty=True, compressed=False):
 		logger.info(f"✅  All {i} entries added to table 'peco' successfully!")
 	except Exception as e:
 		session.rollback()
-		print_log_error(f"Failed while inserting Peco entry number {i + 1}: {e}")
+		print_log_error(logger, f"Failed while inserting Peco entry number {i + 1}: {e}")
 		exit(1)
 
 def add_obo_po(filename, empty=True, compressed=False):
@@ -137,7 +144,7 @@ def add_obo_po(filename, empty=True, compressed=False):
 				conn.execute(stmt)
 			logger.debug("✅  Table cleaned successfully.")
 		except Exception as e:
-			print_log_error(f"Error while cleaning 'plant_ontology' table: {e}")
+			print_log_error(logger, f"Error while cleaning 'plant_ontology' table: {e}")
 			exit(1)
 
 	logger.debug(f"Reading Plant Ontology file: {filename}")
@@ -161,7 +168,7 @@ def add_obo_po(filename, empty=True, compressed=False):
 				logger.debug(f"{i} entries processed and committed...")
 			except Exception as e:
 				session.rollback()
-				print_log_error(f"Failed while inserting Plant Ontology entry number {i + 1}: {e}")
+				print_log_error(logger, f"Failed while inserting Plant Ontology entry number {i + 1}: {e}")
 				exit(1)
 
 	try:
@@ -169,63 +176,94 @@ def add_obo_po(filename, empty=True, compressed=False):
 		logger.info(f"✅  All {i} entries added to table 'plant_ontology' successfully!")
 	except Exception as e:
 		session.rollback()
-		print_log_error(f"Failed while inserting Plant Ontology entry number {i + 1}: {e}")
+		print_log_error(logger, f"Failed while inserting Plant Ontology entry number {i + 1}: {e}")
 		exit(1)
 
+	for i, term in enumerate(obo_parser.terms):
+		if term.id.startswith("PO:"):
+			po = PlantOntology(
+				po_term=term.id,
+				po_class=term.name,
+				po_annotation=term.definition
+			)
+			session.add(po)
+			
+		if i % 500 == 0:
+			# commit to the db frequently to allow WHOOSHEE's indexing function to work without timing out
+			try:
+				session.commit()
+				logger.debug(f"{i} entries processed and committed...")
+			except Exception as e:
+				session.rollback()
+				print_log_error(logger, f"Failed while inserting Plant Ontology entry number {i + 1}: {e}")
+				exit(1)
 
+	try:
+		session.commit()
+		logger.info(f"✅  All {i} entries added to table 'plant_ontology' successfully!")
+	except Exception as e:
+		session.rollback()
+		print_log_error(logger, f"Failed while inserting Plant Ontology entry number {i + 1}: {e}")
+		exit(1)
 
 try:
 
-    thisFileName = os.path.basename(__file__)
-    #log variables
-    log_dir = args.log_dir  #log dir path
-    log_file_name = "ontologies"   #log file names
-    db_verbose = str2bool(args.db_verbose)
-    py_verbose = str2bool(args.py_verbose)
-    logger = setup_logger(log_dir=log_dir, base_filename=log_file_name, DBverbose=db_verbose, PYverbose=py_verbose)
+	thisFileName = os.path.basename(__file__)
+	#log variables
+	log_dir = args.log_dir  #log dir path
+	log_file_name = "ontologies"   #log file names
+	db_verbose = str2bool(args.db_verbose)
+	py_verbose = str2bool(args.py_verbose)
+	logger = setup_logger(log_dir=log_dir, base_filename=log_file_name, DBverbose=db_verbose, PYverbose=py_verbose)
 
-    db_admin = args.db_admin
-    db_name = args.db_name
+	db_admin = args.db_admin
+	db_name = args.db_name
 
-    create_engine_string = "mysql+pymysql://"+db_admin+":"+db_password+"@localhost/"+db_name
+	create_engine_string = "mysql+pymysql://"+db_admin+":"+db_password+"@localhost/"+db_name
 
-    engine = create_engine(create_engine_string, echo=db_verbose)
+	engine = create_engine(create_engine_string, echo=db_verbose)
 
-    # Reflect an existing database into a new model
-    Base = automap_base()
+	# Reflect an existing database into a new model
+	Base = automap_base()
 
-    Base.prepare(engine, reflect=True)
+	Base.prepare(engine, reflect=True)
 
-    PlantExperimentalConditionsOntology = Base.classes.plant_experimental_conditions_ontology
-    PlantOntology = Base.classes.plant_ontology
+	PlantExperimentalConditionsOntology = Base.classes.plant_experimental_conditions_ontology
+	PlantOntology = Base.classes.plant_ontology
 
-    # Create a Session
-    Session = sessionmaker(bind=engine)
-    session = Session()
+	# Create a Session
+	Session = sessionmaker(bind=engine)
+	session = Session()
 
-    peco_file = args.peco_file
-    po_file = args.po_file
+	peco_file = args.peco_file
+	po_file = args.po_file
 
-    ontology_data_count = 0
+	ontology_data_count = 0
 
-    if peco_file:
-        ontology_data_count+=1
-        add_obo_peco(peco_file)
+	if peco_file:
+		ontology_data_count+=1
+		add_obo_peco(peco_file)
 
-    if po_file:
-        ontology_data_count+=1
-        add_obo_po(po_file)
+	if po_file:
+		ontology_data_count+=1
+		add_obo_po(po_file)
 
-    if ontology_data_count == 0:
-        print_log_error(logger, "Must add at least one type of ontology file (e.g., --plant_ontology)")
-        exit(1)
+	if ontology_data_count == 0:
+		print_log_error(logger, "Must add at least one type of ontology file (e.g., --plant_ontology)")
+		exit(1)
 
-    session.close()
+		add_obo_po(po_file)
+
+		if ontology_data_count == 0:
+			print_log_error(logger, "Must add at least one type of ontology file (e.g., --plant_ontology)")
+			exit(1)
+
+	session.close()
 
 except Exception as e:
-    print_log_error(logger, e)
-    logger.info(f" ---- ❌ An error occurred while executing {thisFileName}. Please fix the issue and rerun the script. ❌ ---- ")
-    exit(1)
+	print_log_error(logger, e)
+	logger.info(f" ---- ❌ An error occurred while executing {thisFileName}. Please fix the issue and rerun the script. ❌ ---- ")
+	exit(1)
 
 
 

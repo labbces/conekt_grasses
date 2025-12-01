@@ -106,6 +106,10 @@ $(function () { // on dom ready
                     content.push({value: '<strong>Expression specificity:</strong> ' + n.data('spm_condition') + '(' + n.data('spm_score').toFixed(2) + ')'});
                 }
 
+                if (n.data('tr_family') !== undefined && n.data('tr_id') !== null) {
+                content.push({value: '<strong>Transcription Regulator:</strong> <a href="' + n.data('tr_link') + '">' + n.data('tr_family') + ' (' + n.data('tr_type') + ')' +  '</a>'});
+                }
+
                 content.push(
                     {
                         value: n.data('family_name') !== null ? '<strong>Family:</strong> <a href="' + n.data('family_url') + '">' + n.data('family_name') + '</a>' : '<span class="text-muted">No family found</span>'

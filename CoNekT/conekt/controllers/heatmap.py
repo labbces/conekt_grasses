@@ -13,6 +13,8 @@ from conekt.models.relationships.sample_peco import SamplePECOAssociation
 from conekt.models.sequences import Sequence
 from conekt.models.trees import Tree
 from conekt.models.gene_families import GeneFamily
+from conekt.models.te_classes import TEClass
+from conekt.models.tedistills import TEdistill
 from conekt.models.expression.cross_species_profile import CrossSpeciesExpressionProfile
 from conekt.models.ontologies import PlantOntology, PlantExperimentalConditionsOntology
 
@@ -307,6 +309,50 @@ def heatmap_comparative_family(family_id, option='raw'):
     else:
         flash("Cannot create a comparative heatmap for this family.", "warning")
         return redirect(url_for('family.family_view', family_id=family_id))
+
+@heatmap.route('/comparative/tedistill/<int:tedistill_id>')
+@heatmap.route('/comparative/tedistill/<int:tedistill_id>/<option>')
+@cache.cached()
+def heatmap_comparative_tedistill(tedistill_id, option='raw'):
+    tedistill = TEdistill.query.get_or_404(tedistill_id)
+    sequences = tedistill.sequences
+    sequence_ids = [s.id for s in sequences]
+
+    heatmap_data = CrossSpeciesExpressionProfile().get_heatmap(*sequence_ids, option=option)
+
+    print(heatmap_data)
+
+    if not heatmap_data['order'] == [] and not heatmap_data['heatmap_data'] == []:
+        return render_template("expression_heatmap.html", order=heatmap_data['order'],
+                               profiles=heatmap_data['heatmap_data'],
+                               zlog=1 if option == 'zlog' else 0,
+                               raw=1 if option == 'raw' else 0,
+                               tedistill=tedistill)
+    else:
+        flash("Cannot create a comparative heatmap for this TEdistill sequence.", "warning")
+        return redirect(url_for('tedistill.tedistill_view', tedistill_id=tedistill_id))
+
+@heatmap.route('/comparative/te_class/<int:te_class_id>')
+@heatmap.route('/comparative/te_class/<int:te_class_id>/<option>')
+@cache.cached()
+def heatmap_comparative_te_class(te_class_id, option='raw'):
+    te_class = TEClass.query.get_or_404(te_class_id)
+    sequences = te_class.sequences
+    sequence_ids = [s.id for s in sequences]
+
+    heatmap_data = CrossSpeciesExpressionProfile().get_heatmap(*sequence_ids, option=option)
+
+    print(heatmap_data)
+
+    if not heatmap_data['order'] == [] and not heatmap_data['heatmap_data'] == []:
+        return render_template("expression_heatmap.html", order=heatmap_data['order'],
+                               profiles=heatmap_data['heatmap_data'],
+                               zlog=1 if option == 'zlog' else 0,
+                               raw=1 if option == 'raw' else 0,
+                               te_class=te_class)
+    else:
+        flash("Cannot create a comparative heatmap for this TE Class.", "warning")
+        return redirect(url_for('te_class.te_class_view', te_class_id=te_class_id))
 
 
 @heatmap.route('/inchlib/j/<cluster_id>.json')
