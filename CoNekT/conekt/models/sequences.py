@@ -1,6 +1,6 @@
 from conekt import db, whooshee
 
-from conekt.models.relationships import sequence_go, sequence_interpro, sequence_cazyme, sequence_family, sequence_coexpression_cluster, sequence_tr, sequence_te_class, sequence_tedistill
+from conekt.models.relationships import sequence_go, sequence_interpro, sequence_cazyme, sequence_family, sequence_cluster, sequence_tr, sequence_te_class, sequence_tedistill
 from conekt.models.relationships import sequence_xref, sequence_sequence_ecc
 from utils.sequence import translate
 from utils.parser.fasta import Fasta
@@ -47,12 +47,16 @@ class Sequence(db.Model):
 	go_labels = db.relationship('GO', secondary=sequence_go, lazy='dynamic')
 	interpro_domains = db.relationship('Interpro', secondary=sequence_interpro, lazy='dynamic')
 	cazymes = db.relationship('CAZYme', secondary=sequence_cazyme, lazy='dynamic')
-	trs = db.relationship('TranscriptionRegulator', secondary=sequence_tr, lazy='dynamic', back_populates='sequences')
-	families = db.relationship('GeneFamily', secondary=sequence_family, lazy='dynamic')
+  families = db.relationship('GeneFamily', secondary=sequence_family, lazy='dynamic')
 	te_classes = db.relationship('TEClass', secondary=sequence_te_class, lazy='dynamic')
 	tedistills = db.relationship('TEdistill', secondary=sequence_tedistill, lazy='dynamic')
 
-	coexpression_clusters = db.relationship('CoexpressionCluster', secondary=sequence_coexpression_cluster,
+  trs = db.relationship('TranscriptionRegulator',
+                          secondary=sequence_tr,
+                          backref=db.backref('sequences_trs', lazy='dynamic'),
+                          lazy='dynamic')
+	
+	coexpression_clusters = db.relationship('CoexpressionCluster', secondary=sequence_cluster,
 											backref=db.backref('sequences', lazy='dynamic'),
 											lazy='dynamic')
 
@@ -77,7 +81,8 @@ class Sequence(db.Model):
 											 lazy='dynamic')
 
 	xrefs = db.relationship('XRef', secondary=sequence_xref, lazy='joined')
-
+ 
+  
 	def __init__(self, species_id, name, coding_sequence, type='protein_coding', is_chloroplast=False,
 				 is_mitochondrial=False, description=None):
 		self.species_id = species_id
@@ -230,3 +235,4 @@ class Sequence(db.Model):
 		with open(filename, "w") as f_out:
 			for s in sequences:
 				print(">%s\n%s" % (s.name, s.protein_sequence), file=f_out)
+   

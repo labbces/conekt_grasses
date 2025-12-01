@@ -2,6 +2,7 @@ from conekt import db, whooshee
 from conekt.models.relationships import sequence_tr
 from conekt.models.sequences import Sequence
 from conekt.models.relationships.sequence_tr import SequenceTRAssociation
+from conekt.models.relationships.sequence_tr_domain import SequenceTRDomainAssociation
 from collections import defaultdict
 import json
 
@@ -26,8 +27,12 @@ class TranscriptionRegulator(db.Model):
 
     @staticmethod
     def sequence_stats(sequence_ids):
-        from conekt_grasses.CoNekT.conekt.models.relationships.sequence_tr import SequenceTRAssociation
         data = SequenceTRAssociation.query.filter(SequenceTRAssociation.sequence_id.in_(sequence_ids)).all()
+        return TranscriptionRegulator.__sequence_stats_associations(data)
+
+    @staticmethod
+    def sequence_domain_stats(sequence_ids):
+        data = SequenceTRDomainAssociation.query.filter(SequenceTRDomainAssociation.sequence_id.in_(sequence_ids)).all()
         return TranscriptionRegulator.__sequence_stats_associations(data)
 
     @staticmethod
