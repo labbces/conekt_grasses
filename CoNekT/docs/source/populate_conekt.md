@@ -20,9 +20,11 @@ pip install -r requirements.txt
 ```
 
 ## Running the Population Scripts
-After activating the virtual environment, navigate to the `add` directory to execute the necessary scripts for populating CoNekT with your data.
+After activating the virtual environment, to populate CoNekT Grasses you may use the `populate_conekt_grasses.sh` for automatically running all scripts necessary to add your data, in the proper order. It is crutial to keep the first variables of this script up to date with your corresponding paths and species.
 
-For additional script options and requirements, use the help (-h) command.
+Additionally, you can run them separetely by navigating to the `add` directory and to executing the step-by-step scripts for populating CoNekT.
+
+For supplemental script options and requirements, use the help (-h) command.
 
 ### 1. Adding Ontology Data
 Before inserting other data, start by adding general ontology data using the `add_ontologies.py` script. This step incorporates:
