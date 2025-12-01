@@ -1,0 +1,10 @@
+<div class="modal-header">
+    <h4 class="modal-title" id="myModalLabel"><strong>{{ tedistill.name }}</strong> representative sequence<small> (length: {{ tedistill.representative_sequence|length }} bp)</small></h4>
+
+</div>
+<div class="modal-body">
+    <div class="well sequence">{{ tedistill.representative_sequence }}</div>
+</div>
+<div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+</div>

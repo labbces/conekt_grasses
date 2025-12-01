@@ -62,9 +62,18 @@
         {% endfor %}
         {%- if not loop.last -%},<br/> {% endif %}
         {% endfor %} {% else %}<em>No families found for this sequence</em>{% endif %}</p>
-    <p><strong>Sequence :</strong> <a href="{{ url_for('sequence.sequence_modal_coding', sequence_id=sequence.id, rna='false') }}" data-target="#profileModal">cds</a> (<a href="{{ url_for('sequence.sequence_fasta_coding', sequence_id=sequence.id, rna='false') }}">download</a>), <a href="{{ url_for('sequence.sequence_modal_coding', sequence_id=sequence.id, rna='true') }}" data-target="#profileModal">rna</a> (<a href="{{ url_for('sequence.sequence_fasta_coding', sequence_id=sequence.id, rna='true') }}">download</a>) {%- if sequence.type == 'protein_coding' -%}, <a href="{{ url_for('sequence.sequence_modal_protein', sequence_id=sequence.id) }}" data-target="#profileModal">protein</a> (<a href="{{ url_for('sequence.sequence_fasta_protein', sequence_id=sequence.id) }}">download</a>) {% endif %}</p>
+	{% if sequence.type == 'TE' %}
+    <p><strong><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='te_class') }}" data-target="#helpModal">TE Class</abbr> : </strong>{%- if sequence.te_classes.first() -%}
+		<a href="{{ url_for('te_class.te_class_view', te_class_id=sequence.te_classes.first().id) }}">{{ sequence.te_classes.first().name }}</a>
+        {% else %}<em>No class found for this sequence</em>{% endif %}</p>
+	<p><strong><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='tedistill') }}" data-target="#helpModal">TEdistill consense sequence</abbr> : </strong>{%- if sequence.tedistills.first() -%}
+		<a href="{{ url_for('tedistill.tedistill_view', tedistill_id=sequence.tedistills.first().id) }}">{{ sequence.tedistills.first().name }}</a>
+		{% else %}<em>No TEdistill consense sequence found for this sequence</em>{% endif %}</p>
+    <p><strong>Sequence :</strong> <a href="{{ url_for('sequence.sequence_modal_coding', sequence_id=sequence.id, rna='false') }}" data-target="#profileModal">representative sequence</a> (<a href="{{ url_for('sequence.sequence_fasta_coding', sequence_id=sequence.id, rna='false') }}">download</a>) {%- if sequence.type == 'protein_coding' -%}, <a href="{{ url_for('sequence.sequence_modal_protein', sequence_id=sequence.id) }}" data-target="#profileModal">protein</a> (<a href="{{ url_for('sequence.sequence_fasta_protein', sequence_id=sequence.id) }}">download</a>) {% endif %}</p>
     </div>
+	{% endif %}
 
+	{% if sequence.type != 'TE' %}
     {% if expression_profiles|count > 0 %}
     <h3 class="banner-green" id="expression_profile">Expression Profile</h3>
         {% for profile in expression_profiles %}
@@ -152,6 +161,7 @@
         <p><span class="text-muted"><em>No co-expressed genes found</em></span></p>
     {% endif %}
     </div>
+	{% endif %}
     <br />
     {% if ecc_query_associations|count > 0 %}
     <h3 class="banner-green" id="expression_conservation">Expression Context Conservation (<abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='ecc') }}" data-target="#helpModal">ECC</abbr>)</h3>
@@ -187,6 +197,7 @@
         </table>
     </div>
     {% endif %}
+	{% if sequence.type != 'TE' %}
     <br />
     <h3 class="banner-green" id="annotation">Functional Annotation</h3>
     <div class="panel with-nav-tabs panel-default">
@@ -416,6 +427,7 @@
         </div>
     </div>
     </div>
+	{% endif %}
     <div class="row">
         <div class="col-lg-12 col-md-12 col-sm-12">
             <div class="panel panel-default">

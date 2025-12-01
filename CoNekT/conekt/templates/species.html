@@ -49,7 +49,9 @@
             </div>
         </div>
 
-        {{ macro.pagination('Sequences', url_for('species.species_sequences', species_id=species.id), species.sequence_count, none, 'species') }}
+        {{ macro.pagination('Sequences', url_for('species.species_sequences', species_id=species.id), species.non_coding_seq_count, none, 'species') }}
+
+        {{ macro.pagination('Transposable Elements', url_for('species.species_transposable_elements', species_id=species.id), species.te_count, none, 'species') }}
 
         {{ macro.pagination('RNA-Seq Dataset Papers', url_for('species.species_expression_papers', species_id=species.id), 0, none, 'species') }}
 
@@ -73,6 +75,7 @@
                         {% if g.debug %}<th data-sort="int"><span class="sort-icon"></span>ID</th>{% endif %}
                         <th data-sort="string-ins"><span class="sort-icon"></span>Name</th>
                         <th data-sort="int"><span class="sort-icon"></span>Transcripts</th>
+                        <th data-sort="int"><span class="sort-icon"></span>TEs</th>
                         <th data-sort="int"><span class="sort-icon"></span>Profiles</th>
                         <th data-sort="int"><span class="sort-icon"></span>Networks</th>
                         <th>Actions</th>
@@ -85,7 +88,8 @@
                     <tr>
                         {% if g.debug %}<td>{{ s.id }}</td>{% endif %}
                         <td><em><a href="{{ url_for('species.species_view', species_id=s.id) }}">{{ s.name }}</a></em> <span class="'text-muted">({{ s.code }})</span></td>
-                        <td>{{ s.sequence_count }}</td>
+                        <td>{{ s.non_coding_seq_count }}</td>
+                        <td>{{ s.te_count }}</td>
                         <td>{{ s.profile_count }}</td>
                         {% if s.network_count > 0 %}
                         <td><a href="{{url_for('expression_network.expression_network_species', species_id=s.id)}}">{{ s.network_count }}</a></td>
@@ -99,6 +103,7 @@
                                     <li><a href="{{url_for('species.species_stream_coding', species_id=s.id)}}" download="{{s.code}}.cds.fasta">Coding Sequences</a></li>
                                     <li><a href="{{url_for('species.species_stream_protein', species_id=s.id)}}" download="{{s.code}}.aa.fasta">Protein Sequences</a></li>
                                     <li><a href="{{url_for('species.species_stream_rna', species_id=s.id)}}" download="{{s.code}}.rna.fasta">RNA Sequences</a></li>
+                                    <li><a href="{{url_for('species.species_stream_te', species_id=s.id)}}" download="{{s.code}}.te.fasta">Transposable Elements</a></li>
                                     <li class="dropdown-header">Networks</li>
                                     {% for n in s.networks %}
                                     <li><a href="{{ url_for('expression_network.expression_network_export', method_id=n.id) }}" download="network_{{n.id}}.tab">{{ n.description }}</a></li>

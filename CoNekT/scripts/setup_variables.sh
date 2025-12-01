@@ -35,6 +35,12 @@ SPECIES_EXPRESSION_PROFILES=(  )
 # Description of method to generate gene families
 GENE_FAMILIES_DESCRIPTION="OrthoFinder Gene Families v0.3"
 
+# Description of method to generate gene families
+TEDISTILL_DESCRIPTION="TEdistill Consense Sequences v0.4"
+
+# Description of method to generate gene families
+TE_CLASSES_DESCRIPTION="TE Classes v0.4"
+
 
 
 # ==================== Verbosity Settings ====================

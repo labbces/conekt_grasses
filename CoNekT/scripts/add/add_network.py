@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import getpass
 import argparse
+import psutil
 import json
 import sys
 

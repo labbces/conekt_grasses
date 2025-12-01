@@ -4,6 +4,8 @@
 #source /home/pturquetti/conekt/conekt_grasses/CoNekT/scripts/setup_variables.sh
 source /path/to/setup_variables.sh
 
+timestamp_init=$(date +"%Y-%m-%d %H:%M:%S")
+
 export FLASK_APP=run.py
 
 cd $BASE_DIR/CoNekT
@@ -52,12 +54,21 @@ $SCRIPTS_DIR/add/add_ontologies.py\
  --db_verbose $DB_VERBOSE\
  --py_verbose $PY_VERBOSE
 
+echo "Populating CoNekT Grasses with TE Classes"
+$SCRIPTS_DIR/add/add_te_classes.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --te_classes $DATA_DIR"/Transposable Elements/TE_Classes.tsv"\
+ --description "$TE_CLASSES_DESCRIPTION"\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE
+
 echo -e "\nPopulating CoNekT Grasses with species data"
-$SCRIPTS_DIR/add/add_species.py\
- --input_table $SPECIES_TABLE\
- --db_admin $DB_ADMIN \
+$SCRIPTS_DIR/add/add_species.py --db_admin $DB_ADMIN \
  --db_name $DB_NAME \
  --db_password $DB_PASSWORD\
+ --input_table $SPECIES_TABLE\
  --species_dir $SPECIES_DIR\
  --logdir $LOG_DIR\
  --db_verbose $DB_VERBOSE\
@@ -259,6 +270,17 @@ $SCRIPTS_DIR/add/add_gene_families.py --db_admin $DB_ADMIN\
  --db_verbose $DB_VERBOSE\
  --py_verbose $PY_VERBOSE
 
+echo "Populating CoNekT Grasses with TEdistill sequences"
+$SCRIPTS_DIR/add/add_tedistills.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --sequences $DATA_DIR"/Transposable Elements/TEdistill_sequences.fa"\
+ --orthogroups $DATA_DIR"/Transposable Elements/Orthogroups_TEdistill.txt"\
+ --description "$TEDISTILL_DESCRIPTION"\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE
+
 echo "Populating CoNekT Grasses with coexpression clusters"
 $SCRIPTS_DIR/build/calculate_clusters.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
@@ -296,10 +318,46 @@ $SCRIPTS_DIR/build/calculate_clusters.py --db_admin $DB_ADMIN\
 # --network_method_id 5\
 # --description "Sugarcane coexpression clusters (Perlo, 2022)"
 
-echo "Update all counts in the database"
+echo "Populating CoNekT Grasses with species TR families annotation"
+ $SCRIPTS_DIR/add/add_trs.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --tr_families $DATA_DIR/"Functional Data/TRs/RulesFull_Jennifer_JEIN_05122024.txt"\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE
+
+echo "Populating CoNekT Grasses with species TR annotation"
+first_run=true
+for species_code in ${SPECIES_ARRAY[@]};
+ do
+ if [ -f $DATA_DIR/Species/"$species_code"/*_list_TFs_OTRs_Orphans.txt ]; then
+ $SCRIPTS_DIR/add/add_trs.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+ --tr_associations $DATA_DIR/Species/"$species_code"/*_list_TFs_OTRs_Orphans.txt\
+ --species_code "$species_code"\
+ --logdir $LOG_DIR\
+ --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE\
+ --first_run $first_run
+ first_run=false
+ fi
+done;
+
+echo "Upda
+all counts in the database"
 $SCRIPTS_DIR/build/update_counts.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
  --db_password $DB_PASSWORD\
  --logdir $LOG_DIR\
  --db_verbose $DB_VERBOSE\
+ --py_verbose $PY_VERBOSE
+
+timestamp_end=$(date +"%Y-%m-%d %H:%M:%S")
+
+echo "Script started at: $timestamp_init"
+echo "Script ended at: $timestamp_end"
+echo "Time taken: $(date -u -d @$(( $(date -d "$timestamp_end" +%s) - $(date -d "$timestamp_init" +%s) )) +%H:%M:%S)"
+echo "CoNekT Grasses database populated successfully!"
  --py_verbose $PY_VERBOSE

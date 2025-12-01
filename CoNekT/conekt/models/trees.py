@@ -22,6 +22,12 @@ class TreeMethod(db.Model):
     gene_family_method_id = db.Column(db.Integer,
                                       db.ForeignKey('gene_family_methods.id', ondelete='CASCADE'), index=True)
 
+    te_class_method_id = db.Column(db.Integer,
+                                      db.ForeignKey('te_class_methods.id', ondelete='CASCADE'), index=True)
+
+    tedistill_method_id = db.Column(db.Integer,
+                                      db.ForeignKey('tedistill_methods.id', ondelete='CASCADE'), index=True)
+
     trees = db.relationship('Tree',
                             backref=db.backref('method', lazy='joined'),
                             lazy='dynamic',
@@ -37,6 +43,8 @@ class Tree(db.Model):
     data_phyloxml = db.Column(db.Text)
 
     gf_id = db.Column(db.Integer, db.ForeignKey('gene_families.id', ondelete='CASCADE'), index=True)
+    tec_id = db.Column(db.Integer, db.ForeignKey('te_classes.id', ondelete='CASCADE'), index=True)
+    ted_id = db.Column(db.Integer, db.ForeignKey('tedistills.id', ondelete='CASCADE'), index=True)
     method_id = db.Column(db.Integer, db.ForeignKey('tree_methods.id', ondelete='CASCADE'), index=True)
 
     @property
