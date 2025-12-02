@@ -325,7 +325,7 @@ try:
 				continue  # antes de fechar a sessão, então use try/finally para fechar
 
 			# add literature
-			if doi:
+			if doi != '-':
 				literature_id = add_literature(doi, session)
 				time.sleep(3)
 			else:

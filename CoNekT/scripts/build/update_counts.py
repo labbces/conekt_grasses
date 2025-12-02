@@ -198,7 +198,7 @@ try:
 					update(Species)
 					.where(Species.id == s.id)
 					.values(
-						sequence_count=seq_count,
+						non_coding_seq_count=seq_count,
 						profile_count=profile_count,
 						network_count=network_count
 					)
