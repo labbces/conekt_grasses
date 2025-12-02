@@ -47,15 +47,19 @@ To set up the environment from the root directory of the repository, run:
 virtualenv --python=python3.8 CoNekT
 source CoNekT/bin/activate
 sudo apt-get install python3.8-dev libmysqlclient-dev apache2 apache2-dev libapache2-mod-wsgi-py3
-cd ../
 pip3 install -r requirements.txt
+```
+
+Exclude .gitignore from the virtual environment for compatibility:
+
+```bash
+rm CoNekT/.gitignore
 ```
 
 Next steps:
 
- * [Running tests](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/run_tests.md)
- * [Build the database](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/connect_mysql.md)
- * [Add data to CoNekT Grasses](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/building_conekt.md)
+ * [Build the database](CoNekT/docs/source/conekt_grasses_mariadb.md)
+ * [Running tests](CoNekT/docs/source/run_tests.md)
 
 ## Building documentation with Sphinx
 
@@ -74,11 +78,6 @@ Note that we changed the default Sphinx builder to use the Markdown parser. This
 ```
 extensions = ["myst_parser"]
 ```
-
-Next steps:
-
- * [Build the datatase](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/conekt_grasses_mariadb.md)
- * [Add data to CoNekT Grasses](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/building_conekt.md)
 
 ## Developers
 
