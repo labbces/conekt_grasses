@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 # Get variables from 'setup_variables.sh' file (copy/paste your full path to file here)
-#source /home/pturquetti/conekt/conekt_grasses/CoNekT/scripts/setup_variables.sh
 source /path/to/setup_variables.sh
 
 timestamp_init=$(date +"%Y-%m-%d %H:%M:%S")
@@ -11,12 +10,12 @@ export FLASK_APP=run.py
 cd $BASE_DIR/CoNekT
 
 # Activating virtual environment
-source CoNekT/bin/activate
+source bin/activate
 
 flask initdb
-if [ -d $BASE_DIR/CoNekT/migrations ]; then
+if [ -d migrations ]; then
   echo "Removing existing migrations folder, if exists"
-  rm -fr $BASE_DIR/CoNekT/migrations
+  rm -fr migrations
 fi
 flask db init
 
@@ -74,7 +73,6 @@ $SCRIPTS_DIR/add/add_species.py --db_admin $DB_ADMIN \
  --db_verbose $DB_VERBOSE\
  --py_verbose $PY_VERBOSE
 
-
 echo -e "\nPopulating CoNekT Grasses with gene descriptions"
 first_run=true
 for species_code in ${SPECIES_ARRAY[@]};
@@ -112,8 +110,6 @@ for species_code in ${SPECIES_ARRAY[@]};
   #  gzip $DATA_DIR/Species/"$species_code"/"$species_code".aa.nonStop.interpro.tsv
   fi
 done;
-
-
 
 echo -e "\nPopulating CoNekT Grasses with species GO annotation"
 first_run=true
@@ -190,8 +186,6 @@ for species_code in ${SPECIES_ARRAY[@]};
  fi
 done;
 
-
-
 echo -e "\nPopulating CoNekT Grasses with expression specificity"
 first_run=true
 for species_code in ${SPECIES_EXPRESSION_PROFILES[@]};
@@ -207,9 +201,6 @@ for species_code in ${SPECIES_EXPRESSION_PROFILES[@]};
  first_run=false
 done;
 
-
-
-
 echo "Populating CoNekT Grasses with expression networks"
 first_run=true
 $SCRIPTS_DIR/add/add_network.py --db_admin $DB_ADMIN\
@@ -223,7 +214,6 @@ $SCRIPTS_DIR/add/add_network.py --db_admin $DB_ADMIN\
  --py_verbose $PY_VERBOSE\
  --first_run $first_run
  first_run=false
-
 
 $SCRIPTS_DIR/add/add_network.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
@@ -345,8 +335,7 @@ for species_code in ${SPECIES_ARRAY[@]};
  fi
 done;
 
-echo "Upda
-all counts in the database"
+echo "Updating all counts in the database"
 $SCRIPTS_DIR/build/update_counts.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
  --db_password $DB_PASSWORD\
@@ -360,4 +349,3 @@ echo "Script started at: $timestamp_init"
 echo "Script ended at: $timestamp_end"
 echo "Time taken: $(date -u -d @$(( $(date -d "$timestamp_end" +%s) - $(date -d "$timestamp_init" +%s) )) +%H:%M:%S)"
 echo "CoNekT Grasses database populated successfully!"
- --py_verbose $PY_VERBOSE
