@@ -9,6 +9,9 @@
 /CoNekT/docs/build
 /CoNekT/CACHEDIR.TAG
 
+/htmlcov/
+coverage.xml
+
 tmpgit
 bin
 lib
