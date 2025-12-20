@@ -13,7 +13,7 @@ from collections import defaultdict, Counter
 from sqlalchemy.orm import joinedload, load_only
 from sqlalchemy.sql import or_, and_
 
-SQL_COLLATION = 'NOCASE' if db.engine.name == 'sqlite' else ''
+SQL_COLLATION = None
 
 
 class TEClassMethod(db.Model):

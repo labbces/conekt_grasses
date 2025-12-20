@@ -4,7 +4,7 @@ from conekt.models.species import Species
 import json
 import newick
 
-SQL_COLLATION = 'NOCASE' if db.engine.name == 'sqlite' else ''
+SQL_COLLATION = None
 
 
 class Clade(db.Model):

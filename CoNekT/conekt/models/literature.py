@@ -1,6 +1,6 @@
 from conekt import db
 
-SQL_COLLATION = 'NOCASE' if db.engine.name == 'sqlite' else ''
+SQL_COLLATION = None
 
 
 class LiteratureItem(db.Model):
