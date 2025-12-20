@@ -1,0 +1,13 @@
+# Synthetic TEdistill data for testing
+# TEdistills are families of TEs grouped by sequence similarity
+# Format: TEdistill_ID	Original_Name	Representative_Sequence_Length	Number_Members	Description
+TEDISTILL_001	OG0000001	2500	15	Copia-like LTR retrotransposon family
+TEDISTILL_002	OG0000002	3200	22	Gypsy-like LTR retrotransposon family
+TEDISTILL_003	OG0000003	1800	8	MULE DNA transposon family
+TEDISTILL_004	OG0000004	1200	12	hAT DNA transposon family
+TEDISTILL_005	OG0000005	2100	18	LINE L1-like element family
+TEDISTILL_006	OG0000006	1500	10	CACTA DNA transposon family
+TEDISTILL_007	OG0000007	900	6	TRIM retrotransposon family
+TEDISTILL_008	OG0000008	2800	20	Helitron rolling-circle transposon family
+TEDISTILL_009	OG0000009	1100	7	Mariner/Tc1 transposon family
+TEDISTILL_010	OG0000010	1600	14	PIF-Harbinger transposon family
