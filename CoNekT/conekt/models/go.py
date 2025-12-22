@@ -5,7 +5,7 @@ from conekt.models.sequences import Sequence
 
 import json
 
-SQL_COLLATION = 'NOCASE' if db.engine.name == 'sqlite' else ''
+SQL_COLLATION = None
 
 
 @whooshee.register_model('name', 'description')

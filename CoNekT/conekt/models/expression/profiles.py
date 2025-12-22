@@ -12,7 +12,7 @@ from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.orm import joinedload, undefer
 from flask import flash
 
-SQL_COLLATION = 'NOCASE' if db.engine.name == 'sqlite' else ''
+SQL_COLLATION = None
 
 
 class ExpressionProfile(db.Model):

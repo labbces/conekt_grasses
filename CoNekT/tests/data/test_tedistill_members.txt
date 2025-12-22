@@ -1,0 +1,7 @@
+# TEdistill membership - linking TE sequences to TEdistill families
+# Format: Sequence_ID	TEdistill_ID	Alignment_Score	Percent_Identity
+TEST_TE_SEQ_001	TEDISTILL_001	450.5	85.2
+TEST_TE_SEQ_002	TEDISTILL_002	520.3	88.5
+TEST_TE_SEQ_003	TEDISTILL_003	680.1	92.3
+TEST_TE_SEQ_004	TEDISTILL_005	380.7	82.1
+TEST_TE_SEQ_005	TEDISTILL_004	320.4	78.6

@@ -5,7 +5,7 @@ from conekt.models.relationships.sequence_interpro import SequenceInterproAssoci
 from sqlalchemy.orm import joinedload
 
 
-SQL_COLLATION = 'NOCASE' if db.engine.name == 'sqlite' else ''
+SQL_COLLATION = None
 
 
 @whooshee.register_model('description')

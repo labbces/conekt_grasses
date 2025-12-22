@@ -18,10 +18,9 @@ LOGIN_ENABLED = True
 ADMIN_PASSWORD = "admin"
 ADMIN_EMAIL = "admin@web.com"
 
-
 # Database settings, database location and path to migration scripts
 # Will use in memory db for testing
-SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://conekt_grasses_admin_test:E,~5*;{9f{p2VGp^@localhost/conekt_grasses_db_test'
+SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://conekt_grasses_admin:admin@localhost/conekt_grasses_db'
 SQLALCHEMY_MIGRATE_REPO = os.path.join(basedir, "migration")
 SQLALCHEMY_ECHO = False
 SQLALCHEMY_TRACK_MODIFICATIONS = False

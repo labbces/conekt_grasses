@@ -2,7 +2,7 @@ from conekt import db, whooshee
 from conekt.models.relationships import sequence_cazyme
 from conekt.models.relationships.sequence_cazyme import SequenceCAZYmeAssociation
 
-SQL_COLLATION = 'NOCASE' if db.engine.name == 'sqlite' else ''
+SQL_COLLATION = None
 
 @whooshee.register_model('family', 'cazyme_class', 'activities')
 class CAZYme(db.Model):
