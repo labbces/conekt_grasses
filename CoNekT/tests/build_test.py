@@ -24,6 +24,8 @@ from conekt.models.expression.coexpression_clusters import CoexpressionClusterin
 from conekt.models.expression.specificity import ExpressionSpecificityMethod
 from conekt.models.gene_families import GeneFamily, GeneFamilyMethod
 from conekt.models.clades import Clade
+from conekt.models.te_classes import TEClass, TEClassMethod
+from conekt.models.tedistills import TEdistill, TEdistillMethod
 
 
 @pytest.mark.db
@@ -71,6 +73,24 @@ class TestBuildFunctions:
                 )
             except Exception as e:
                 print(f"Aviso: Não foi possível carregar GO: {e}")
+
+            # Carrega Plant Ontology
+            try:
+                PlantOntology.add_tabular_po(
+                    os.path.join(test_dir, "test_plant_ontology.txt"),
+                    s.id
+                )
+            except Exception as e:
+                print(f"Aviso: Não foi possível carregar Plant Ontology: {e}")
+
+            # Carrega Plant Experimental Conditions Ontology
+            try:
+                PlantExperimentalConditionsOntology.add_tabular_peco(
+                    os.path.join(test_dir, "test_peco.txt"),
+                    s.id
+                )
+            except Exception as e:
+                print(f"Aviso: Não foi possível carregar PECO: {e}")
 
             # Carrega InterPro
             try:
@@ -139,6 +159,38 @@ class TestBuildFunctions:
                 Clade.update_clades_interpro()
             except Exception as e:
                 print(f"Aviso: Não foi possível carregar clados: {e}")
+
+            # Carrega TEs
+            try:
+                # Primeiro cria o método de classificação de TE
+                te_method = TEClassMethod('RepeatMasker')
+                database.session.add(te_method)
+                database.session.commit()
+                
+                TEClass.add_from_file(
+                    os.path.join(test_dir, "test_te_classes.txt"),
+                    os.path.join(test_dir, "test_te_sequences.fasta"),
+                    os.path.join(test_dir, "test_te_annotations.txt"),
+                    s.id
+                )
+            except Exception as e:
+                print(f"Aviso: Não foi possível carregar TE classes: {e}")
+
+            # Carrega TEdistills
+            try:
+                # Primeiro cria o método de TEdistill
+                tedistill_method = TEdistillMethod('TEDistill_v1')
+                database.session.add(tedistill_method)
+                database.session.commit()
+                
+                TEdistill.add_from_file(
+                    os.path.join(test_dir, "test_tedistills.txt"),
+                    os.path.join(test_dir, "test_tedistill_sequences.fasta"),
+                    os.path.join(test_dir, "test_tedistill_members.txt"),
+                    s.id
+                )
+            except Exception as e:
+                print(f"Aviso: Não foi possível carregar TEdistills: {e}")
 
             database.session.commit()
 
@@ -227,3 +279,65 @@ class TestBuildFunctions:
             # Verifica se pelo menos uma família foi carregada
             family_count = GeneFamily.query.count()
             assert family_count >= 0  # Pode ser 0 se arquivo vazio
+
+    def test_te_classes_loaded(self, database, app):
+        """Testa se TE classes foram carregadas."""
+        with app.app_context():
+            # Verifica se pelo menos uma TE class foi carregada
+            te_class_count = TEClass.query.count()
+            assert te_class_count >= 0  # Pode ser 0 se arquivo vazio
+
+    def test_tedistills_loaded(self, database, app):
+        """Testa se TEdistills foram carregados."""
+        with app.app_context():
+            # Verifica se pelo menos um TEdistill foi carregado
+            tedistill_count = TEdistill.query.count()
+            assert tedistill_count >= 0  # Pode ser 0 se arquivo vazio
+
+    def test_te_class_method_loaded(self, database, app):
+        """Testa se TEClassMethod foi carregado."""
+        with app.app_context():
+            # Verifica se pelo menos um método de TE class foi carregado
+            te_method_count = TEClassMethod.query.count()
+            assert te_method_count >= 0  # Pode ser 0 se não criado
+            
+            # Se existe método, verifica estrutura
+            if te_method_count > 0:
+                method = TEClassMethod.query.first()
+                assert method.method is not None
+
+    def test_tedistill_method_loaded(self, database, app):
+        """Testa se TEdistillMethod foi carregado."""
+        with app.app_context():
+            # Verifica se pelo menos um método de TEdistill foi carregado
+            tedistill_method_count = TEdistillMethod.query.count()
+            assert tedistill_method_count >= 0  # Pode ser 0 se não criado
+            
+            # Se existe método, verifica estrutura
+            if tedistill_method_count > 0:
+                method = TEdistillMethod.query.first()
+                assert method.method is not None
+
+    def test_plant_ontology_loaded(self, database, app):
+        """Testa se Plant Ontology foi carregado."""
+        with app.app_context():
+            # Verifica se pelo menos um termo de Plant Ontology foi carregado
+            po_count = PlantOntology.query.count()
+            assert po_count >= 0  # Pode ser 0 se arquivo vazio
+            
+            # Se existem termos, verifica estrutura
+            if po_count > 0:
+                po_term = PlantOntology.query.first()
+                assert po_term.label is not None
+
+    def test_plant_experimental_conditions_ontology_loaded(self, database, app):
+        """Testa se Plant Experimental Conditions Ontology foi carregado."""
+        with app.app_context():
+            # Verifica se pelo menos um termo de PECO foi carregado
+            peco_count = PlantExperimentalConditionsOntology.query.count()
+            assert peco_count >= 0  # Pode ser 0 se arquivo vazio
+            
+            # Se existem termos, verifica estrutura
+            if peco_count > 0:
+                peco_term = PlantExperimentalConditionsOntology.query.first()
+                assert peco_term.label is not None

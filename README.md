@@ -59,22 +59,10 @@ rm CoNekT/.gitignore
 Next steps:
 
  * [Build the database](CoNekT/docs/source/conekt_grasses_mariadb.md)
+ * [Alembic Migration Guide](CoNekT/docs/source/migrations.md).
  * [Running tests](CoNekT/docs/source/run_tests.md)
 
-## Database Migrations with Alembic
-
-CoNekT Grasses uses Alembic for database schema versioning and migrations. Alembic allows you to track changes to the database structure over time and apply them consistently across different environments.
-
-For detailed information on creating and applying migrations, see the [Alembic Migration Guide](https://github.com/Lab-LBMM/projetos_desenvolvimento_web/blob/main/Docs/MIGRATIONS.md).
-
-## Testing with Pytest
-
-The project uses pytest as the testing framework with comprehensive integration tests for all major features. Tests are organized to cover website routes, data loading functions, and model operations.
-
-For complete instructions on running tests, creating new tests, and understanding the testing structure, see the [Pytest Guide](https://github.com/Lab-LBMM/projetos_desenvolvimento_web/blob/main/Docs/PYTEST.md).
-
 ## Building documentation with Sphinx
-
 
 Documentation can be generated using Sphinx.
 
