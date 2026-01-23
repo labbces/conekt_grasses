@@ -17,7 +17,7 @@ from sqlalchemy import and_
 
 from collections import defaultdict
 
-SQL_COLLATION = 'NOCASE' if db.engine.name == 'sqlite' else ''
+SQL_COLLATION = None
 
 
 class ExpressionNetworkMethod(db.Model):

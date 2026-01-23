@@ -1,7 +1,7 @@
 from conekt import db, whooshee
 
 
-SQL_COLLATION = 'NOCASE' if db.engine.name == 'sqlite' else ''
+SQL_COLLATION = None
 
 
 @whooshee.register_model('name')

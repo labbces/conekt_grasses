@@ -1,0 +1,17 @@
+# Synthetic TE Class data for testing
+# Format: TE_Class_ID	Level1	Level2	Level3	Description
+TE_CLASS_001	Class I	LTR	Copia	Long Terminal Repeat retrotransposon - Copia family
+TE_CLASS_002	Class I	LTR	Gypsy	Long Terminal Repeat retrotransposon - Gypsy family
+TE_CLASS_003	Class I	LINE	L1	Long Interspersed Nuclear Element - L1 family
+TE_CLASS_004	Class I	SINE	Alu	Short Interspersed Nuclear Element - Alu family
+TE_CLASS_005	Class II	DNA	MULE	Mutator-like element transposon
+TE_CLASS_006	Class II	DNA	hAT	hAT transposon superfamily
+TE_CLASS_007	Class II	DNA	CACTA	CACTA transposon superfamily (En-Spm)
+TE_CLASS_008	Class I	LTR	Retrovirus	Endogenous retrovirus-like elements
+TE_CLASS_009	Class II	DNA	Helitron	Rolling-circle transposon
+TE_CLASS_010	Class I	LTR	TRIM	Terminal-repeat retrotransposons in miniature
+TE_CLASS_011	Class II	DNA	Mariner	Mariner/Tc1 transposon superfamily
+TE_CLASS_012	Class I	LINE	RTE	RTE-like non-LTR retrotransposon
+TE_CLASS_013	Class II	DNA	PIF-Harbinger	PIF-Harbinger transposon superfamily
+TE_CLASS_014	Class I	DIRS	DIRS	Dictyostelium intermediate repeat sequence
+TE_CLASS_015	Class II	DNA	MuDR	Mutator transposon superfamily

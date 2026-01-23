@@ -10,7 +10,7 @@ from flask import url_for
 from yattag import Doc, indent
 import newick
 
-SQL_COLLATION = 'NOCASE' if db.engine.name == 'sqlite' else ''
+SQL_COLLATION = None
 
 
 class TreeMethod(db.Model):

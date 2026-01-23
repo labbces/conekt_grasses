@@ -59,10 +59,10 @@ rm CoNekT/.gitignore
 Next steps:
 
  * [Build the database](CoNekT/docs/source/conekt_grasses_mariadb.md)
+ * [Alembic Migration Guide](CoNekT/docs/source/migrations.md).
  * [Running tests](CoNekT/docs/source/run_tests.md)
 
 ## Building documentation with Sphinx
-
 
 Documentation can be generated using Sphinx.
 

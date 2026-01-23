@@ -1,5 +1,5 @@
 from conekt import db
-from conekt.models.relationships import sequence_family, family_xref, family_interpro
+from conekt.models.relationships import sequence_family, family_xref, family_interpro, family_go
 from conekt.models.relationships.sequence_family import SequenceFamilyAssociation
 from conekt.models.relationships.sequence_sequence_ecc import SequenceSequenceECCAssociation
 from conekt.models.interpro import Interpro
@@ -8,7 +8,7 @@ from conekt.models.go import GO
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import or_
 
-SQL_COLLATION = 'NOCASE' if db.engine.name == 'sqlite' else ''
+SQL_COLLATION = None
 
 
 class GeneFamilyMethod(db.Model):
@@ -47,12 +47,14 @@ class GeneFamily(db.Model):
     sequences = db.relationship('Sequence', secondary=sequence_family, lazy='dynamic')
     trees = db.relationship('Tree', backref='family', lazy='dynamic')
 
-    interpro_domains = db.relationship('Interpro', secondary=family_interpro, lazy='dynamic')
+    interpro_annotations = db.relationship('Interpro', secondary=family_interpro, lazy='dynamic')
     xrefs = db.relationship('XRef', secondary=family_xref, lazy='dynamic')
+
+    go_annotations = db.relationship('GO', secondary=family_go, lazy='dynamic')
 
     # Other properties
     # go_annotations from .relationships.family_go FamilyGOAssociation
-    # interpro_annotations from .relationships.family_intpro FamilyInterproAssociation
+    # interpro_annotations from .relationships.family_interpro FamilyInterproAssociation
 
     def __init__(self, name):
         self.name = name
