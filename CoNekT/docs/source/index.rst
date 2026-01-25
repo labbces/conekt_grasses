@@ -6,6 +6,7 @@ Welcome to CoNekT Grasses's documentation!
    :caption: Contents:
 
    run_tests
+   pytest_guide
    connect_mysql
    building_conekt
    apache_wsgi
