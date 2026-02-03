@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Testes de funcionalidade do website CoNekT.
+CoNekT website functionality tests.
 
-Este módulo testa as rotas e funcionalidades principais do website,
-incluindo sequências, espécies, domínios InterPro, termos GO, famílias gênicas,
-perfis de expressão, redes de coexpressão, clusteres, clados e ECC.
+This module tests the main website routes and functionalities,
+including sequences, species, InterPro domains, GO terms, gene families,
+expression profiles, coexpression networks, clusters, clades and ECC.
 
-Migrado de unittest/flask-testing para pytest para melhor desempenho e manutenção.
+Migrated from unittest/flask-testing to pytest for better performance and maintenance.
 """
 import json
 import pytest
@@ -18,7 +18,7 @@ from conekt.controllers.help import __TOPICS as topics
 @pytest.mark.website
 @pytest.mark.db
 class TestWebsiteMainRoutes:
-    """Testes para rotas principais do website."""
+    """Tests for main website routes."""
 
     def test_main(self, client):
         """Testa página principal."""
@@ -55,7 +55,7 @@ class TestWebsiteMainRoutes:
 @pytest.mark.website
 @pytest.mark.db
 class TestSequenceRoutes:
-    """Testes para rotas associadas com Sequence."""
+    """Tests for routes associated with Sequence."""
 
     def test_sequence_redirect(self, client):
         """Testa redirecionamento de /sequence/."""
@@ -126,7 +126,7 @@ class TestSequenceRoutes:
 @pytest.mark.website
 @pytest.mark.db
 class TestSpeciesRoutes:
-    """Testes para rotas associadas com Species."""
+    """Tests for routes associated with Species."""
 
     def test_species_main_page(self, client):
         """Testa página principal de espécies."""
@@ -199,7 +199,7 @@ class TestSpeciesRoutes:
 @pytest.mark.website
 @pytest.mark.db
 class TestInterProRoutes:
-    """Testes para rotas associadas com InterPro domain."""
+    """Tests for routes associated with InterPro domain."""
 
     def test_interpro_redirect(self, client):
         """Testa redirecionamento de /interpro/."""
@@ -249,7 +249,7 @@ class TestInterProRoutes:
 @pytest.mark.website
 @pytest.mark.db
 class TestGORoutes:
-    """Testes para rotas associadas com GO label."""
+    """Tests for routes associated with GO label."""
 
     def test_go_redirect(self, client):
         """Testa redirecionamento de /go/."""
@@ -315,7 +315,7 @@ class TestGORoutes:
 @pytest.mark.website
 @pytest.mark.db
 class TestGeneFamily:
-    """Testes para rotas associadas com GeneFamily."""
+    """Tests for routes associated with GeneFamily."""
 
     def test_family_redirect(self, client):
         """Testa redirecionamento de /family/."""
@@ -363,7 +363,7 @@ class TestGeneFamily:
 @pytest.mark.website
 @pytest.mark.db
 class TestExpressionProfile:
-    """Testes para rotas associadas com ExpressionProfile."""
+    """Tests for routes associated with ExpressionProfile."""
 
     def test_profile_redirect(self, client):
         """Testa redirecionamento de /profile/."""
@@ -402,7 +402,7 @@ class TestExpressionProfile:
         response = client.get(f"/profile/compare/{profile.id}/{profile.id}")
         assert response.status_code == 200
 
-    @pytest.mark.skipif(True, reason="Requer URL encoding específico de probe")
+    @pytest.mark.skipif(True, reason="Requires specific probe URL encoding")
     def test_profile_compare_probes(self, client, full_test_data):
         """Testa comparação de probes."""
         profile = full_test_data['profiles'][0]
@@ -433,7 +433,7 @@ class TestExpressionProfile:
         for dataset in data["data"]["datasets"]:
             assert "data" in dataset
 
-    @pytest.mark.skipif(True, reason="Requer estrutura de dados específica para comparação")
+    @pytest.mark.skipif(True, reason="Requires specific data structure for comparison")
     def test_profile_json_compare_plot(self, client, full_test_data):
         """Testa gráfico comparativo JSON."""
         profile = full_test_data['profiles'][0]
@@ -452,7 +452,7 @@ class TestExpressionProfile:
 @pytest.mark.unit
 @pytest.mark.website
 class TestHelpPages:
-    """Testes para páginas de ajuda."""
+    """Tests for help pages."""
 
     def test_help_topics(self, client):
         """Testa páginas de ajuda."""
@@ -470,7 +470,7 @@ class TestHelpPages:
 @pytest.mark.website
 @pytest.mark.db
 class TestSearch:
-    """Testes para funcionalidade de busca."""
+    """Tests for search functionality."""
 
     def test_search_keyword_sequence(self, client, full_test_data):
         """Testa busca por sequência."""
@@ -1092,7 +1092,7 @@ class TestCAZymeRoutes:
 # Helper functions
 
 def _assert_cytoscape_json(data, ecc_graph=False):
-    """Verifica se os dados estão no formato JSON esperado do Cytoscape."""
+    """Verifies if data is in expected Cytoscape JSON format."""
     assert "nodes" in data
     assert "edges" in data
 
