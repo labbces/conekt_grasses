@@ -17,7 +17,8 @@ __TOPICS = {"gene_family": "modals/help/gene_family.html",
             "hrr": "modals/help/hrr.html",
             "blast": "modals/help/blast.html",
             "pcc": "modals/help/pcc.html",
-            "lowabundance": "modals/help/low_abundance.html"}
+            "lowabundance": "modals/help/low_abundance.html",
+            "sequence_ontology": "modals/help/sequence_ontology.html"}
 
 __POPUPS = {"lowabundance": "tooltips/low_abundance.html"}
 

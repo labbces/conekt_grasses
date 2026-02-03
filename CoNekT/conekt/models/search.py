@@ -6,6 +6,7 @@ from conekt.models.gene_families import GeneFamily
 from conekt.models.go import GO
 from conekt.models.interpro import Interpro
 from conekt.models.cazyme import CAZYme
+from conekt.models.sequence_ontology import SequenceOntology
 from conekt.models.expression.coexpression_clusters import CoexpressionCluster
 from conekt.models.relationships.cluster_go import ClusterGOEnrichment
 from conekt.models.sequences import Sequence
@@ -45,11 +46,19 @@ class Search:
         interpro = Interpro.query.filter(or_(and_(*[Interpro.description.ilike("%"+term+"%") for term in terms]),
                                              Interpro.label.in_(terms))).limit(50).all()
 
+        so_terms = SequenceOntology.query.filter(
+            or_(and_(*[SequenceOntology.description.ilike("%"+term+"%") for term in terms]),
+                SequenceOntology.so_id.in_(terms),
+                and_(*[SequenceOntology.name.ilike("%"+term+"%") for term in terms])
+               )
+        ).limit(50).all()
+
         families = GeneFamily.query.filter(func.upper(GeneFamily.name).in_(terms)).limit(50).all()
         profiles = ExpressionProfile.query.filter(ExpressionProfile.probe.in_(terms)).limit(50).all()
 
         return {"go": go,
                 "interpro": interpro,
+                "so": so_terms,
                 "sequences": sequences,
                 "families": families,
                 "profiles": profiles}
@@ -75,6 +84,7 @@ class Search:
         go = GO.query.filter(GO.label.in_(terms)).all()
         interpro = Interpro.query.filter(Interpro.label.in_(terms)).all()
         cazyme = CAZYme.query.filter(CAZYme.family.in_(terms)).all()
+        so_terms = SequenceOntology.query.filter(SequenceOntology.so_id.in_(terms)).limit(50).all()
         
         families = GeneFamily.query.filter(func.upper(GeneFamily.name).in_(terms)).limit(50).all()
         profiles = ExpressionProfile.query.filter(ExpressionProfile.probe.in_(terms)).limit(50).all()
@@ -85,18 +95,20 @@ class Search:
         whooshee_search_terms = [t for t in re.sub('(\W|\d)+', ' ', term_string).split() if len(t) > 3]
         whooshee_search_string = ' '.join(whooshee_search_terms)
 
-        whooshee_sequences, whooshee_go, whooshee_interpro, whooshee_cazyme = [], [], [], []
+        whooshee_sequences, whooshee_go, whooshee_interpro, whooshee_cazyme, whooshee_so = [], [], [], [], []
 
-        if all([len(t) == 0 for t in [sequences, go, interpro, cazyme,families, profiles]]) and len(whooshee_search_string) > 3:
+        if all([len(t) == 0 for t in [sequences, go, interpro, cazyme, so_terms, families, profiles]]) and len(whooshee_search_string) > 3:
             # didn't find a term by ID, try description
             whooshee_go = GO.query.whooshee_search(whooshee_search_string, limit=50).all()
             whooshee_sequences = Sequence.query.whooshee_search(whooshee_search_string, limit=50).all()
             whooshee_interpro = Interpro.query.whooshee_search(whooshee_search_string, limit=50).all()
             whooshee_cazyme = CAZYme.query.whooshee_search(whooshee_search_string, limit=50).all()
+            whooshee_so = SequenceOntology.query.whooshee_search(whooshee_search_string, limit=50).all()
 
         return {"go": (go + whooshee_go)[:50],
                 "interpro": (interpro + whooshee_interpro)[:50],
                 "cazyme": (cazyme + whooshee_cazyme)[:50],
+                "so": (so_terms + whooshee_so)[:50],
                 "sequences": (sequences + whooshee_sequences)[:50],
                 "families": families,
                 "profiles": profiles}
@@ -127,12 +139,19 @@ class Search:
                                              CAZYme.family == keyword, 
                                              CAZYme.cazyme_class.ilike("%"+keyword+"%"))).limit(50).all()
 
+        so_terms = SequenceOntology.query.filter(
+            or_(SequenceOntology.description.ilike("%"+keyword+"%"),
+                SequenceOntology.name.ilike("%"+keyword+"%"),
+                SequenceOntology.so_id == keyword)
+        ).limit(50).all()
+
         families = GeneFamily.query.filter(GeneFamily.name == keyword).limit(50).all()
         profiles = ExpressionProfile.query.filter(ExpressionProfile.probe == keyword).limit(50).all()
 
         return {"go": go,
                 "interpro": interpro,
                 "cazyme": cazyme,
+                "so": so_terms,
                 "sequences": sequences,
                 "families": families,
                 "profiles": profiles}

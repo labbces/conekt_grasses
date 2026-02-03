@@ -36,7 +36,8 @@ def search_single_keyword(keyword):
     results = Search.whooshee_simple(keyword)
 
     # If the result is unique redirect to the corresponding page
-    if len(results["sequences"]) + len(results["go"]) + len(results["interpro"]) + len(results["families"]) + len(results["profiles"]) == 1:
+    so_count = len(results.get("so", []))
+    if len(results["sequences"]) + len(results["go"]) + len(results["interpro"]) + len(results["families"]) + len(results["profiles"]) + so_count == 1:
         if len(results["sequences"]) == 1:
             return redirect(url_for('sequence.sequence_view', sequence_id=results["sequences"][0].id))
         elif len(results["go"]) == 1:
@@ -47,13 +48,16 @@ def search_single_keyword(keyword):
             return redirect(url_for('family.family_view', family_id=results["families"][0].id))
         elif len(results["profiles"]) == 1:
             return redirect(url_for('expression_profile.expression_profile_view', profile_id=results["profiles"][0].id))
+        elif so_count == 1:
+            return redirect(url_for('sequence_ontology.sequence_ontology_view', so_id=results["so"][0].id))
 
     return render_template("search_results.html", keyword=keyword,
                            go=results["go"],
                            interpro=results["interpro"],
                            sequences=results["sequences"],
                            families=results["families"],
-                           profiles=results["profiles"])
+                           profiles=results["profiles"],
+                           so=results.get("so", []))
 
 
 @search.route('/', methods=['GET', 'POST'])

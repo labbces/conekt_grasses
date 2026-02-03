@@ -1,0 +1,45 @@
+{% if so_term %}
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+    <h4 class="modal-title">{{ so_term.name }} ({{ so_term.so_id }})</h4>
+</div>
+<div class="modal-body">
+    {% if so_term.description %}
+    <p><strong>Description:</strong> {{ so_term.description }}</p>
+    {% endif %}
+    
+    <p><strong>Namespace:</strong> {{ so_term.readable_namespace }}</p>
+    <p><strong>Sequences:</strong> {{ so_term.sequence_count }}</p>
+    
+    {% if so_term.alias_list %}
+    <p><strong>Synonyms:</strong> {{ so_term.alias_list | join(', ') }}</p>
+    {% endif %}
+    
+    {% if so_term.species_occurrence %}
+    <p><strong>Species:</strong> 
+        {% for species in so_term.species_occurrence %}
+            <span class="label label-info">{{ species }}</span>
+        {% endfor %}
+    </p>
+    {% endif %}
+</div>
+<div class="modal-footer">
+    <a href="{{ url_for('sequence_ontology.sequence_ontology_view', so_id=so_term.id) }}" class="btn btn-primary">View Details</a>
+    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+</div>
+{% else %}
+<div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+    <h4 class="modal-title">Sequence Ontology Term Not Found</h4>
+</div>
+<div class="modal-body">
+    <p>The requested sequence ontology term could not be found in the database.</p>
+</div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+</div>
+{% endif %}

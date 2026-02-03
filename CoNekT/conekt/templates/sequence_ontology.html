@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if so_term %}
+        {{ so_term.name }} details
+    {% else %}
+        Sequence Ontology term not found
+    {% endif %}
+{% endblock %}
+
+{% block container %}
+{% import 'macros/pagination.html' as macro %}
+{% import 'macros/ajax_table.html' as ajax %}
+<div class="top-pad">
+        <div class="sidebar-sequence" id="sidebar">
+            <p>Jump to ...</p>
+
+            <nav id="navbar-side">
+            <ul class="nav nav-pills nav-stacked" data-spy="affix">
+              <li><a href="#phylo_profile">Profile</a></li>
+              <li><a href="#te_classes">TE Classes</a></li>
+              <li><a href="#transposable_elements">Sequences</a></li>
+              <li><a href="#associated_things">Annotation</a></li>
+              <li><a href="#links">Links</a></li>
+            </ul>
+            </nav>
+        </div>
+    {% if so_term %}
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+        <li><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='sequence_ontology') }}" data-target="#helpModal">Sequence Ontology</abbr></li>
+        <li class="active"><strong>{{ so_term.name }}</strong></li>
+    </ol>
+
+    <h1><strong>{{ so_term.name }}</strong> <small>({{ so_term.so_id }})</small></h1>
+
+    <p>View comparative expression as heatmap: <a href="#" class="text-muted">raw</a> <span class="text-muted">| <a href="#" class="text-muted">row-normalized</a></span></p>
+
+    <p>Trees:
+    <span class="text-muted">No tree available</span>
+    </p>
+    {% if so_term.namespace %}
+    <p>Namespace: <strong>{{ so_term.readable_namespace }}</strong></p>
+    {% endif %}
+
+    <br />
+    <div class="row" id="phylo_profile">
+        <div class="col-lg-12 col-md-12 col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-heading"><strong>Species Distribution</strong></div>
+                <div class="panel-body">
+                    <p>There are <strong>{{ so_term.te_class_count }}</strong> TE classes with this sequence ontology term.</p>
+                    <p>Distribution of transposable elements with this sequence ontology across species:</p>
+                    {% if so_term.te_class_count > 0 %}
+                    <div id="canvas-holder" class="center-block" style="height:300px;max-height:300px">
+                        <div id="chart-loader"></div>
+                        <canvas id="chart-area" class="center-block" width="300" height="300" style="display:none"/>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="row" id="te_classes">
+        <div class="col-sm-12">
+            <div class="panel panel-primary">
+                <div class="panel-heading"><strong>TE Classes <span class="badge">{{ so_term.te_class_count }}</span></strong></div>
+                <div class="panel-body">
+                    {% if so_term.te_classes.count() > 0 %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>TE Class Name</th>
+                                    <th>Level 1</th>
+                                    <th>Level 2</th>
+                                    <th>Level 3</th>
+                                    <th>Sequences</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for te_class in so_term.te_classes.all() %}
+                                <tr>
+                                    <td><a href="{{ url_for('te_class.te_class_view', te_class_id=te_class.id) }}">{{ te_class.name }}</a></td>
+                                    <td>{{ te_class.level1 if te_class.level1 else '-' }}</td>
+                                    <td>{{ te_class.level2 if te_class.level2 else '-' }}</td>
+                                    <td>{{ te_class.level3 if te_class.level3 else '-' }}</td>
+                                    <td>{{ te_class.sequences.count() }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No TE classes associated with this SO term.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="transposable_elements">
+        {{ macro.pagination(
+            'Transposable Elements',
+            url_for('sequence_ontology.sequence_ontology_sequences', so_id=so_term.id),
+            so_term.sequence_count,
+            url_for('sequence_ontology.sequence_ontology_sequences_table', so_id=so_term.id),
+            'seq'
+        ) }}
+    </div>
+
+    <div class="row">
+    <div class="col-lg-12 col-md-12 col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-heading" id="links">External Links</div>
+                <div class="table-responsive">
+                    <table class="table table-striped table-separated">
+                        <tbody>
+                            <tr>
+                                <td><strong>Sequence Ontology Browser</strong></td>
+                                <td>
+                                    <a href="http://www.sequenceontology.org/browser/current_release/term/{{ so_term.so_id }}" target="_blank">{{ so_term.so_id }} <i class="fa fa-external-link"></i></a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row" id="associated_things">
+        <div class="col-lg-12">
+            <div class="panel panel-primary">
+                <div class="panel-heading"><strong>Annotation</strong></div>
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-sm-4">
+                            <strong>SO ID:</strong> {{ so_term.so_id }}<br />
+                            <strong>Namespace:</strong> {{ so_term.namespace }}<br />
+                            <strong>Database ID:</strong> {{ so_term.id }}<br />
+                            <strong>TE Classes:</strong> {{ so_term.te_class_count }}<br />
+                            <strong>Total Sequences:</strong> {{ so_term.sequence_count }}<br />
+                            <strong>Species Count:</strong> {{ te_class_stats.species_count if te_class_stats else 0 }}<br />
+                        </div>
+                        <div class="col-sm-8">
+                            {% if so_term.description %}
+                            <strong>Definition:</strong> {{ so_term.description }}<br />
+                            {% endif %}
+                            {% if so_term.alias_list %}
+                            <strong>Alternative Names:</strong>
+                            {% for alias in so_term.alias_list %}
+                                <span class="label label-default">{{ alias }}</span>
+                            {% endfor %}
+                            <br />
+                            {% endif %}
+                            {% if so_term.species_occurrence %}
+                            <strong>Species:</strong>
+                            {% for species in so_term.species_occurrence %}
+                                <span class="label label-info">{{ species }}</span>
+                            {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="top-pad">
+
+        <ol class="breadcrumb">
+            <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+            <li><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='sequence_ontology') }}" data-target="#helpModal">Sequence Ontology</abbr></li>
+            <li class="active"><strong>Term Not Found</strong></li>
+        </ol>
+        <div class="row">
+            <div class="col-md-12">
+            <div class="panel panel-danger">
+                <div class="panel-heading"><strong>No SO term found</strong></div>
+                <div class="panel-body">
+                    <p><strong>Sorry, the selected sequence ontology term could not be found in the database.</strong></p>
+                    <p>Use the search box on the left or browse by clicking the example below</p>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+</div>
+{% endblock %}
+
+{% block extrajs %}
+    {% if so_term.te_class_count > 0 %}
+    <script src="{{ url_for('static', filename='js/Chart.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/hammer.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chartjs-plugin-zoom.min.js') }}"></script>
+	<script>
+	{% import "macros/chartjs.html" as chartjs %}
+
+	{{ chartjs.pie_chart_loader("chart-area", url_for('sequence_ontology.sequence_ontology_json', so_id=so_term.id), "chart-loader") }}
+	</script>
+    {% endif %}
+{% endblock %}

@@ -5,6 +5,7 @@
 				<tr>
 					<td><a href="{{ url_for('sequence.sequence_view', sequence_id=sequence.id) }}" class="qtip_tooltip qtip_dynamic_tooltip" qtip_href="{{ url_for('sequence.sequence_tooltip', sequence_id=sequence.id) }}">{{ sequence.name }}</a></td>
 					<td>{% if sequence.te_classes.first() %}<a href="{{ url_for('te_class.te_class_view', te_class_id=sequence.te_classes.first().id) }}">{{ sequence.te_classes.first().name }}</a>{% else %}<span class="text-muted">No class information available</span>{% endif %}</td>
+					<td>{% if sequence.te_classes.first() and sequence.te_classes.first().sequence_ontology %}<a href="{{ url_for('sequence_ontology.sequence_ontology_view', so_id=sequence.te_classes.first().sequence_ontology.id) }}">{{ sequence.te_classes.first().sequence_ontology.so_id}}</a>{% else %}<span class="text-muted">No sequence ontology available</span>{% endif %}</td>
 					<td>{% if sequence.tedistills.first() %}<a href="{{ url_for('tedistill.tedistill_view', tedistill_id=sequence.tedistills.first().id) }}">{{ sequence.tedistills.first().name }}</a>{% else %}<span class="text-muted">No consense sequence available</span>{% endif %}</td>
 					<td><a href="{{ url_for('species.species_view', species_id=sequence.species_id) }}"><em>{{ sequence.species.name }}</em></a></td>
 					<td>{% if sequence.description %}{{ sequence.description|truncate(60) }}{% else %}<span class="text-muted">No description available</span>{% endif %}</td>
@@ -12,7 +13,7 @@
 				</tr>
             {% else %}
                 <tr>
-                    <td colspan="5"><em>No transposable elements associated with this term</em></td>
+                    <td colspan="6"><em>No transposable elements associated with this term</em></td>
                 </tr>
             {% endfor %}
         </tbody>

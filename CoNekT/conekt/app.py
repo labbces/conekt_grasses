@@ -107,6 +107,7 @@ def configure_blueprints(app):
     from conekt.controllers.specificity_comparison import specificity_comparison
     from conekt.controllers.tree import tree
     from conekt.controllers.literature import literature
+    from conekt.controllers.sequence_ontology import sequence_ontology
 
     BLAST_ENABLED = app.config['BLAST_ENABLED']
 
@@ -138,6 +139,7 @@ def configure_blueprints(app):
     app.register_blueprint(ecc, url_prefix='/ecc')
     app.register_blueprint(specificity_comparison, url_prefix='/specificity_comparison')
     app.register_blueprint(tree, url_prefix='/tree')
+    app.register_blueprint(sequence_ontology, url_prefix='/so')
 
 
 def configure_hooks(app):

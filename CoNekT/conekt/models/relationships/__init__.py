@@ -24,6 +24,12 @@ sequence_interpro = db.Table('sequence_interpro',
                              db.Column('interpro_id', db.Integer, db.ForeignKey('interpro.id'), index=True),
                              )
 
+te_class_so = db.Table('te_class_so',
+                       db.Column('id', db.Integer, primary_key=True),
+                       db.Column('te_class_id', db.Integer, db.ForeignKey('te_classes.id'), index=True),
+                       db.Column('sequence_ontology_id', db.Integer, db.ForeignKey('sequence_ontologies.id'), index=True)
+                       )
+
 sequence_cazyme = db.Table('sequence_cazyme',
                             db.Column('id', db.Integer, primary_key=True),
                             db.Column('sequence_id', db.Integer, db.ForeignKey('sequences.id'), index=True),

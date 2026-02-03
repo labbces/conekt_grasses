@@ -1,5 +1,5 @@
 from conekt import db
-from conekt.models.relationships import sequence_te_class, te_class_xref, tedistill_te_class
+from conekt.models.relationships import sequence_te_class, te_class_xref, tedistill_te_class, te_class_so
 from conekt.models.relationships.sequence_te_class import SequenceTEClassAssociation
 from conekt.models.relationships.sequence_sequence_ecc import SequenceSequenceECCAssociation
 from conekt.models.sequences import Sequence
@@ -13,7 +13,7 @@ from collections import defaultdict, Counter
 from sqlalchemy.orm import joinedload, load_only
 from sqlalchemy.sql import or_, and_
 
-SQL_COLLATION = 'NOCASE' if db.engine.name == 'sqlite' else ''
+SQL_COLLATION = None
 
 
 class TEClassMethod(db.Model):
@@ -100,6 +100,7 @@ class TEClass(db.Model):
     sequences = db.relationship('Sequence', secondary=sequence_te_class, lazy='dynamic')
     tedistills = db.relationship('TEdistill', secondary=tedistill_te_class, lazy='dynamic')
     trees = db.relationship('Tree', backref='te_class', lazy='dynamic')
+    sequence_ontology_terms = db.relationship('SequenceOntology', secondary=te_class_so, lazy='dynamic')
 
     xrefs = db.relationship('XRef', secondary=te_class_xref, lazy='dynamic')
 
@@ -122,6 +123,14 @@ class TEClass(db.Model):
                 output.append(s.species.code)
 
         return output
+
+    @property
+    def sequence_ontology(self):
+        """
+        Returns the first sequence ontology term associated with this TE class
+        :return: SequenceOntology object or None
+        """
+        return self.sequence_ontology_terms.first()
 
     @property
     def species_counts(self):

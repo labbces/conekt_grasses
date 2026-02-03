@@ -99,6 +99,25 @@
     </div>
     {% endif %}
 
+    {% if so %}
+    <div class="col-md-4 col-sm-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">Found <strong>{{ so|length }}</strong> Sequence Ontology terms</div>
+            <div class="panel-scroll">
+             <div class="table-responsive">
+                <table class="table">
+                    <tbody>
+                        {% for s in so %}
+                            <tr><td><a href="{{ url_for('sequence_ontology.sequence_ontology_view', so_id=s.id)}}">{{ s.so_id }}</a>: {{ s.name }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+             </div>
+             </div>
+        </div>
+    </div>
+    {% endif %}
+
     {% if cazyme %}
     <div class="col-md-4 col-sm-12">
         <div class="panel panel-default">
