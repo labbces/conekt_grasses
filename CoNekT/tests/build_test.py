@@ -55,15 +55,15 @@ class TestBuildFunctions:
                 Sequence.add_from_fasta(os.path.join(test_dir, "test.rna.fasta"), s.id, sequence_type='RNA')
                 Sequence.add_descriptions(os.path.join(test_dir, "test.descriptions.txt"), s.id)
             except Exception as e:
-                pytest.skip(f"Não foi possível carregar sequências: {e}")
+                pytest.skip(f"Could not load sequences: {e}")
 
-            # Carrega referências cruzadas
+            # Load cross-references
             try:
                 XRef.add_xref_genes_from_file(s.id, os.path.join(test_dir, "test.xref.txt"))
             except Exception as e:
-                print(f"Aviso: Não foi possível carregar xrefs: {e}")
+                print(f"Warning: Could not load xrefs: {e}")
 
-            # Carrega Gene Ontology
+            # Load Gene Ontology
             try:
                 GO.add_from_obo(os.path.join(test_dir, "test_go.obo"))
                 GO.add_go_from_tab(
@@ -72,16 +72,16 @@ class TestBuildFunctions:
                     source="Fake UnitTest Data",
                 )
             except Exception as e:
-                print(f"Aviso: Não foi possível carregar GO: {e}")
+                print(f"Warning: Could not load GO: {e}")
 
-            # Carrega Plant Ontology
+            # Load Plant Ontology
             try:
                 PlantOntology.add_tabular_po(
                     os.path.join(test_dir, "test_plant_ontology.txt"),
                     s.id
                 )
             except Exception as e:
-                print(f"Aviso: Não foi possível carregar Plant Ontology: {e}")
+                print(f"Warning: Could not load Plant Ontology: {e}")
 
             # Carrega Plant Experimental Conditions Ontology
             try:
@@ -90,9 +90,9 @@ class TestBuildFunctions:
                     s.id
                 )
             except Exception as e:
-                print(f"Aviso: Não foi possível carregar PECO: {e}")
+                print(f"Warning: Could not load Plant Experimental Conditions Ontology: {e}")
 
-            # Carrega InterPro
+            # Load InterPro
             try:
                 Interpro.add_from_xml(os.path.join(test_dir, "test_interpro.xml"))
                 Interpro.add_interpro_from_interproscan(
@@ -100,9 +100,9 @@ class TestBuildFunctions:
                     s.id
                 )
             except Exception as e:
-                print(f"Aviso: Não foi possível carregar InterPro: {e}")
+                print(f"Warning: Could not load InterPro: {e}")
 
-            # Carrega perfis de expressão
+            # Load expression profiles
             try:
                 ExpressionProfile.add_profile_from_lstrap(
                     os.path.join(test_dir, "expression/test.tpm.matrix.txt"),
@@ -111,9 +111,9 @@ class TestBuildFunctions:
                     order_color_file=os.path.join(test_dir, "expression/test.expression_order_color.txt"),
                 )
             except Exception as e:
-                print(f"Aviso: Não foi possível carregar perfis de expressão: {e}")
+                print(f"Warning: Could not load expression profiles: {e}")
 
-            # Carrega rede de expressão
+            # Load expression network
             try:
                 ExpressionNetwork.read_expression_network_lstrap(
                     os.path.join(test_dir, "expression/test.pcc.txt"),
@@ -123,7 +123,7 @@ class TestBuildFunctions:
 
                 test_network = ExpressionNetworkMethod.query.first()
 
-                # Carrega clusters de coexpressão
+                # Load coexpression clusters
                 if test_network:
                     CoexpressionClusteringMethod.add_lstrap_coexpression_clusters(
                         os.path.join(test_dir, "expression/test.mcl_clusters.txt"),
@@ -132,16 +132,16 @@ class TestBuildFunctions:
                         min_size=1,
                     )
 
-                    # Calcula especificidade
+                    # Calculate specificity
                     ExpressionSpecificityMethod.calculate_specificities(
                         s.id,
                         s.name + " condition specific profiles",
                         False
                     )
             except Exception as e:
-                print(f"Aviso: Não foi possível carregar redes de expressão: {e}")
+                print(f"Warning: Could not load expression networks: {e}")
 
-            # Carrega famílias gênicas
+            # Load gene families
             try:
                 GeneFamily.add_families_from_mcl(
                     os.path.join(test_dir, "comparative_data/test.families.mcl.txt"),
@@ -150,19 +150,19 @@ class TestBuildFunctions:
 
                 GeneFamilyMethod.update_count()
             except Exception as e:
-                print(f"Aviso: Não foi possível carregar famílias gênicas: {e}")
+                print(f"Warning: Could not load gene families: {e}")
 
-            # Carrega clados
+            # Load clades
             try:
                 Clade.add_clades_from_json({"test species": {"species": ["tst"], "tree": None}})
                 Clade.update_clades()
                 Clade.update_clades_interpro()
             except Exception as e:
-                print(f"Aviso: Não foi possível carregar clados: {e}")
+                print(f"Warning: Could not load clades: {e}")
 
-            # Carrega TEs
+            # Load TEs
             try:
-                # Primeiro cria o método de classificação de TE
+				# First create the TE classification method
                 te_method = TEClassMethod('RepeatMasker')
                 database.session.add(te_method)
                 database.session.commit()
@@ -174,11 +174,11 @@ class TestBuildFunctions:
                     s.id
                 )
             except Exception as e:
-                print(f"Aviso: Não foi possível carregar TE classes: {e}")
+                print(f"Warning: Could not load TE classes: {e}")
 
-            # Carrega TEdistills
+            # Load TEdistills
             try:
-                # Primeiro cria o método de TEdistill
+                # First create the TEdistill method
                 tedistill_method = TEdistillMethod('TEDistill_v1')
                 database.session.add(tedistill_method)
                 database.session.commit()
@@ -190,7 +190,7 @@ class TestBuildFunctions:
                     s.id
                 )
             except Exception as e:
-                print(f"Aviso: Não foi possível carregar TEdistills: {e}")
+                print(f"Warning: Could not load TEdistills: {e}")
 
             database.session.commit()
 
@@ -247,9 +247,9 @@ class TestBuildFunctions:
             network_count = ExpressionNetwork.query.count()
             assert network_count >= 0  # May be 0 if file is empty
 
-    @pytest.mark.skipif(True, reason="Requer dados de rede de expressão processados")
+    @pytest.mark.skipif(True, reason="Requires processed expression network data")
     def test_coexpression_clusters_loaded(self, database, app):
-        """Testa se clusters de coexpressão foram carregados."""
+        """Tests if coexpression clusters were loaded."""
         with app.app_context():
             test_sequence = Sequence.query.filter_by(name="Gene01", type='protein_coding').first()
             test_cluster = test_sequence.coexpression_clusters.first()
@@ -259,9 +259,9 @@ class TestBuildFunctions:
             cluster_sequence = test_cluster.sequences.filter_by(name="Gene01").first()
             assert cluster_sequence is not None
 
-    @pytest.mark.skipif(True, reason="Requer perfis de expressão completos")
+    @pytest.mark.skipif(True, reason="Requires complete expression profiles")
     def test_specificity_calculated(self, database, app):
-        """Testa se especificidade foi calculada."""
+        """Tests if specificity was calculated."""
         with app.app_context():
             test_sequence = Sequence.query.filter_by(name="Gene01", type='protein_coding').first()
             test_profile = test_sequence.expression_profiles.first()
@@ -269,9 +269,9 @@ class TestBuildFunctions:
             
             assert specificity is not None
             assert specificity.condition == "Tissue 03"
-            assert abs(specificity.score - 0.62) < 0.01  # Aproximadamente 0.62
-            assert abs(specificity.entropy - 1.58) < 0.01  # Aproximadamente 1.58
-            assert abs(specificity.tau - 0.11) < 0.01  # Aproximadamente 0.11
+            assert abs(specificity.score - 0.62) < 0.01  # Approximately 0.62
+            assert abs(specificity.entropy - 1.58) < 0.01  # Approximately 1.58
+            assert abs(specificity.tau - 0.11) < 0.01  # Approximately 0.11
 
     def test_gene_families_loaded(self, database, app):
         """Tests if gene families were loaded."""

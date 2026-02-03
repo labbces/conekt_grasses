@@ -606,7 +606,7 @@ class TestSearch:
 @pytest.mark.blast
 @pytest.mark.website
 class TestBLAST:
-    """Testes para funcionalidade BLAST."""
+    """Tests for BLAST functionality."""
 
     def test_blast_page(self, client):
         """Testa página BLAST."""
@@ -631,7 +631,7 @@ class TestBLAST:
 @pytest.mark.website
 @pytest.mark.db
 class TestHeatmap:
-    """Testes para funcionalidade de heatmap."""
+    """Tests for heatmap functionality."""
 
     def test_heatmap_page(self, client):
         """Testa página de heatmap."""
@@ -678,7 +678,7 @@ class TestHeatmap:
 @pytest.mark.website
 @pytest.mark.db
 class TestProfileComparison:
-    """Testes para comparação de perfis de expressão."""
+    """Tests for expression profile comparison."""
 
     def test_profile_comparison_page(self, client):
         """Testa página de comparação de perfis."""
@@ -729,7 +729,7 @@ class TestProfileComparison:
 @pytest.mark.website
 @pytest.mark.db
 class TestExpressionNetwork:
-    """Testes para redes de expressão."""
+    """Tests for expression networks."""
 
     def test_network_page(self, client):
         """Testa página de rede de expressão."""
@@ -763,7 +763,7 @@ class TestExpressionNetwork:
 @pytest.mark.website
 @pytest.mark.db
 class TestCoexpressionCluster:
-    """Testes para clusteres de coexpressão."""
+    """Tests for coexpression clusters."""
 
     def test_cluster_page(self, client):
         """Testa página de cluster."""
@@ -814,7 +814,7 @@ class TestCoexpressionCluster:
 @pytest.mark.website
 @pytest.mark.db
 class TestGraphComparison:
-    """Testes para comparação de gráficos."""
+    """Tests for graph comparison."""
 
     def test_graph_comparison_cluster(self, client, full_test_data):
         """Testa comparação de gráficos de cluster."""
@@ -842,7 +842,7 @@ class TestGraphComparison:
 @pytest.mark.website
 @pytest.mark.db
 class TestClades:
-    """Testes para funcionalidades de clados."""
+    """Tests for clade functionalities."""
 
     def test_clade_redirect(self, client):
         """Testa redirecionamento de /clade/."""
@@ -888,7 +888,7 @@ class TestClades:
 @pytest.mark.website
 @pytest.mark.db
 class TestECC:
-    """Testes para Expression vs Coexpression Clusters (ECC)."""
+    """Tests for Expression vs Coexpression Clusters (ECC)."""
 
     def test_ecc_redirect(self, client):
         """Testa redirecionamento de /ecc/."""
@@ -919,7 +919,7 @@ class TestECC:
 @pytest.mark.website
 @pytest.mark.db
 class TestSpecificitySearch:
-    """Testes para busca de perfis de especificidade."""
+    """Tests for specificity profile search."""
 
     def test_specificity_search_page(self, client):
         """Testa página de busca de especificidade."""
@@ -947,7 +947,7 @@ class TestSpecificitySearch:
 @pytest.mark.website
 @pytest.mark.db
 class TestTEClassRoutes:
-    """Testes para rotas de TEClass (TE Classes)."""
+    """Tests for TEClass routes (TE Classes)."""
 
     def test_te_class_overview_redirect(self, client):
         """Testa redirecionamento da overview de TE classes."""
@@ -997,7 +997,7 @@ class TestTEClassRoutes:
 @pytest.mark.website
 @pytest.mark.db
 class TestTEdistillRoutes:
-    """Testes para rotas de TEdistill (TE Distills)."""
+    """Tests for TEdistill routes (TE Distills)."""
 
     def test_tedistill_overview_redirect(self, client):
         """Testa redirecionamento da overview de TEdistills."""
@@ -1047,14 +1047,14 @@ class TestTEdistillRoutes:
 @pytest.mark.website
 @pytest.mark.db
 class TestCAZymeRoutes:
-    """Testes para rotas de CAZyme."""
+    """Tests for CAZyme routes."""
 
     def test_cazyme_overview_redirect(self, client):
         """Testa redirecionamento da overview de CAZymes."""
         response = client.get("/cazyme/")
         assert response.status_code == 302
 
-    @pytest.mark.skipif(True, reason="Bug no controller: rota usa <cazyme_label> mas função espera cazyme_family")
+    @pytest.mark.skipif(True, reason="Bug in controller: route uses <cazyme_label> but function expects cazyme_family")
     def test_cazyme_redirect(self, client, test_cazyme):
         """Testa redirecionamento de find para view."""
         response = client.get(f"/cazyme/find/{test_cazyme.family}")

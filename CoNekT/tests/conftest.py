@@ -64,14 +64,14 @@ def _db(app):
     This fixture is created once per test session.
     """
     with app.app_context():
-        # Remove todas as tabelas antigas
+        # Remove all old tables
         db.session.remove()
         db.drop_all()
         
-        # Cria todas as tabelas
+        # Create all tables
         db.create_all()
         yield db
-        # Remove todas as tabelas após os testes
+        # Remove all tables after tests
         db.session.remove()
         db.drop_all()
 
@@ -86,7 +86,7 @@ def database(app, _db):
     with app.app_context():
         yield _db
         
-        # Limpa a sessão após cada teste
+        # Clean session after each test
         _db.session.rollback()
         for table in reversed(_db.metadata.sorted_tables):
             try:
@@ -329,7 +329,7 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
     database.session.add_all([te_class1, te_class2])
     database.session.commit()
     
-    # Associa TEs às classes
+    # Associate TEs with classes
     te_assoc1 = SequenceTEClassAssociation()
     te_assoc1.sequence_id = test_te_sequence.id
     te_assoc1.te_class_id = te_class1.id
@@ -341,7 +341,7 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
     database.session.add_all([te_assoc1, te_assoc2])
     database.session.commit()
     
-    # Cria método e TEdistills
+    # Create method and TEdistills
     tedistill_method = TEdistillMethod('test_tedistill_method')
     database.session.add(tedistill_method)
     database.session.commit()
@@ -359,7 +359,7 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
     database.session.add_all([tedistill1, tedistill2])
     database.session.commit()
     
-    # Associa sequências aos TEdistills
+    # Associate sequences with TEdistills
     ted_assoc1 = SequenceTEdistillAssociation()
     ted_assoc1.sequence_id = test_te_sequence.id
     ted_assoc1.tedistill_id = tedistill1.id
@@ -371,12 +371,12 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
     database.session.add_all([ted_assoc1, ted_assoc2])
     database.session.commit()
     
-    # Associa TEdistills a TEClasses
+    # Associate TEdistills with TEClasses
     tedistill1.te_classes.append(te_class1)
     tedistill2.te_classes.append(te_class2)
     database.session.commit()
     
-    # Cria perfis de expressão
+    # Create expression profiles
     profile_data = json.dumps({
         "data": {
             "tpm": {
@@ -438,7 +438,7 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
     database.session.add_all([test_profile, test_profile2])
     database.session.commit()
     
-    # Cria método de rede de expressão
+    # Create expression network method
     network_method = ExpressionNetworkMethod(
         test_species.id,
         'Test network method'
@@ -449,7 +449,7 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
     database.session.add(network_method)
     database.session.commit()
     
-    # Cria redes de expressão
+    # Create expression networks
     test_network = ExpressionNetwork(
         test_profile.probe,
         test_sequence.id,
@@ -467,21 +467,21 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
     database.session.add_all([test_network, test_network2])
     database.session.commit()
     
-    # Cria método de clustering
+    # Create clustering method
     cluster_method = CoexpressionClusteringMethod()
     cluster_method.network_method_id = network_method.id
     cluster_method.method = 'test clustering method'
     database.session.add(cluster_method)
     database.session.commit()
     
-    # Cria cluster
+    # Create cluster
     cluster = CoexpressionCluster()
     cluster.method_id = cluster_method.id
     cluster.name = 'TEST_COEXP_CLUSTER'
     database.session.add(cluster)
     database.session.commit()
     
-    # Associa sequências ao cluster
+    # Associate sequences with cluster
     assoc1 = SequenceCoexpressionClusterAssociation()
     assoc1.probe = test_profile.probe
     assoc1.sequence_id = test_sequence.id
@@ -495,7 +495,7 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
     database.session.add_all([assoc1, assoc2])
     database.session.commit()
     
-    # Cria clade
+    # Create clade
     clade = Clade('test', ['tst'], '(test:0.01);')
     database.session.add(clade)
     database.session.commit()
@@ -504,7 +504,7 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
     clade.interpro.append(test_interpro)
     database.session.commit()
     
-    # Cria ECC
+    # Create ECC
     ecc = SequenceSequenceECCAssociation()
     ecc.query_id = test_sequence.id
     ecc.target_id = test_sequence2.id
@@ -517,22 +517,22 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
     database.session.add(ecc)
     database.session.commit()
     
-    # Calcula especificidade (requer dados mais complexos)
+    # Calculate specificity (requires more complex data)
     # ExpressionSpecificityMethod.calculate_specificities(
     #     test_species.id,
     #     'Specificity description'
     # )
     
-    # Atualiza contadores
+    # Update counters
     test_species.update_counts()
     
-    # Cria CAZyme
+    # Create CAZyme
     cazyme = CAZYme('GH1', 'Glycoside Hydrolase', 'beta-glucosidase')
     cazyme.description = 'Test CAZyme family GH1'
     database.session.add(cazyme)
     database.session.commit()
     
-    # Associa sequências ao CAZyme
+    # Associate sequences with CAZyme
     cazyme_assoc1 = SequenceCAZYmeAssociation(
         sequence_id=test_sequence.id,
         cazyme_id=cazyme.id,
@@ -580,9 +580,9 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
 @pytest.fixture
 def authenticated_client(client, admin_user):
     """
-    Fornece um cliente autenticado como administrador.
+    Provides an authenticated client as administrator.
     
-    Útil para testar rotas que requerem autenticação.
+    Useful for testing routes that require authentication.
     """
     with client.session_transaction() as sess:
         sess['user_id'] = admin_user.id
@@ -619,10 +619,10 @@ def pytest_collection_modifyitems(config, items):
     skip_blast = pytest.mark.skip(reason="BLAST is not enabled")
     
     for item in items:
-        # Pula testes que requerem LOGIN se não estiver habilitado
+        # Skip tests that require LOGIN if it is not enabled
         if "login_required" in item.keywords and not LOGIN_ENABLED:
             item.add_marker(skip_login)
         
-        # Pula testes que requerem BLAST se não estiver habilitado
+        # Skip tests that require BLAST if it is not enabled
         if "blast" in item.keywords and not BLAST_ENABLED:
             item.add_marker(skip_blast)
