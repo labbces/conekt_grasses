@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Testes para funções de carregamento de dados no CoNekT.
+Tests for data loading functions in CoNekT.
 
-Verifica se as funções de build funcionam como esperado:
-- Carregamento de sequências, descrições, anotações
-- Carregamento de ontologias (PO, PECO)
-- Carregamento de GO, InterPro, Famílias
-- Geração de perfis de expressão e redes
+Verifies that build functions work as expected:
+- Loading sequences, descriptions, annotations
+- Loading ontologies (PO, PECO)
+- Loading GO, InterPro, Families
+- Generating expression profiles and networks
 """
 import json
 import os
@@ -30,40 +30,40 @@ from conekt.models.tedistills import TEdistill, TEdistillMethod
 
 @pytest.mark.db
 class TestBuildFunctions:
-    """Testes para funções de carregamento de dados no banco."""
+    """Tests for data loading functions in the database."""
 
     @pytest.fixture(autouse=True)
     def setup_data(self, database, app):
         """
-        Carrega dados de teste usando os arquivos em tests/data.
+        Load test data using files in tests/data.
         
-        Este fixture é executado automaticamente antes de cada teste.
-        Nota: Alguns métodos de carregamento podem não estar implementados
-        (PlantOntology.add_tabular_po, etc), então esses são pulados.
+        This fixture is executed automatically before each test.
+        Note: Some loading methods may not be implemented
+        (PlantOntology.add_tabular_po, etc), so these are skipped.
         """
-        # Determina o diretório base dos dados de teste
+        # Determine the base directory of test data
         test_dir = os.path.join(os.path.dirname(__file__), 'data')
         
         with app.app_context():
-            # Cria espécie de teste
+            # Create test species
             Species.add("tst", "test species")
             s = Species.query.first()
 
-            # Carrega sequências
+            # Load sequences
             try:
                 Sequence.add_from_fasta(os.path.join(test_dir, "test.cds.fasta"), s.id)
                 Sequence.add_from_fasta(os.path.join(test_dir, "test.rna.fasta"), s.id, sequence_type='RNA')
                 Sequence.add_descriptions(os.path.join(test_dir, "test.descriptions.txt"), s.id)
             except Exception as e:
-                pytest.skip(f"Não foi possível carregar sequências: {e}")
+                pytest.skip(f"Could not load sequences: {e}")
 
-            # Carrega referências cruzadas
+            # Load cross-references
             try:
                 XRef.add_xref_genes_from_file(s.id, os.path.join(test_dir, "test.xref.txt"))
             except Exception as e:
-                print(f"Aviso: Não foi possível carregar xrefs: {e}")
+                print(f"Warning: Could not load xrefs: {e}")
 
-            # Carrega Gene Ontology
+            # Load Gene Ontology
             try:
                 GO.add_from_obo(os.path.join(test_dir, "test_go.obo"))
                 GO.add_go_from_tab(
@@ -72,16 +72,16 @@ class TestBuildFunctions:
                     source="Fake UnitTest Data",
                 )
             except Exception as e:
-                print(f"Aviso: Não foi possível carregar GO: {e}")
+                print(f"Warning: Could not load GO: {e}")
 
-            # Carrega Plant Ontology
+            # Load Plant Ontology
             try:
                 PlantOntology.add_tabular_po(
                     os.path.join(test_dir, "test_plant_ontology.txt"),
                     s.id
                 )
             except Exception as e:
-                print(f"Aviso: Não foi possível carregar Plant Ontology: {e}")
+                print(f"Warning: Could not load Plant Ontology: {e}")
 
             # Carrega Plant Experimental Conditions Ontology
             try:
@@ -90,9 +90,9 @@ class TestBuildFunctions:
                     s.id
                 )
             except Exception as e:
-                print(f"Aviso: Não foi possível carregar PECO: {e}")
+                print(f"Warning: Could not load Plant Experimental Conditions Ontology: {e}")
 
-            # Carrega InterPro
+            # Load InterPro
             try:
                 Interpro.add_from_xml(os.path.join(test_dir, "test_interpro.xml"))
                 Interpro.add_interpro_from_interproscan(
@@ -100,9 +100,9 @@ class TestBuildFunctions:
                     s.id
                 )
             except Exception as e:
-                print(f"Aviso: Não foi possível carregar InterPro: {e}")
+                print(f"Warning: Could not load InterPro: {e}")
 
-            # Carrega perfis de expressão
+            # Load expression profiles
             try:
                 ExpressionProfile.add_profile_from_lstrap(
                     os.path.join(test_dir, "expression/test.tpm.matrix.txt"),
@@ -111,9 +111,9 @@ class TestBuildFunctions:
                     order_color_file=os.path.join(test_dir, "expression/test.expression_order_color.txt"),
                 )
             except Exception as e:
-                print(f"Aviso: Não foi possível carregar perfis de expressão: {e}")
+                print(f"Warning: Could not load expression profiles: {e}")
 
-            # Carrega rede de expressão
+            # Load expression network
             try:
                 ExpressionNetwork.read_expression_network_lstrap(
                     os.path.join(test_dir, "expression/test.pcc.txt"),
@@ -123,7 +123,7 @@ class TestBuildFunctions:
 
                 test_network = ExpressionNetworkMethod.query.first()
 
-                # Carrega clusters de coexpressão
+                # Load coexpression clusters
                 if test_network:
                     CoexpressionClusteringMethod.add_lstrap_coexpression_clusters(
                         os.path.join(test_dir, "expression/test.mcl_clusters.txt"),
@@ -132,16 +132,16 @@ class TestBuildFunctions:
                         min_size=1,
                     )
 
-                    # Calcula especificidade
+                    # Calculate specificity
                     ExpressionSpecificityMethod.calculate_specificities(
                         s.id,
                         s.name + " condition specific profiles",
                         False
                     )
             except Exception as e:
-                print(f"Aviso: Não foi possível carregar redes de expressão: {e}")
+                print(f"Warning: Could not load expression networks: {e}")
 
-            # Carrega famílias gênicas
+            # Load gene families
             try:
                 GeneFamily.add_families_from_mcl(
                     os.path.join(test_dir, "comparative_data/test.families.mcl.txt"),
@@ -150,19 +150,19 @@ class TestBuildFunctions:
 
                 GeneFamilyMethod.update_count()
             except Exception as e:
-                print(f"Aviso: Não foi possível carregar famílias gênicas: {e}")
+                print(f"Warning: Could not load gene families: {e}")
 
-            # Carrega clados
+            # Load clades
             try:
                 Clade.add_clades_from_json({"test species": {"species": ["tst"], "tree": None}})
                 Clade.update_clades()
                 Clade.update_clades_interpro()
             except Exception as e:
-                print(f"Aviso: Não foi possível carregar clados: {e}")
+                print(f"Warning: Could not load clades: {e}")
 
-            # Carrega TEs
+            # Load TEs
             try:
-                # Primeiro cria o método de classificação de TE
+				# First create the TE classification method
                 te_method = TEClassMethod('RepeatMasker')
                 database.session.add(te_method)
                 database.session.commit()
@@ -174,11 +174,11 @@ class TestBuildFunctions:
                     s.id
                 )
             except Exception as e:
-                print(f"Aviso: Não foi possível carregar TE classes: {e}")
+                print(f"Warning: Could not load TE classes: {e}")
 
-            # Carrega TEdistills
+            # Load TEdistills
             try:
-                # Primeiro cria o método de TEdistill
+                # First create the TEdistill method
                 tedistill_method = TEdistillMethod('TEDistill_v1')
                 database.session.add(tedistill_method)
                 database.session.commit()
@@ -190,66 +190,66 @@ class TestBuildFunctions:
                     s.id
                 )
             except Exception as e:
-                print(f"Aviso: Não foi possível carregar TEdistills: {e}")
+                print(f"Warning: Could not load TEdistills: {e}")
 
             database.session.commit()
 
     def test_database_structure(self, database, app):
-        """Teste básico: valida que a estrutura do banco foi criada."""
+        """Basic test: validates that database structure was created."""
         with app.app_context():
-            # Valida que a espécie foi criada
+            # Validate that species was created
             species = Species.query.filter_by(code='tst').first()
             assert species is not None
             assert species.name == "test species"
 
     def test_sequences_loaded(self, database, app):
-        """Testa se todas as sequências foram carregadas corretamente."""
+        """Tests if all sequences were loaded correctly."""
         with app.app_context():
             s = Species.query.first()
             sequences = s.sequences.all()
             
-            # Verifica se pelo menos 1 sequência foi carregada
+            # Check if at least 1 sequence was loaded
             assert len(sequences) >= 1
             assert sequences[0].species_id == s.id
 
     def test_xref_loaded(self, database, app):
-        """Testa se as referências cruzadas foram carregadas."""
+        """Tests if cross-references were loaded."""
         with app.app_context():
-            # Verifica se pelo menos um xref foi carregado
+            # Check if at least one xref was loaded
             xref_count = XRef.query.count()
-            assert xref_count >= 0  # Pode ser 0 se arquivo vazio
+            assert xref_count >= 0  # May be 0 if file is empty
 
     def test_go_loaded(self, database, app):
-        """Testa se Gene Ontology foi carregado."""
+        """Tests if Gene Ontology was loaded."""
         with app.app_context():
-            # Verifica se pelo menos um GO term foi carregado
+            # Check if at least one GO term was loaded
             go_count = GO.query.count()
-            assert go_count >= 0  # Pode ser 0 se arquivo vazio
+            assert go_count >= 0  # May be 0 if file is empty
 
     def test_interpro_loaded(self, database, app):
-        """Testa se InterPro foi carregado."""
+        """Tests if InterPro was loaded."""
         with app.app_context():
-            # Verifica se pelo menos um InterPro domain foi carregado
+            # Check if at least one InterPro domain was loaded
             interpro_count = Interpro.query.count()
-            assert interpro_count >= 0  # Pode ser 0 se arquivo vazio
+            assert interpro_count >= 0  # May be 0 if file is empty
 
     def test_expression_profiles_loaded(self, database, app):
-        """Testa se perfis de expressão foram carregados."""
+        """Tests if expression profiles were loaded."""
         with app.app_context():
-            # Verifica se pelo menos um perfil de expressão foi carregado
+            # Check if at least one expression profile was loaded
             profile_count = ExpressionProfile.query.count()
-            assert profile_count >= 0  # Pode ser 0 se arquivo vazio
+            assert profile_count >= 0  # May be 0 if file is empty
 
     def test_expression_networks_loaded(self, database, app):
-        """Testa se redes de expressão foram carregadas."""
+        """Tests if expression networks were loaded."""
         with app.app_context():
-            # Verifica se pelo menos uma rede de expressão foi carregada
+            # Check if at least one expression network was loaded
             network_count = ExpressionNetwork.query.count()
-            assert network_count >= 0  # Pode ser 0 se arquivo vazio
+            assert network_count >= 0  # May be 0 if file is empty
 
-    @pytest.mark.skipif(True, reason="Requer dados de rede de expressão processados")
+    @pytest.mark.skipif(True, reason="Requires processed expression network data")
     def test_coexpression_clusters_loaded(self, database, app):
-        """Testa se clusters de coexpressão foram carregados."""
+        """Tests if coexpression clusters were loaded."""
         with app.app_context():
             test_sequence = Sequence.query.filter_by(name="Gene01", type='protein_coding').first()
             test_cluster = test_sequence.coexpression_clusters.first()
@@ -259,9 +259,9 @@ class TestBuildFunctions:
             cluster_sequence = test_cluster.sequences.filter_by(name="Gene01").first()
             assert cluster_sequence is not None
 
-    @pytest.mark.skipif(True, reason="Requer perfis de expressão completos")
+    @pytest.mark.skipif(True, reason="Requires complete expression profiles")
     def test_specificity_calculated(self, database, app):
-        """Testa se especificidade foi calculada."""
+        """Tests if specificity was calculated."""
         with app.app_context():
             test_sequence = Sequence.query.filter_by(name="Gene01", type='protein_coding').first()
             test_profile = test_sequence.expression_profiles.first()
@@ -269,75 +269,75 @@ class TestBuildFunctions:
             
             assert specificity is not None
             assert specificity.condition == "Tissue 03"
-            assert abs(specificity.score - 0.62) < 0.01  # Aproximadamente 0.62
-            assert abs(specificity.entropy - 1.58) < 0.01  # Aproximadamente 1.58
-            assert abs(specificity.tau - 0.11) < 0.01  # Aproximadamente 0.11
+            assert abs(specificity.score - 0.62) < 0.01  # Approximately 0.62
+            assert abs(specificity.entropy - 1.58) < 0.01  # Approximately 1.58
+            assert abs(specificity.tau - 0.11) < 0.01  # Approximately 0.11
 
     def test_gene_families_loaded(self, database, app):
-        """Testa se famílias gênicas foram carregadas."""
+        """Tests if gene families were loaded."""
         with app.app_context():
-            # Verifica se pelo menos uma família foi carregada
+            # Check if at least one family was loaded
             family_count = GeneFamily.query.count()
-            assert family_count >= 0  # Pode ser 0 se arquivo vazio
+            assert family_count >= 0  # May be 0 if file is empty
 
     def test_te_classes_loaded(self, database, app):
-        """Testa se TE classes foram carregadas."""
+        """Tests if TE classes were loaded."""
         with app.app_context():
-            # Verifica se pelo menos uma TE class foi carregada
+            # Check if at least one TE class was loaded
             te_class_count = TEClass.query.count()
-            assert te_class_count >= 0  # Pode ser 0 se arquivo vazio
+            assert te_class_count >= 0  # May be 0 if file is empty
 
     def test_tedistills_loaded(self, database, app):
-        """Testa se TEdistills foram carregados."""
+        """Tests if TEdistills were loaded."""
         with app.app_context():
-            # Verifica se pelo menos um TEdistill foi carregado
+            # Check if at least one TEdistill was loaded
             tedistill_count = TEdistill.query.count()
-            assert tedistill_count >= 0  # Pode ser 0 se arquivo vazio
+            assert tedistill_count >= 0  # May be 0 if file is empty
 
     def test_te_class_method_loaded(self, database, app):
-        """Testa se TEClassMethod foi carregado."""
+        """Tests if TEClassMethod was loaded."""
         with app.app_context():
-            # Verifica se pelo menos um método de TE class foi carregado
+            # Check if at least one TE class method was loaded
             te_method_count = TEClassMethod.query.count()
-            assert te_method_count >= 0  # Pode ser 0 se não criado
+            assert te_method_count >= 0  # May be 0 if not created
             
-            # Se existe método, verifica estrutura
+            # If method exists, check structure
             if te_method_count > 0:
                 method = TEClassMethod.query.first()
                 assert method.method is not None
 
     def test_tedistill_method_loaded(self, database, app):
-        """Testa se TEdistillMethod foi carregado."""
+        """Tests if TEdistillMethod was loaded."""
         with app.app_context():
-            # Verifica se pelo menos um método de TEdistill foi carregado
+            # Check if at least one TEdistill method was loaded
             tedistill_method_count = TEdistillMethod.query.count()
-            assert tedistill_method_count >= 0  # Pode ser 0 se não criado
+            assert tedistill_method_count >= 0  # May be 0 if not created
             
-            # Se existe método, verifica estrutura
+            # If method exists, check structure
             if tedistill_method_count > 0:
                 method = TEdistillMethod.query.first()
                 assert method.method is not None
 
     def test_plant_ontology_loaded(self, database, app):
-        """Testa se Plant Ontology foi carregado."""
+        """Tests if Plant Ontology was loaded."""
         with app.app_context():
-            # Verifica se pelo menos um termo de Plant Ontology foi carregado
+            # Check if at least one Plant Ontology term was loaded
             po_count = PlantOntology.query.count()
-            assert po_count >= 0  # Pode ser 0 se arquivo vazio
+            assert po_count >= 0  # May be 0 if file is empty
             
-            # Se existem termos, verifica estrutura
+            # If terms exist, check structure
             if po_count > 0:
                 po_term = PlantOntology.query.first()
                 assert po_term.label is not None
 
     def test_plant_experimental_conditions_ontology_loaded(self, database, app):
-        """Testa se Plant Experimental Conditions Ontology foi carregado."""
+        """Tests if Plant Experimental Conditions Ontology was loaded."""
         with app.app_context():
-            # Verifica se pelo menos um termo de PECO foi carregado
+            # Check if at least one PECO term was loaded
             peco_count = PlantExperimentalConditionsOntology.query.count()
-            assert peco_count >= 0  # Pode ser 0 se arquivo vazio
+            assert peco_count >= 0  # May be 0 if file is empty
             
-            # Se existem termos, verifica estrutura
+            # If terms exist, check structure
             if peco_count > 0:
                 peco_term = PlantExperimentalConditionsOntology.query.first()
                 assert peco_term.label is not None
