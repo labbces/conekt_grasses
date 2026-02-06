@@ -39,19 +39,19 @@ class TranscriptionRegulator(db.Model):
     def __sequence_stats_associations(associations):
         output = {}
         for d in associations:
-            if d.tf_id not in output.keys():
-                output[d.tf_id] = {
-                    'tf': d.tf,
+            if d.tr_id not in output.keys():
+                output[d.tr_id] = {
+                    'tr': d.tr,
                     'count': 1,
                     'sequences': [d.sequence_id],
                     'species': [d.sequence.species_id]
                 }
             else:
-                output[d.tf_id]['count'] += 1
-                if d.sequence_id not in output[d.tf_id]['sequences']:
-                    output[d.tf_id]['sequences'].append(d.sequence_id)
-                if d.sequence.species_id not in output[d.tf_id]['species']:
-                    output[d.tf_id]['species'].append(d.sequence.species_id)
+                output[d.tr_id]['count'] += 1
+                if d.sequence_id not in output[d.tr_id]['sequences']:
+                    output[d.tr_id]['sequences'].append(d.sequence_id)
+                if d.sequence.species_id not in output[d.tr_id]['species']:
+                    output[d.tr_id]['species'].append(d.sequence.species_id)
         for k, v in output.items():
             v['species_count'] = len(v['species'])
             v['sequence_count'] = len(v['sequences'])
@@ -65,7 +65,7 @@ class TranscriptionRegulator(db.Model):
         return TranscriptionRegulator.__sequence_stats_associations(data)
 
     @property
-    def tf_stats(self):
+    def tr_stats(self):
         return TranscriptionRegulator.sequence_stats_subquery(self.sequences)
 
     @property

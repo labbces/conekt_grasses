@@ -135,7 +135,7 @@ tedistill_te_class = db.Table('tedistill_te_class',
 family_tr = db.Table('family_tr',
                         db.Column('id', db.Integer, primary_key=True),
                         db.Column('gene_family_id', db.Integer, db.ForeignKey('gene_families.id'), index=True),
-                        db.Column('tf_id', db.Integer, db.ForeignKey('cazyme.id'), index=True)
+                        db.Column('tr_family_id', db.Integer, db.ForeignKey('transcription_regulator.id'), index=True)
                         )
 
 cluster_go_enrichment = db.Table('cluster_go_enrichment',

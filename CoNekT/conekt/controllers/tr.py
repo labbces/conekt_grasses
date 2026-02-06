@@ -19,13 +19,13 @@ def tr_overview():
     return redirect(url_for('main.screen'))
 
 
-@tr.route('/find/<tr_label>')
+@tr.route('/find/<tr_family>')
 @cache.cached()
 def tr_find(tr_family):
     """
     Find a tr term based on the family and show the details for this term
 
-    :param tr_label: Label of the TranscriptionRegulator term
+    :param tr_family: Family of the TranscriptionRegulator term
     """
     current_tr = TranscriptionRegulator.query.filter_by(family=tr_family).first_or_404()
 
@@ -110,10 +110,10 @@ def tr_json_species(tr_id):
     return Response(json.dumps(plot), mimetype='application/json')
 
 
-@tr.route('/json/genes/<tr_label>')
+@tr.route('/json/genes/<tr_family>')
 @cache.cached()
-def tr_genes_find(tr_label):
-    current_tr = TranscriptionRegulator.query.filter_by(label=tr_label).first()
+def tr_genes_find(tr_family):
+    current_tr = TranscriptionRegulator.query.filter_by(family=tr_family).first()
 
     if current_tr is not None:
         return Response(json.dumps([association.sequence_id for association in current_tr.sequence_associations]),
