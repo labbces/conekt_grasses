@@ -42,6 +42,9 @@ from conekt.models.cazyme import CAZYme
 from conekt.models.relationships.sequence_te_class import SequenceTEClassAssociation
 from conekt.models.relationships.sequence_tedistill import SequenceTEdistillAssociation
 from conekt.models.relationships.sequence_cazyme import SequenceCAZYmeAssociation
+from conekt.models.tr import TranscriptionRegulator
+from conekt.models.relationships.sequence_tr import SequenceTRAssociation
+from conekt.models.relationships.sequence_tr_domain import SequenceTRDomainAssociation
 
 
 @pytest.fixture(scope='session')
@@ -261,6 +264,43 @@ def test_cazyme(database, test_species, test_sequence):
     
     return cazyme
 
+@pytest.fixture
+def test_tr(database):
+    """Cria um Transcription Regulator de teste."""
+    tr = TranscriptionRegulator(
+        family="bZIP",
+        type="TFF",
+        description="Basic leucine zipper TF"
+    )
+    database.session.add(tr)
+    database.session.commit()
+    return tr
+
+@pytest.fixture
+def test_sequence_tr(database, test_sequence, test_tr):
+    """Associa uma sequência a um TR."""
+    assoc = SequenceTRAssociation(
+        sequence_id=test_sequence.id,
+        tr_id=test_tr.id,
+        query_start=100,
+        query_end=200
+    )
+    database.session.add(assoc)
+    database.session.commit()
+    return assoc
+
+@pytest.fixture
+def test_sequence_tr_domain(database, test_sequence):
+    """Cria domínio TR associado à sequência."""
+    domain = SequenceTRDomainAssociation(
+        sequence_id=test_sequence.id,
+        domain="bZIP_1",
+        query_start=120,
+        query_end=190
+    )
+    database.session.add(domain)
+    database.session.commit()
+    return domain
 
 @pytest.fixture
 def full_test_data(database, test_species, test_sequence, test_interpro, test_go, test_gene_family):
@@ -465,6 +505,59 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
     )
     
     database.session.add_all([test_network, test_network2])
+    # Mapeia gene_name -> Sequence
+    seq_by_name = {
+        s.name: s for s in [test_sequence, test_sequence2, test_sequence3]
+    }
+
+    # Dados equivalentes ao test_tr.txt
+    tr_test_data = [
+        ("Sevir.3G017300.1.p", "ABI3VP1", "TFF", "B3", 295, 390),
+        ("Sevir.6G217800.1.p", "AP2-EREBP", "TFF", "AP2", 35, 78),
+        ("Sevir.9G197900.1.p", "SET", "OTR", "SET", 228, 517),
+        ("Sevir.5G326450.1.p", "bZIP", "TFF", "bZIP_1", 147, 192),
+        ("Sevir.5G326450.1.p", "bZIP", "TFF", "bZIP_2", 145, 194),
+        ("Sevir.5G326450.1.p", "bZIP", "TFF", "bZIP_Maf", 140, 202),
+    ]
+
+    tr_by_family = {}
+
+    for gene, family, tr_type, domain, qstart, qend in tr_test_data:
+        # cria TR se não existir
+        if family not in tr_by_family:
+            tr = TranscriptionRegulator(
+                family=family,
+                type=tr_type,
+                description=f"{family} transcription regulator"
+            )
+            database.session.add(tr)
+            database.session.commit()
+            tr_by_family[family] = tr
+        else:
+            tr = tr_by_family[family]
+
+        # usa TEST_SEQ_01 como gene "mock"
+        seq = test_sequence
+
+        # associação TR ↔ Sequence
+        tr_assoc = SequenceTRAssociation(
+            sequence_id=seq.id,
+            tr_id=tr.id,
+            query_start=qstart,
+            query_end=qend
+        )
+        database.session.add(tr_assoc)
+        database.session.commit()
+
+        # associação de domínio
+        domain_assoc = SequenceTRDomainAssociation(
+            sequence_id=seq.id,
+            domain=domain,
+            query_start=qstart,
+            query_end=qend
+        )
+        database.session.add(domain_assoc)
+
     database.session.commit()
     
     # Cria método de clustering
@@ -573,7 +666,8 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
         'cluster_method': cluster_method,
         'cluster': cluster,
         'clade': clade,
-        'ecc': ecc
+        'ecc': ecc,
+        'trs': list(tr_by_family.values())
     }
 
 

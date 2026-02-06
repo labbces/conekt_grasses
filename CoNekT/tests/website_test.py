@@ -1088,6 +1088,85 @@ class TestCAZymeRoutes:
         assert "datasets" in data["data"]
         assert "labels" in data["data"]
 
+@pytest.mark.unit
+@pytest.mark.website
+@pytest.mark.db
+class TestTRRoutes:
+    """Testes para rotas de Transcription Regulators (TR)."""
+
+    def test_tr_overview_redirect(self, client):
+        """Testa redirecionamento da overview de TR."""
+        response = client.get("/tr/")
+        assert response.status_code == 302
+
+    def test_tr_find_redirect(self, client, full_test_data):
+        """Testa redirecionamento de find para view."""
+        tr = full_test_data['trs'][0]
+        response = client.get(f"/tr/find/{tr.family}")
+        assert response.status_code == 302
+
+    def test_tr_view(self, client, full_test_data):
+        """Testa visualização de TR."""
+        tr = full_test_data['trs'][0]
+        response = client.get(f"/tr/view/{tr.id}")
+        assert response.status_code == 200
+        assert tr.family.encode() in response.data
+
+    def test_tr_sequences(self, client, full_test_data):
+        """Testa paginação de sequências associadas ao TR."""
+        tr = full_test_data['trs'][0]
+        response = client.get(f"/tr/sequences/{tr.id}/")
+        assert response.status_code == 200
+
+    def test_tr_sequences_table(self, client, full_test_data):
+        """Testa tabela CSV de sequências associadas ao TR."""
+        tr = full_test_data['trs'][0]
+        response = client.get(f"/tr/sequences/table/{tr.id}")
+        assert response.status_code == 200
+        assert response.mimetype == "text/plain"
+
+    def test_tr_json_species(self, client, full_test_data):
+        """Testa JSON de distribuição de espécies do TR."""
+        tr = full_test_data['trs'][0]
+        response = client.get(f"/tr/json/species/{tr.id}")
+        assert response.status_code == 200
+
+        data = json.loads(response.data.decode("utf-8"))
+        assert "data" in data
+        assert "labels" in data["data"]
+        assert "datasets" in data["data"]
+
+    def test_tr_json_genes(self, client, full_test_data):
+        """Testa JSON de genes associados ao TR."""
+        tr = full_test_data['trs'][0]
+        sequence = full_test_data['sequences'][0]
+
+        response = client.get(f"/tr/json/genes/{tr.family}")
+        assert response.status_code == 200
+
+        data = json.loads(response.data.decode("utf-8"))
+        assert sequence.id in data
+
+    def test_tr_json_genes_not_found(self, client):
+        """Testa busca JSON por TR inexistente."""
+        response = client.get("/tr/json/genes/NOT_A_TR")
+        assert response.status_code == 200
+
+        data = json.loads(response.data.decode("utf-8"))
+        assert data == []
+
+    # def test_tr_ajax_tr_stats(self, client, full_test_data):
+    #     """Testa AJAX de estatísticas de TR."""
+    #     tr = full_test_data['trs'][0]
+    #     response = client.get(f"/tr/ajax/tr/{tr.id}")
+    #     assert response.status_code == 200
+
+    # def test_tr_ajax_family_stats(self, client, full_test_data):
+    #     """Testa AJAX de estatísticas de família."""
+    #     tr = full_test_data['trs'][0]
+    #     response = client.get(f"/tr/ajax/family/{tr.id}")
+    #     assert response.status_code == 200
+
 
 # Helper functions
 

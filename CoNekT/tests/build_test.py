@@ -26,6 +26,9 @@ from conekt.models.gene_families import GeneFamily, GeneFamilyMethod
 from conekt.models.clades import Clade
 from conekt.models.te_classes import TEClass, TEClassMethod
 from conekt.models.tedistills import TEdistill, TEdistillMethod
+from conekt.models.tr import TranscriptionRegulator
+from conekt.models.relationships.sequence_tr import SequenceTRAssociation
+from conekt.models.relationships.sequence_tr_domain import SequenceTRDomainAssociation
 
 
 @pytest.mark.db
@@ -191,6 +194,78 @@ class TestBuildFunctions:
                 )
             except Exception as e:
                 print(f"Aviso: Não foi possível carregar TEdistills: {e}")
+            
+            # Carrega Transcription Regulators (TRs / TFs)
+            try:
+                tr_file = os.path.join(test_dir, "functional_data/test_tr.txt")
+
+                existing_tr_assoc = set()
+                existing_domain_assoc = set()
+
+                with open(tr_file) as f:
+                    header = f.readline().strip().split("\t")
+
+                    for line in f:
+                        row = dict(zip(header, line.strip().split("\t")))
+
+                        # 🔹 gene normalization (IGUAL AO SCRIPT REAL)
+                        gene_raw = row["Gene"]
+                        gene_name = gene_raw.rsplit(".", 1)[0] if gene_raw.endswith(".p") else gene_raw
+
+                        family = row["Family"]
+                        tr_type = row["Type"]
+                        domain = row["Domain"]
+                        qstart = int(row["Query_Start"])
+                        qend = int(row["Query_Stop"])
+
+                        seq = Sequence.query.filter_by(name=gene_name).first()
+                        if not seq:
+                            continue
+
+                        # TR family
+                        tr = TranscriptionRegulator.query.filter_by(
+                            family=family,
+                            type=tr_type
+                        ).first()
+
+                        if not tr:
+                            tr = TranscriptionRegulator(
+                                family=family,
+                                type=tr_type,
+                                description=f"{family} transcription regulator"
+                            )
+                            database.session.add(tr)
+                            database.session.flush()
+
+                        # 🔹 Sequence ↔ TR association (SEM coordenadas)
+                        key = (seq.id, tr.id)
+                        if key not in existing_tr_assoc:
+                            assoc = SequenceTRAssociation(
+                                sequence_id=seq.id,
+                                tr_id=tr.id,
+                                query_start=qstart,
+                                query_end=qend
+                            )
+                            database.session.add(assoc)
+                            existing_tr_assoc.add(key)
+
+                        # 🔹 Domain association (COM coordenadas)
+                        key2 = (seq.id, domain, qstart, qend)
+                        if key2 not in existing_domain_assoc:
+                            domain_assoc = SequenceTRDomainAssociation(
+                                sequence_id=seq.id,
+                                domain=domain,
+                                query_start=qstart,
+                                query_end=qend
+                            )
+                            database.session.add(domain_assoc)
+                            existing_domain_assoc.add(key2)
+
+                database.session.commit()
+
+            except Exception as e:
+                database.session.rollback()
+                print(f"Aviso: Não foi possível carregar TRs: {e}")
 
             database.session.commit()
 
@@ -341,3 +416,33 @@ class TestBuildFunctions:
             if peco_count > 0:
                 peco_term = PlantExperimentalConditionsOntology.query.first()
                 assert peco_term.label is not None
+    
+    def test_tr_loaded(self, database, app):
+        """Testa se Transcription Regulators foram carregados."""
+        with app.app_context():
+            tr_count = TranscriptionRegulator.query.count()
+            assert tr_count > 0
+
+
+    def test_sequence_tr_association(self, database, app):
+        """Testa associação entre sequência e TR."""
+        with app.app_context():
+            assoc_count = SequenceTRAssociation.query.count()
+            assert assoc_count > 0
+
+            assoc = SequenceTRAssociation.query.first()
+            assert assoc.sequence is not None
+            assert assoc.tr is not None
+
+
+    def test_tr_domain_association(self, database, app):
+        """Testa associação de domínios TR."""
+        with app.app_context():
+            domain_count = SequenceTRDomainAssociation.query.count()
+            assert domain_count > 0
+
+            dom = SequenceTRDomainAssociation.query.first()
+            assert dom.domain is not None
+            assert dom.query_start is not None
+            assert dom.query_end is not None
+
