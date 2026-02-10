@@ -168,8 +168,8 @@ def add_sample_po_association(sample_name, po_term, po_branch):
     except Exception as e:
         session.rollback()
         print_log_error(logger, f"Error while creating PO association (Sample='{sample_name}', PO='{po_term}'): {e}")
-    finally:
-        session.close()
+    # finally:
+    #     session.close()
 
 
 def add_sample_peco_association(sample_name, peco_term):
@@ -226,8 +226,8 @@ def add_sample_peco_association(sample_name, peco_term):
     except Exception as e:
         session.rollback()
         print_log_error(logger, f"Error while creating PECO association (Sample='{sample_name}', PECO='{peco_term}'): {e}")
-    finally:
-        session.close()
+    # finally:
+    #     session.close()
 
 
 
@@ -334,15 +334,31 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
                     run, literature_doi, description, replicate, strandness, layout, po_anatomy, po_dev_stage, peco = parts
                     peco = peco.rstrip()
 
-                    session.add(Sample(
-                        sample_name=run,
-                        strandness=strandness,
-                        layout=layout,
-                        description=description,
-                        replicate=replicate,
-                        species_id=species_id
-                    ))
-                    session.commit()
+                    existing_sample = session.query(Sample).filter(Sample.sample_name == run).first()
+                    if not existing_sample:
+                        try:
+                            sample_obj = Sample(
+                                sample_name=run,
+                                strandness=strandness,
+                                layout=layout,
+                                description=description,
+                                replicate=replicate,
+                                species_id=species_id
+                            )
+                            session.add(sample_obj)
+                            session.commit()
+                            sample_id = sample_obj.id
+                        except Exception as e:
+                            session.rollback()
+                            # If another process inserted the sample concurrently, fetch it
+                            existing_sample = session.query(Sample).filter(Sample.sample_name == run).first()
+                            if existing_sample:
+                                sample_id = existing_sample.id
+                            else:
+                                print_log_error(logger, f"Error inserting sample '{run}': {e}")
+                                raise
+                    else:
+                        sample_id = existing_sample.id
 
                     annotation[run] = {
                         "description": description,
@@ -356,6 +372,9 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
                         with engine.connect() as conn:
                             stmt = select([PlantOntology]).where(PlantOntology.__table__.c.po_term == po_anatomy)
                             po = conn.execute(stmt).first()
+                        if not po:
+                            print_log_error(logger, f"PO term '{po_anatomy}' not found in database. Load the Plant Ontology (e.g., run add_ontologies.py) before adding samples.")
+                            exit(1)
                         annotation[run]["po_anatomy_class"] = po.po_class
                     else:
                         print_log_error(logger, f"Sample {run} missing mandatory 'po_anatomy'.")
@@ -367,9 +386,12 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
                         add_sample_po_association(run, po_dev_stage, "po_dev_stage")
                         with engine.connect() as conn:
                             stmt = select([PlantOntology]).where(PlantOntology.__table__.c.po_term == po_dev_stage)
-                            po = conn.execute(stmt).first()
-                        annotation[run]["po_dev_stage_class"] = po.po_class
-
+                            po_dev = conn.execute(stmt).first()
+                        if po_dev:
+                            annotation[run]["po_dev_stage_class"] = po_dev.po_class
+                        else:
+                            logger.warning(f"⚠️ PO dev stage term '{po_dev_stage}' not found for sample {run}; continuing without dev_stage_class.")
+                            
                     # Optional peco
                     if peco:
                         annotation[run]["peco"] = peco
@@ -379,7 +401,10 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
                                 PlantExperimentalConditionsOntology.__table__.c.peco_term == peco
                             )
                             peco_details = conn.execute(stmt).first()
-                        annotation[run]["peco_class"] = peco_details.peco_class
+                        if peco_details:
+                            annotation[run]["peco_class"] = peco_details.peco_class
+                        else:
+                            logger.warning(f"⚠️ PECO term '{peco}' not found for sample {run}; continuing without peco_class.")
 
                 else:
                     print_log_error(logger, f"Error parsing annotation line: {line}")
