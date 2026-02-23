@@ -83,7 +83,7 @@ class TestBuildFunctions:
             except Exception as e:
                 print(f"Warning: Could not load Plant Ontology: {e}")
 
-            # Carrega Plant Experimental Conditions Ontology
+            # Load Plant Experimental Conditions Ontology
             try:
                 PlantExperimentalConditionsOntology.add_tabular_peco(
                     os.path.join(test_dir, "test_peco.txt"),

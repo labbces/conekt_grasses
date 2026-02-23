@@ -99,7 +99,7 @@ class TestSequenceRoutes:
         assert ">" + sequence.name in data
 
     def test_sequence_fasta_protein(self, client, full_test_data):
-        """Tests download FASTA de sequence protein."""
+        """Tests protein sequence FASTA download."""
         sequence = full_test_data['sequences'][0]
         response = client.get(f"/sequence/fasta/protein/{sequence.id}")
         assert response.status_code == 200
@@ -159,7 +159,7 @@ class TestSpeciesRoutes:
         assert ">" + sequence.name in data
 
     def test_species_download_protein(self, client, full_test_data):
-        """Tests download de sequences proteins."""
+        """Tests protein sequences download."""
         species = full_test_data['species']
         sequence = full_test_data['sequences'][0]
         response = client.get(f"/species/download/protein/{species.id}")
@@ -183,7 +183,7 @@ class TestSpeciesRoutes:
         assert ">" + sequence.name in data
 
     def test_species_stream_protein(self, client, full_test_data):
-        """Tests streaming de sequences proteins."""
+        """Tests protein sequences streaming."""
         species = full_test_data['species']
         sequence = full_test_data['sequences'][0]
         response = client.get(f"/species/stream/protein/{species.id}")
@@ -233,7 +233,7 @@ class TestInterProRoutes:
         assert response.status_code == 200
 
     def test_interpro_json_species(self, client, full_test_data):
-        """Tests profile filogenético JSON."""
+        """Tests profile phylogenetic JSON."""
         interpro = full_test_data['interpro']
         response = client.get(f"/interpro/json/species/{interpro.id}")
         assert response.status_code == 200
@@ -281,7 +281,7 @@ class TestGORoutes:
         assert response.status_code == 200
 
     def test_go_json_species(self, client, full_test_data):
-        """Tests profile filogenético JSON."""
+        """Tests profile phylogenetic JSON."""
         go = full_test_data['go']
         response = client.get(f"/go/json/species/{go.id}")
         assert response.status_code == 200
@@ -347,7 +347,7 @@ class TestGeneFamily:
         assert response.status_code == 200
 
     def test_family_json_species(self, client, full_test_data):
-        """Tests profile filogenético JSON."""
+        """Tests profile phylogenetic JSON."""
         family = full_test_data['family']
         response = client.get(f"/family/json/species/{family.id}")
         assert response.status_code == 200
@@ -461,7 +461,7 @@ class TestHelpPages:
             assert response.status_code == 200
 
     def test_help_invalid_topic(self, client):
-        """Tests page de ajuda non-existent."""
+        """Tests non-existent help page."""
         response = client.get("/help/term_does_not_exist")
         assert response.status_code == 404
 
@@ -473,77 +473,77 @@ class TestSearch:
     """Tests for search functionality."""
 
     def test_search_keyword_sequence(self, client, full_test_data):
-        """Tests search por sequence."""
+        """Tests search for sequence."""
         sequence = full_test_data['sequences'][0]
         response = client.get(f"/search/keyword/{sequence.name}")
         assert response.status_code == 302
 
     def test_search_keyword_interpro(self, client, full_test_data):
-        """Tests search por domain InterPro."""
+        """Tests search for domain InterPro."""
         interpro = full_test_data['interpro']
         response = client.get(f"/search/keyword/{interpro.label}")
         assert response.status_code == 302
 
     def test_search_keyword_go(self, client, full_test_data):
-        """Tests search por term GO."""
+        """Tests search for term GO."""
         go = full_test_data['go']
         response = client.get(f"/search/keyword/{go.label}")
         assert response.status_code == 302
 
     def test_search_keyword_family(self, client, full_test_data):
-        """Tests search por family gênica."""
+        """Tests search for genetic family."""
         family = full_test_data['family']
         response = client.get(f"/search/keyword/{family.name}")
         assert response.status_code == 302
 
     def test_search_keyword_profile(self, client, full_test_data):
-        """Tests search por profile de expressão."""
+        """Tests search for expression profile."""
         profile = full_test_data['profiles'][0]
         response = client.get(f"/search/keyword/{profile.probe}")
         assert response.status_code == 302
 
     def test_search_keyword_generic(self, client):
-        """Tests search genérica."""
+        """Tests generic search."""
         response = client.get("/search/keyword/t")
         assert response.status_code == 200
 
     def test_search_redirect(self, client):
-        """Tests redirect de /search/."""
+        """Tests redirect from /search/."""
         response = client.get("/search/")
         assert response.status_code == 302
 
     def test_search_post_sequence(self, client, full_test_data):
-        """Tests search POST por sequence."""
+        """Tests search POST for sequence."""
         sequence = full_test_data['sequences'][0]
         response = client.post("/search/", data={"terms": sequence.name})
         assert response.status_code == 302
 
     def test_search_post_family(self, client, full_test_data):
-        """Tests search POST por family."""
+        """Tests search POST for family."""
         family = full_test_data['family']
         response = client.post("/search/", data={"terms": family.name})
         assert response.status_code == 302
 
     def test_search_post_go(self, client, full_test_data):
-        """Tests search POST por term GO."""
+        """Tests search POST for term GO."""
         go = full_test_data['go']
         response = client.post("/search/", data={"terms": go.label})
         assert response.status_code == 302
 
     def test_search_post_interpro(self, client, full_test_data):
-        """Tests search POST por domain InterPro."""
+        """Tests search POST for domain InterPro."""
         interpro = full_test_data['interpro']
         response = client.post("/search/", data={"terms": interpro.label})
         assert response.status_code == 302
 
     def test_search_post_profile(self, client, full_test_data):
-        """Tests search POST por profile."""
+        """Tests search POST for profile."""
         profile = full_test_data['profiles'][0]
         response = client.post("/search/", data={"terms": profile.probe})
         assert response.status_code == 302
 
     def test_search_post_multiple_terms(self, client, full_test_data):
-        """Tests search com múltiplos terms."""
+        """Tests search with multiple terms."""
         family = full_test_data['family']
         sequence = full_test_data['sequences'][0]
         interpro = full_test_data['interpro']
@@ -560,12 +560,12 @@ class TestSearch:
         assert response.status_code == 200
 
     def test_search_post_by_label(self, client):
-        """Tests search por label."""
+        """Tests search POST for label."""
         response = client.post("/search/", data={"terms": "Test label"})
         assert response.status_code == 200
 
     def test_search_json_genes(self, client, full_test_data):
-        """Tests search JSON de genes."""
+        """Tests search JSON for genes."""
         go = full_test_data['go']
         sequence = full_test_data['sequences'][0]
         response = client.get(f"/search/json/genes/{go.label}")
@@ -575,19 +575,19 @@ class TestSearch:
         assert sequence.id in data
 
     def test_search_typeahead_go_prefetch(self, client, full_test_data):
-        """Tests typeahead para GO prefetch."""
+        """Tests typeahead for GO prefetch."""
         response = client.get("/search/typeahead/go/prefetch")
         assert response.status_code == 200
         
         data = json.loads(response.data.decode("utf-8"))
-        # Pode retornar uma lista vazia ou com dados
+        # Can return an empty list or with data
         assert isinstance(data, list)
         for d in data:
             assert "value" in d
             assert "tokens" in d
 
     def test_search_typeahead_go_search(self, client, full_test_data):
-        """Tests typeahead para GO search."""
+        """Tests typeahead for GO search."""
         response = client.get("/search/typeahead/go/test.json")
         assert response.status_code == 200
         
@@ -598,7 +598,7 @@ class TestSearch:
             assert "tokens" in d
 
     def test_search_advanced(self, client):
-        """Tests page de search avançada."""
+        """Tests advanced search page."""
         response = client.get("/search/advanced")
         assert response.status_code == 200
 
@@ -614,12 +614,12 @@ class TestBLAST:
         assert response.status_code == 200
 
     def test_blast_results(self, client):
-        """Tests resultados BLAST."""
+        """Tests BLAST results."""
         response = client.get("/blast/results/testtoken")
         assert response.status_code == 200
 
     def test_blast_results_json(self, client):
-        """Tests resultados BLAST em JSON."""
+        """Tests BLAST results in JSON."""
         response = client.get("/blast/results/json/testtoken")
         assert response.status_code == 200
         
@@ -634,12 +634,12 @@ class TestHeatmap:
     """Tests for heatmap functionality."""
 
     def test_heatmap_page(self, client):
-        """Tests page de heatmap."""
+        """Tests heatmap page."""
         response = client.get("/heatmap/")
         assert response.status_code == 200
 
     def test_heatmap_with_probes(self, client, full_test_data):
-        """Tests heatmap com probes."""
+        """Tests heatmap with probes."""
         profile = full_test_data['profiles'][0]
         response = client.post(
             "/heatmap/",
@@ -648,14 +648,14 @@ class TestHeatmap:
         assert response.status_code == 200
         assert profile.probe.encode() in response.data
 
-    @pytest.mark.skipif(True, reason="Requer estrutura de dados específica")
+    @pytest.mark.skipif(True, reason="Requires specific data structure")
     def test_heatmap_cluster(self, client, full_test_data):
         """Tests heatmap de cluster."""
         cluster = full_test_data['cluster']
         response = client.get(f"/heatmap/cluster/{cluster.id}")
         assert response.status_code == 200
 
-    @pytest.mark.skipif(True, reason="Requer estrutura de dados específica")
+    @pytest.mark.skipif(True, reason="Requires specific data structure")
     def test_heatmap_inchlib_json(self, client, full_test_data):
         """Tests JSON inchlib para heatmap."""
         cluster = full_test_data['cluster']
@@ -685,9 +685,9 @@ class TestProfileComparison:
         response = client.get("/profile_comparison/")
         assert response.status_code == 200
 
-    @pytest.mark.skipif(True, reason="Requer estrutura de dados específica")
+    @pytest.mark.skipif(True, reason="Requires specific data structure")
     def test_profile_comparison_with_normalization(self, client, full_test_data):
-        """Tests comparison com normalização."""
+        """Tests comparison with normalization."""
         profile = full_test_data['profiles'][0]
         response = client.post(
             "/profile_comparison/",
@@ -699,9 +699,9 @@ class TestProfileComparison:
         )
         assert response.status_code == 200
 
-    @pytest.mark.skipif(True, reason="Requer estrutura de dados específica")
+    @pytest.mark.skipif(True, reason="Requires specific data structure")
     def test_profile_comparison_without_normalization(self, client, full_test_data):
-        """Tests comparison sem normalização."""
+        """Tests comparison without normalization."""
         profile = full_test_data['profiles'][0]
         response = client.post(
             "/profile_comparison/",
@@ -713,9 +713,9 @@ class TestProfileComparison:
         )
         assert response.status_code == 200
 
-    @pytest.mark.skipif(True, reason="Requer estrutura de dados específica")
+    @pytest.mark.skipif(True, reason="Requires specific data structure")
     def test_profile_comparison_cluster(self, client, full_test_data):
-        """Tests comparison de profiles de cluster."""
+        """Tests comparison of profiles in a cluster."""
         cluster = full_test_data['cluster']
         
         response = client.get(f"/profile_comparison/cluster/{cluster.id}/0")
@@ -732,25 +732,25 @@ class TestExpressionNetwork:
     """Tests for expression networks."""
 
     def test_network_page(self, client):
-        """Tests page de rede de expressão."""
+        """Tests expression network page."""
         response = client.get("/network/")
         assert response.status_code == 200
 
     def test_network_by_species(self, client, full_test_data):
-        """Tests rede por species."""
+        """Tests expression network by species."""
         species = full_test_data['species']
         response = client.get(f"/network/species/{species.id}")
         assert response.status_code == 200
         assert species.name.encode() in response.data
 
     def test_network_graph(self, client, full_test_data):
-        """Tests chart de rede."""
+        """Tests expression network graph."""
         network = full_test_data['networks'][0]
         response = client.get(f"/network/graph/{network.id}")
         assert response.status_code == 200
 
     def test_network_json(self, client, full_test_data):
-        """Tests JSON da rede (Cytoscape)."""
+        """Tests JSON of the expression network (Cytoscape)."""
         network = full_test_data['networks'][0]
         response = client.get(f"/network/json/{network.id}")
         assert response.status_code == 200
@@ -766,18 +766,18 @@ class TestCoexpressionCluster:
     """Tests for coexpression clusters."""
 
     def test_cluster_page(self, client):
-        """Tests page de cluster."""
+        """Tests cluster page."""
         response = client.get("/cluster/")
         assert response.status_code == 200
 
     def test_cluster_view(self, client, full_test_data):
-        """Tests view de cluster."""
+        """Tests cluster view."""
         cluster = full_test_data['cluster']
         response = client.get(f"/cluster/view/{cluster.id}")
         assert response.status_code == 200
 
     def test_cluster_sequences(self, client, full_test_data):
-        """Tests sequences do cluster."""
+        """Tests cluster sequences."""
         cluster = full_test_data['cluster']
         sequence = full_test_data['sequences'][0]
         response = client.get(f"/cluster/sequences/{cluster.id}/1")
@@ -785,7 +785,7 @@ class TestCoexpressionCluster:
         assert sequence.name.encode() in response.data
 
     def test_cluster_download(self, client, full_test_data):
-        """Tests download de cluster."""
+        """Tests cluster download."""
         cluster = full_test_data['cluster']
         sequence = full_test_data['sequences'][0]
         response = client.get(f"/cluster/download/{cluster.id}")
@@ -793,14 +793,14 @@ class TestCoexpressionCluster:
         assert sequence.name.encode() in response.data
 
     def test_cluster_graph(self, client, full_test_data):
-        """Tests chart de cluster."""
+        """Tests cluster graph."""
         cluster = full_test_data['cluster']
         gf_method = full_test_data['family'].method
         response = client.get(f"/cluster/graph/{cluster.id}/{gf_method.id}")
         assert response.status_code == 200
 
     def test_cluster_json(self, client, full_test_data):
-        """Tests JSON do cluster (Cytoscape)."""
+        """Tests JSON of the cluster (Cytoscape)."""
         cluster = full_test_data['cluster']
         gf_method = full_test_data['family'].method
         response = client.get(f"/cluster/json/{cluster.id}/{gf_method.id}")
@@ -817,7 +817,7 @@ class TestGraphComparison:
     """Tests for graph comparison."""
 
     def test_graph_comparison_cluster(self, client, full_test_data):
-        """Tests comparison de charts de cluster."""
+        """Tests comparison of cluster charts."""
         cluster = full_test_data['cluster']
         gf_method = full_test_data['family'].method
         response = client.get(
@@ -826,7 +826,7 @@ class TestGraphComparison:
         assert response.status_code == 200
 
     def test_graph_comparison_cluster_json(self, client, full_test_data):
-        """Tests JSON da comparison de charts."""
+        """Tests JSON of the cluster comparison charts."""
         cluster = full_test_data['cluster']
         gf_method = full_test_data['family'].method
         response = client.get(
@@ -845,24 +845,24 @@ class TestClades:
     """Tests for clade functionalities."""
 
     def test_clade_redirect(self, client):
-        """Tests redirect de /clade/."""
+        """Tests redirect of /clade/."""
         response = client.get("/clade/")
         assert response.status_code == 302
 
     def test_clade_view(self, client, full_test_data):
-        """Tests view de clade."""
+        """Tests clade view."""
         clade = full_test_data['clade']
         response = client.get(f"/clade/view/{clade.id}")
         assert response.status_code == 200
 
     def test_clade_families(self, client, full_test_data):
-        """Tests familys do clade."""
+        """Tests clade families."""
         clade = full_test_data['clade']
         response = client.get(f"/clade/families/{clade.id}/1")
         assert response.status_code == 200
 
     def test_clade_families_table(self, client, full_test_data):
-        """Tests tabela de familys do clade."""
+        """Tests clade families table."""
         clade = full_test_data['clade']
         family = full_test_data['family']
         response = client.get(f"/clade/families/table/{clade.id}")
@@ -870,13 +870,13 @@ class TestClades:
         assert family.name.encode() in response.data
 
     def test_clade_interpro(self, client, full_test_data):
-        """Tests InterPro do clade."""
+        """Tests clade InterPro."""
         clade = full_test_data['clade']
         response = client.get(f"/clade/interpro/{clade.id}/1")
         assert response.status_code == 200
 
     def test_clade_interpro_table(self, client, full_test_data):
-        """Tests tabela de InterPro do clade."""
+        """Tests clade InterPro table."""
         clade = full_test_data['clade']
         interpro = full_test_data['interpro']
         response = client.get(f"/clade/interpro/table/{clade.id}")
@@ -891,12 +891,12 @@ class TestECC:
     """Tests for Expression vs Coexpression Clusters (ECC)."""
 
     def test_ecc_redirect(self, client):
-        """Tests redirect de /ecc/."""
+        """Tests redirect of /ecc/."""
         response = client.get("/ecc/")
         assert response.status_code == 302
 
     def test_ecc_graph(self, client, full_test_data):
-        """Tests chart ECC."""
+        """Tests ECC graph."""
         ecc = full_test_data['ecc']
         response = client.get(
             f"/ecc/graph/{ecc.query_id}/{ecc.query_network_method_id}/{ecc.gene_family_method.id}"
@@ -904,7 +904,7 @@ class TestECC:
         assert response.status_code == 200
 
     def test_ecc_json(self, client, full_test_data):
-        """Tests JSON ECC (Cytoscape)."""
+        """Tests JSON of the ECC (Cytoscape)."""
         ecc = full_test_data['ecc']
         response = client.get(
             f"/ecc/json/{ecc.query_id}/{ecc.query_network_method_id}/{ecc.gene_family_method.id}"
@@ -922,13 +922,13 @@ class TestSpecificitySearch:
     """Tests for specificity profile search."""
 
     def test_specificity_search_page(self, client):
-        """Tests page de search de especificidade."""
+        """Tests specificity search page."""
         response = client.get("/search/specific/profiles")
         assert response.status_code == 200
 
-    @pytest.mark.skipif(True, reason="Requer estrutura de dados específica")
+    @pytest.mark.skipif(True, reason="Requires specific data structure")
     def test_specificity_search_results(self, client, full_test_data):
-        """Tests resultados de search de especificidade."""
+        """Tests specificity search results."""
         sequence = full_test_data['sequences'][0]
         response = client.post(
             "/search/specific/profiles",
@@ -950,44 +950,44 @@ class TestTEClassRoutes:
     """Tests for TEClass routes (TE Classes)."""
 
     def test_te_class_overview_redirect(self, client):
-        """Tests redirect da overview de TE classes."""
+        """Tests redirect of TE class overview."""
         response = client.get("/te_class/")
         assert response.status_code == 302
 
     def test_te_class_redirect(self, client, full_test_data):
-        """Tests redirect de find para view."""
+        """Tests redirect from find to view."""
         te_class = full_test_data['te_classes'][0]
         response = client.get(f"/te_class/find/{te_class.name}")
         assert response.status_code == 302
 
     def test_te_class_view(self, client, full_test_data):
-        """Tests view de TE class."""
+        """Tests TE class view."""
         te_class = full_test_data['te_classes'][0]
         response = client.get(f"/te_class/view/{te_class.id}")
         assert response.status_code == 200
         assert te_class.name.encode() in response.data
 
     def test_te_class_sequences(self, client, full_test_data):
-        """Tests paginação de sequences de TE class."""
+        """Tests TE class sequences pagination."""
         te_class = full_test_data['te_classes'][0]
         response = client.get(f"/te_class/sequences/{te_class.id}/")
         assert response.status_code == 200
 
     def test_te_class_sequences_table(self, client, full_test_data):
-        """Tests tabela CSV de sequences de TE class."""
+        """Tests TE class sequences table CSV."""
         te_class = full_test_data['te_classes'][0]
         response = client.get(f"/te_class/sequences/table/{te_class.id}")
         assert response.status_code == 200
         assert response.mimetype == "text/plain"
 
     def test_te_class_json_species(self, client, full_test_data):
-        """Tests JSON de distribuição de speciess de TE class."""
+        """Tests TE class species distribution JSON."""
         te_class = full_test_data['te_classes'][0]
         response = client.get(f"/te_class/json/species/{te_class.id}")
         assert response.status_code == 200
         
         data = json.loads(response.data.decode("utf-8"))
-        # O JSON retorna uma estrutura aninhada com 'data' contendo os datasets e labels
+        # The JSON returns a nested structure with 'data' containing the datasets and labels
         assert "data" in data
         assert "datasets" in data["data"]
         assert "labels" in data["data"]
@@ -1000,44 +1000,44 @@ class TestTEdistillRoutes:
     """Tests for TEdistill routes (TE Distills)."""
 
     def test_tedistill_overview_redirect(self, client):
-        """Tests redirect da overview de TEdistills."""
+        """Tests redirect of TEdistill overview."""
         response = client.get("/tedistill/")
         assert response.status_code == 302
 
     def test_tedistill_redirect(self, client, full_test_data):
-        """Tests redirect de find para view."""
+        """Tests redirect from find to view."""
         tedistill = full_test_data['tedistills'][0]
         response = client.get(f"/tedistill/find/{tedistill.name}")
         assert response.status_code == 302
 
     def test_tedistill_view(self, client, full_test_data):
-        """Tests view de TEdistill."""
+        """Tests TEdistill view."""
         tedistill = full_test_data['tedistills'][0]
         response = client.get(f"/tedistill/view/{tedistill.id}")
         assert response.status_code == 200
         assert tedistill.name.encode() in response.data
 
     def test_tedistill_sequences(self, client, full_test_data):
-        """Tests paginação de sequences de TEdistill."""
+        """Tests TEdistill sequences pagination."""
         tedistill = full_test_data['tedistills'][0]
         response = client.get(f"/tedistill/sequences/{tedistill.id}/")
         assert response.status_code == 200
 
     def test_tedistill_sequences_table(self, client, full_test_data):
-        """Tests tabela CSV de sequences de TEdistill."""
+        """Tests TEdistill sequences table CSV."""
         tedistill = full_test_data['tedistills'][0]
         response = client.get(f"/tedistill/sequences/table/{tedistill.id}")
         assert response.status_code == 200
         assert response.mimetype == "text/plain"
 
     def test_tedistill_json_species(self, client, full_test_data):
-        """Tests JSON de distribuição de speciess de TEdistill."""
+        """Tests TEdistill species distribution JSON."""
         tedistill = full_test_data['tedistills'][0]
         response = client.get(f"/tedistill/json/species/{tedistill.id}")
         assert response.status_code == 200
         
         data = json.loads(response.data.decode("utf-8"))
-        # O JSON retorna uma estrutura aninhada com 'data' contendo os datasets e labels
+        # The JSON returns a nested structure with 'data' containing the datasets and labels
         assert "data" in data
         assert "datasets" in data["data"]
         assert "labels" in data["data"]
@@ -1050,35 +1050,35 @@ class TestCAZymeRoutes:
     """Tests for CAZyme routes."""
 
     def test_cazyme_overview_redirect(self, client):
-        """Tests redirect da overview de CAZymes."""
+        """Tests redirect of CAZyme overview."""
         response = client.get("/cazyme/")
         assert response.status_code == 302
 
     @pytest.mark.skipif(True, reason="Bug in controller: route uses <cazyme_label> but function expects cazyme_family")
     def test_cazyme_redirect(self, client, test_cazyme):
-        """Tests redirect de find para view."""
+        """Tests redirect from find to view."""
         response = client.get(f"/cazyme/find/{test_cazyme.family}")
         assert response.status_code == 302
 
     def test_cazyme_view(self, client, test_cazyme):
-        """Tests view de CAZyme."""
+        """Tests CAZyme view."""
         response = client.get(f"/cazyme/view/{test_cazyme.id}")
         assert response.status_code == 200
         assert test_cazyme.family.encode() in response.data
 
     def test_cazyme_sequences(self, client, test_cazyme):
-        """Tests paginação de sequences de CAZyme."""
+        """Tests CAZyme sequences pagination."""
         response = client.get(f"/cazyme/sequences/{test_cazyme.id}/")
         assert response.status_code == 200
 
     def test_cazyme_sequences_table(self, client, test_cazyme):
-        """Tests tabela CSV de sequences de CAZyme."""
+        """Tests CAZyme sequences table CSV."""
         response = client.get(f"/cazyme/sequences/table/{test_cazyme.id}")
         assert response.status_code == 200
         assert response.mimetype == "text/plain"
 
     def test_cazyme_json_species(self, client, test_cazyme):
-        """Tests JSON de distribuição de species de CAZyme."""
+        """Tests CAZyme species distribution JSON."""
         response = client.get(f"/cazyme/json/species/{test_cazyme.id}")
         assert response.status_code == 200
         

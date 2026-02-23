@@ -11,6 +11,7 @@
 
 /htmlcov/
 coverage.xml
+/CoNekT/tests/results/
 
 tmpgit
 bin
