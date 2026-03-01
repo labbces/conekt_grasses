@@ -90,8 +90,8 @@ def profile_comparison_main():
         # get max 51 profiles, only show the first 50 (the extra one is fetched to throw the warning)
         profiles = ExpressionProfile.get_profiles(species_id, probes, limit=51)
 
-        literature = LiteratureItem.query.get(literature_id)
-        doi = literature.doi
+        literature = LiteratureItem.query.get(literature_id) if literature_id else None
+        doi = literature.doi if literature else None
 
         not_found = [p.lower() for p in probes]
         for p in profiles:

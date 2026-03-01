@@ -1,7 +1,7 @@
 """
-Configuração de fixtures do pytest para os testes da aplicação CoNekT.
+Pytest fixture configuration for CoNekT application tests.
 
-Este arquivo contém fixtures compartilhadas por todos os testes.
+This file contains fixtures shared by all tests.
 """
 import os
 import sys
@@ -9,7 +9,7 @@ import tempfile
 import json
 import pytest
 
-# Adiciona o diretório CoNekT ao path
+# Add CoNekT directory to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from conekt import create_app, db
@@ -47,9 +47,9 @@ from conekt.models.relationships.sequence_cazyme import SequenceCAZYmeAssociatio
 @pytest.fixture(scope='session')
 def app():
     """
-    Cria a aplicação Flask com configuração de teste.
+    Creates the Flask application with test configuration.
     
-    Esta fixture é criada uma vez por sessão de teste.
+    This fixture is created once per test session.
     """
     app = create_app(config)
     
@@ -59,19 +59,19 @@ def app():
 @pytest.fixture(scope='session')
 def _db(app):
     """
-    Cria o banco de dados de teste.
+    Creates the test database.
     
-    Esta fixture é criada uma vez por sessão de teste.
+    This fixture is created once per test session.
     """
     with app.app_context():
-        # Remove todas as tabelas antigas
+        # Remove all old tables
         db.session.remove()
         db.drop_all()
         
-        # Cria todas as tabelas
+        # Create all tables
         db.create_all()
         yield db
-        # Remove todas as tabelas após os testes
+        # Remove all tables after tests
         db.session.remove()
         db.drop_all()
 
@@ -79,14 +79,14 @@ def _db(app):
 @pytest.fixture(scope='function')
 def database(app, _db):
     """
-    Fornece uma sessão de banco de dados limpa para cada teste.
+    Provides a clean database session for each test.
     
-    Esta fixture é executada antes de cada função de teste.
+    This fixture is executed before each test function.
     """
     with app.app_context():
         yield _db
         
-        # Limpa a sessão após cada teste
+        # Clean session after each test
         _db.session.rollback()
         for table in reversed(_db.metadata.sorted_tables):
             try:
@@ -99,9 +99,9 @@ def database(app, _db):
 @pytest.fixture
 def client(app, _db):
     """
-    Fornece um cliente de teste Flask.
+    Provides a Flask test client.
     
-    Esta fixture pode ser usada para fazer requisições HTTP de teste.
+    This fixture can be used to make HTTP test requests.
     """
     return app.test_client()
 
@@ -109,7 +109,7 @@ def client(app, _db):
 @pytest.fixture
 def runner(app):
     """
-    Fornece um runner CLI para testar comandos Flask.
+    Provides a CLI runner for testing Flask commands.
     """
     return app.test_cli_runner()
 
@@ -117,7 +117,7 @@ def runner(app):
 @pytest.fixture
 def test_species(database):
     """
-    Cria uma espécie de teste no banco de dados.
+    Creates a test species in the database.
     """
     species = Species('tst', 'Unittest species')
     species.sequence_count = 0
@@ -133,7 +133,7 @@ def test_species(database):
 @pytest.fixture
 def test_sequence(database, test_species):
     """
-    Cria uma sequência de teste associada à espécie de teste.
+    Creates a test sequence associated with the test species.
     """
     sequence = Sequence(
         test_species.id,
@@ -149,7 +149,7 @@ def test_sequence(database, test_species):
 @pytest.fixture
 def test_interpro(database):
     """
-    Cria um domínio InterPro de teste.
+    Creates a test InterPro domain.
     """
     interpro = Interpro('IPR_TEST', 'Test label')
     database.session.add(interpro)
@@ -160,7 +160,7 @@ def test_interpro(database):
 @pytest.fixture
 def test_go(database):
     """
-    Cria um termo GO de teste.
+    Creates a test GO term.
     """
     go = GO('GO:TEST', 'test_process', 'biological_process', 'Test label', 0, None, None)
     database.session.add(go)
@@ -171,7 +171,7 @@ def test_go(database):
 @pytest.fixture
 def test_gene_family(database):
     """
-    Cria uma família gênica de teste com método associado.
+    Creates a test gene family with associated method.
     """
     method = GeneFamilyMethod('test_gf_method')
     database.session.add(method)
@@ -188,7 +188,7 @@ def test_gene_family(database):
 @pytest.fixture
 def test_te_class_method(database):
     """
-    Cria um método de classificação de TE de teste.
+    Creates a test TE classification method.
     """
     method = TEClassMethod('test_te_class_method')
     database.session.add(method)
@@ -199,7 +199,7 @@ def test_te_class_method(database):
 @pytest.fixture
 def test_te_class(database, test_te_class_method):
     """
-    Cria uma classe de TE de teste.
+    Creates a test TE class.
     """
     te_class = TEClass('TEST_TE_CLASS_01')
     te_class.method_id = test_te_class_method.id
@@ -214,7 +214,7 @@ def test_te_class(database, test_te_class_method):
 @pytest.fixture
 def test_tedistill_method(database):
     """
-    Cria um método de TEdistill de teste.
+    Creates a test TEdistill method.
     """
     method = TEdistillMethod('test_tedistill_method')
     database.session.add(method)
@@ -225,7 +225,7 @@ def test_tedistill_method(database):
 @pytest.fixture
 def test_tedistill(database, test_tedistill_method):
     """
-    Cria um TEdistill de teste.
+    Creates a test TEdistill.
     """
     tedistill = TEdistill('TEST_TEDISTILL_01')
     tedistill.method_id = test_tedistill_method.id
@@ -239,14 +239,14 @@ def test_tedistill(database, test_tedistill_method):
 @pytest.fixture
 def test_cazyme(database, test_species, test_sequence):
     """
-    Cria um CAZyme de teste com sequências associadas.
+    Creates a test CAZyme with associated sequences.
     """
     cazyme = CAZYme('GH1', 'Glycoside Hydrolase', 'beta-glucosidase')
     cazyme.description = 'Test CAZyme family GH1'
     database.session.add(cazyme)
     database.session.commit()
     
-    # Associa a sequência ao CAZyme
+    # Associate sequence with CAZyme
     assoc = SequenceCAZYmeAssociation(
         sequence_id=test_sequence.id,
         cazyme_id=cazyme.id,
@@ -265,16 +265,16 @@ def test_cazyme(database, test_species, test_sequence):
 @pytest.fixture
 def full_test_data(database, test_species, test_sequence, test_interpro, test_go, test_gene_family):
     """
-    Cria um conjunto completo de dados de teste inter-relacionados.
+    Creates a complete set of interrelated test data.
     
-    Esta fixture é útil para testes de integração que precisam de múltiplos objetos relacionados.
+    This fixture is useful for integration tests that need multiple related objects.
     """
-    # Associa dados à sequência
+    # Associate data with sequence
     test_sequence.families.append(test_gene_family)
     test_sequence.interpro_domains.append(test_interpro)
     test_sequence.go_labels.append(test_go)
     
-    # Cria mais sequências
+    # Create more sequences
     test_sequence2 = Sequence(
         test_species.id,
         'TEST_SEQ_02',
@@ -289,7 +289,7 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
     )
     test_sequence3.type = 'TE'
     
-    # Cria sequências de TE adicionais para testes específicos
+    # Create additional TE sequences for specific tests
     test_te_sequence = Sequence(
         test_species.id,
         'TEST_TE_SEQ_01',
@@ -309,7 +309,7 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
     database.session.add_all([test_sequence2, test_sequence3, test_te_sequence, test_te_sequence2])
     database.session.commit()
     
-    # Cria método e classes de TE
+    # Create method and TE classes
     te_class_method = TEClassMethod('test_te_class_method')
     database.session.add(te_class_method)
     database.session.commit()
@@ -329,7 +329,7 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
     database.session.add_all([te_class1, te_class2])
     database.session.commit()
     
-    # Associa TEs às classes
+    # Associate TEs with classes
     te_assoc1 = SequenceTEClassAssociation()
     te_assoc1.sequence_id = test_te_sequence.id
     te_assoc1.te_class_id = te_class1.id
@@ -341,7 +341,7 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
     database.session.add_all([te_assoc1, te_assoc2])
     database.session.commit()
     
-    # Cria método e TEdistills
+    # Create method and TEdistills
     tedistill_method = TEdistillMethod('test_tedistill_method')
     database.session.add(tedistill_method)
     database.session.commit()
@@ -359,7 +359,7 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
     database.session.add_all([tedistill1, tedistill2])
     database.session.commit()
     
-    # Associa sequências aos TEdistills
+    # Associate sequences with TEdistills
     ted_assoc1 = SequenceTEdistillAssociation()
     ted_assoc1.sequence_id = test_te_sequence.id
     ted_assoc1.tedistill_id = tedistill1.id
@@ -371,12 +371,12 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
     database.session.add_all([ted_assoc1, ted_assoc2])
     database.session.commit()
     
-    # Associa TEdistills a TEClasses
+    # Associate TEdistills with TEClasses
     tedistill1.te_classes.append(te_class1)
     tedistill2.te_classes.append(te_class2)
     database.session.commit()
     
-    # Cria perfis de expressão
+    # Create expression profiles
     profile_data = json.dumps({
         "data": {
             "tpm": {
@@ -438,7 +438,7 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
     database.session.add_all([test_profile, test_profile2])
     database.session.commit()
     
-    # Cria método de rede de expressão
+    # Create expression network method
     network_method = ExpressionNetworkMethod(
         test_species.id,
         'Test network method'
@@ -449,7 +449,7 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
     database.session.add(network_method)
     database.session.commit()
     
-    # Cria redes de expressão
+    # Create expression networks
     test_network = ExpressionNetwork(
         test_profile.probe,
         test_sequence.id,
@@ -467,21 +467,21 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
     database.session.add_all([test_network, test_network2])
     database.session.commit()
     
-    # Cria método de clustering
+    # Create clustering method
     cluster_method = CoexpressionClusteringMethod()
     cluster_method.network_method_id = network_method.id
     cluster_method.method = 'test clustering method'
     database.session.add(cluster_method)
     database.session.commit()
     
-    # Cria cluster
+    # Create cluster
     cluster = CoexpressionCluster()
     cluster.method_id = cluster_method.id
     cluster.name = 'TEST_COEXP_CLUSTER'
     database.session.add(cluster)
     database.session.commit()
     
-    # Associa sequências ao cluster
+    # Associate sequences with cluster
     assoc1 = SequenceCoexpressionClusterAssociation()
     assoc1.probe = test_profile.probe
     assoc1.sequence_id = test_sequence.id
@@ -495,7 +495,7 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
     database.session.add_all([assoc1, assoc2])
     database.session.commit()
     
-    # Cria clade
+    # Create clade
     clade = Clade('test', ['tst'], '(test:0.01);')
     database.session.add(clade)
     database.session.commit()
@@ -504,7 +504,7 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
     clade.interpro.append(test_interpro)
     database.session.commit()
     
-    # Cria ECC
+    # Create ECC
     ecc = SequenceSequenceECCAssociation()
     ecc.query_id = test_sequence.id
     ecc.target_id = test_sequence2.id
@@ -517,22 +517,22 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
     database.session.add(ecc)
     database.session.commit()
     
-    # Calcula especificidade (requer dados mais complexos)
+    # Calculate specificity (requires more complex data)
     # ExpressionSpecificityMethod.calculate_specificities(
     #     test_species.id,
     #     'Specificity description'
     # )
     
-    # Atualiza contadores
+    # Update counters
     test_species.update_counts()
     
-    # Cria CAZyme
+    # Create CAZyme
     cazyme = CAZYme('GH1', 'Glycoside Hydrolase', 'beta-glucosidase')
     cazyme.description = 'Test CAZyme family GH1'
     database.session.add(cazyme)
     database.session.commit()
     
-    # Associa sequências ao CAZyme
+    # Associate sequences with CAZyme
     cazyme_assoc1 = SequenceCAZYmeAssociation(
         sequence_id=test_sequence.id,
         cazyme_id=cazyme.id,
@@ -580,9 +580,9 @@ def full_test_data(database, test_species, test_sequence, test_interpro, test_go
 @pytest.fixture
 def authenticated_client(client, admin_user):
     """
-    Fornece um cliente autenticado como administrador.
+    Provides an authenticated client as administrator.
     
-    Útil para testar rotas que requerem autenticação.
+    Useful for testing routes that require authentication.
     """
     with client.session_transaction() as sess:
         sess['user_id'] = admin_user.id
@@ -593,36 +593,36 @@ def authenticated_client(client, admin_user):
 
 def pytest_configure(config):
     """
-    Configuração executada antes dos testes começarem.
+    Configuration executed before tests begin.
     """
-    # Registra marcadores personalizados
+    # Register custom markers
     config.addinivalue_line(
-        "markers", "unit: Marca um teste como teste unitário"
+        "markers", "unit: Mark a test as a unit test"
     )
     config.addinivalue_line(
-        "markers", "integration: Marca um teste como teste de integração"
+        "markers", "integration: Mark a test as an integration test"
     )
     config.addinivalue_line(
-        "markers", "slow: Marca testes que demoram mais tempo"
+        "markers", "slow: Mark tests that take more time"
     )
 
 
 def pytest_collection_modifyitems(config, items):
     """
-    Modifica itens de teste coletados.
+    Modifies collected test items.
     
-    Adiciona marcadores automáticos baseados em condições.
+    Adds automatic markers based on conditions.
     """
     from tests.config import LOGIN_ENABLED, BLAST_ENABLED
     
-    skip_login = pytest.mark.skip(reason="LOGIN não está habilitado")
-    skip_blast = pytest.mark.skip(reason="BLAST não está habilitado")
+    skip_login = pytest.mark.skip(reason="LOGIN is not enabled")
+    skip_blast = pytest.mark.skip(reason="BLAST is not enabled")
     
     for item in items:
-        # Pula testes que requerem LOGIN se não estiver habilitado
+        # Skip tests that require LOGIN if it is not enabled
         if "login_required" in item.keywords and not LOGIN_ENABLED:
             item.add_marker(skip_login)
         
-        # Pula testes que requerem BLAST se não estiver habilitado
+        # Skip tests that require BLAST if it is not enabled
         if "blast" in item.keywords and not BLAST_ENABLED:
             item.add_marker(skip_blast)

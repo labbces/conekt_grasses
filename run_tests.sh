@@ -15,6 +15,12 @@ NC='\033[0m' # Sem cor
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_DIR"
 
+# Criar diretório de resultados de testes
+TEST_RESULTS_DIR="$PROJECT_DIR/CoNekT/tests/results"
+
+# Timestamp para os arquivos de resultados
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+
 # Função para imprimir mensagens coloridas
 print_message() {
     local color=$1
@@ -122,7 +128,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --cov)
-            PYTEST_ARGS="$PYTEST_ARGS --cov=CoNekT/conekt --cov-report=term-missing --cov-report=html"
+            PYTEST_ARGS="$PYTEST_ARGS --cov=CoNekT/conekt --cov-report=term-missing --cov-report=html:$TEST_RESULTS_DIR/htmlcov_$TIMESTAMP"
             shift
             ;;
         --no-cov)
@@ -130,11 +136,11 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --html)
-            PYTEST_ARGS="$PYTEST_ARGS --html=pytest-report.html --self-contained-html"
+            PYTEST_ARGS="$PYTEST_ARGS --html=$TEST_RESULTS_DIR/pytest-report_$TIMESTAMP.html --self-contained-html"
             shift
             ;;
         --xml)
-            PYTEST_ARGS="$PYTEST_ARGS --junitxml=pytest-report.xml"
+            PYTEST_ARGS="$PYTEST_ARGS --junitxml=$TEST_RESULTS_DIR/pytest-report_$TIMESTAMP.xml"
             shift
             ;;
         --pdb)
@@ -189,22 +195,37 @@ echo
 # Exporta variáveis de ambiente necessárias
 export PYTHONPATH="${PROJECT_DIR}:${PYTHONPATH}"
 
-# Executa pytest
+# Executa pytest com logs
 cd CoNekT
-eval "python -m pytest $PYTEST_ARGS"
-EXIT_CODE=$?
+echo "Logs de execução serão salvos em: $TEST_RESULTS_DIR/pytest-log_$TIMESTAMP.txt"
+eval "python -m pytest $PYTEST_ARGS" 2>&1 | tee "$TEST_RESULTS_DIR/pytest-log_$TIMESTAMP.txt"
+EXIT_CODE=${PIPESTATUS[0]}
 
 # Mensagem de resultado
 echo
 if [ $EXIT_CODE -eq 0 ]; then
     print_message "$GREEN" "✅ Todos os testes passaram com sucesso!"
-    
-    # Verifica se há relatório de cobertura
-    if [ -d "../htmlcov" ]; then
-        print_message "$YELLOW" "📊 Relatório de cobertura disponível em: htmlcov/index.html"
-    fi
 else
     print_message "$RED" "❌ Alguns testes falharam!"
+fi
+
+# Informações sobre resultados salvos
+print_message "$YELLOW" "📁 Resultados salvos em: $TEST_RESULTS_DIR"
+print_message "$YELLOW" "📋 Log de execução: pytest-log_$TIMESTAMP.txt"
+
+# Verifica se há relatório de cobertura
+if [ -d "$TEST_RESULTS_DIR/htmlcov_$TIMESTAMP" ]; then
+    print_message "$YELLOW" "📊 Relatório de cobertura HTML: htmlcov_$TIMESTAMP/index.html"
+fi
+
+# Verifica se há relatório HTML
+if [ -f "$TEST_RESULTS_DIR/pytest-report_$TIMESTAMP.html" ]; then
+    print_message "$YELLOW" "📄 Relatório HTML: pytest-report_$TIMESTAMP.html"
+fi
+
+# Verifica se há relatório XML
+if [ -f "$TEST_RESULTS_DIR/pytest-report_$TIMESTAMP.xml" ]; then
+    print_message "$YELLOW" "📄 Relatório XML: pytest-report_$TIMESTAMP.xml"
 fi
 
 exit $EXIT_CODE
