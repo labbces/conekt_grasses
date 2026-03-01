@@ -261,7 +261,7 @@ echo -e "Ready to start populating!"
 # #  --network $DATA_DIR/Species/Scp1/expression/Perlo2022_network.txt\
 # #  --description "Sugarcane network (Perlo, 2022)"
 
-#################################### DAQUI PARA TRÁS, QUASE TUDO OPERANTE
+# ################################### DAQUI PARA TRÁS, QUASE TUDO OPERANTE
 
 # From this point on, insertion scripts use the populate virtual environment. 
 # Custom logs not yet implemented.
@@ -308,50 +308,50 @@ echo -e "Ready to start populating!"
 #  --db_verbose $DB_VERBOSE\
 #  --py_verbose $PY_VERBOSE
 
-# #$SCRIPTS_DIR/build/calculate_clusters.py --db_admin $DB_ADMIN\
-# # --db_name $DB_NAME\
-# # --db_password $DB_PASSWORD\
-# # --network_method_id 3\
-# # --description "Sugarcane coexpression clusters (Correr, 2020)"
+# # #$SCRIPTS_DIR/build/calculate_clusters.py --db_admin $DB_ADMIN\
+# # # --db_name $DB_NAME\
+# # # --db_password $DB_PASSWORD\
+# # # --network_method_id 3\
+# # # --description "Sugarcane coexpression clusters (Correr, 2020)"
 
-# #$SCRIPTS_DIR/build/calculate_clusters.py --db_admin $DB_ADMIN\
-# # --db_name $DB_NAME\
-# # --db_password $DB_PASSWORD\
-# # --network_method_id 4\
-# # --description "Sugarcane coexpression clusters (Hoang, 2017)"
+# # #$SCRIPTS_DIR/build/calculate_clusters.py --db_admin $DB_ADMIN\
+# # # --db_name $DB_NAME\
+# # # --db_password $DB_PASSWORD\
+# # # --network_method_id 4\
+# # # --description "Sugarcane coexpression clusters (Hoang, 2017)"
 
-# #$SCRIPTS_DIR/build/calculate_clusters.py --db_admin $DB_ADMIN\
-# # --db_name $DB_NAME\
-# # --db_password $DB_PASSWORD\
-# # --network_method_id 5\
-# # --description "Sugarcane coexpression clusters (Perlo, 2022)"
+# # #$SCRIPTS_DIR/build/calculate_clusters.py --db_admin $DB_ADMIN\
+# # # --db_name $DB_NAME\
+# # # --db_password $DB_PASSWORD\
+# # # --network_method_id 5\
+# # # --description "Sugarcane coexpression clusters (Perlo, 2022)"
 
-# echo "Populating CoNekT Grasses with species TR families annotation"
-#  $SCRIPTS_DIR/add/add_trs.py --db_admin $DB_ADMIN\
-#  --db_name $DB_NAME\
-#  --db_password $DB_PASSWORD\
-#  --tr_families $DATA_DIR/"Functional Data/TRs/RulesFull_Jennifer_JEIN_05122024.txt"\
-#  --logdir $LOG_DIR\
-#  --db_verbose $DB_VERBOSE\
-#  --py_verbose $PY_VERBOSE
+# # echo "Populating CoNekT Grasses with species TR families annotation"
+# #  $SCRIPTS_DIR/add/add_trs.py --db_admin $DB_ADMIN\
+# #  --db_name $DB_NAME\
+# #  --db_password $DB_PASSWORD\
+# #  --tr_families $DATA_DIR/"Functional Data/TRs/RulesFull_Jennifer_JEIN_05122024.txt"\
+# #  --logdir $LOG_DIR\
+# #  --db_verbose $DB_VERBOSE\
+# #  --py_verbose $PY_VERBOSE
 
-# echo "Populating CoNekT Grasses with species TR annotation"
-# first_run=true
-# for species_code in ${SPECIES_ARRAY[@]};
-#  do
-#  if [ -f $DATA_DIR/Species/"$species_code"/*_list_TFs_OTRs_Orphans.txt ]; then
-#  $SCRIPTS_DIR/add/add_trs.py --db_admin $DB_ADMIN\
-#  --db_name $DB_NAME\
-#  --db_password $DB_PASSWORD\
-#  --tr_associations $DATA_DIR/Species/"$species_code"/*_list_TFs_OTRs_Orphans.txt\
-#  --species_code "$species_code"\
-#  --logdir $LOG_DIR\
-#  --db_verbose $DB_VERBOSE\
-#  --py_verbose $PY_VERBOSE\
-#  --first_run $first_run
-#  first_run=false
-#  fi
-# done;
+# # echo "Populating CoNekT Grasses with species TR annotation"
+# # first_run=true
+# # for species_code in ${SPECIES_ARRAY[@]};
+# #  do
+# #  if [ -f $DATA_DIR/Species/"$species_code"/*_list_TFs_OTRs_Orphans.txt ]; then
+# #  $SCRIPTS_DIR/add/add_trs.py --db_admin $DB_ADMIN\
+# #  --db_name $DB_NAME\
+# #  --db_password $DB_PASSWORD\
+# #  --tr_associations $DATA_DIR/Species/"$species_code"/*_list_TFs_OTRs_Orphans.txt\
+# #  --species_code "$species_code"\
+# #  --logdir $LOG_DIR\
+# #  --db_verbose $DB_VERBOSE\
+# #  --py_verbose $PY_VERBOSE\
+# #  --first_run $first_run
+# #  first_run=false
+# #  fi
+# # done;
 
 # echo "Updating all counts in the database"
 # $SCRIPTS_DIR/build/update_counts.py --db_admin $DB_ADMIN\
@@ -360,6 +360,28 @@ echo -e "Ready to start populating!"
 #  --logdir $LOG_DIR\
 #  --db_verbose $DB_VERBOSE\
 #  --py_verbose $PY_VERBOSE
+
+# # Populating gene trees from existing tarball
+# echo "Populating CoNekT Grasses with gene trees"
+# TREES_TGZ="$DATA_DIR/Comparative Genomics/Trees/Gene_Trees/trees.tgz"
+# if [ -f "$TREES_TGZ" ]; then
+#   python3 "$SCRIPTS_DIR/add/add_gene_trees.py" \
+#     --input_gzip_trees "$TREES_TGZ" \
+#     --gene_family_method_description "$GENE_FAMILIES_DESCRIPTION" \
+#     --gene_tree_method_description "OrthoFinder gene trees" \
+#     --sequence_ids_orthofinder "$DATA_DIR/Comparative Genomics/SequenceIDs.txt" \
+#     --db_admin $DB_ADMIN \
+#     --db_name $DB_NAME \
+#     --db_password "$DB_PASSWORD"
+# else
+#   echo "No trees tarball found at: $TREES_TGZ"
+# fi
+
+echo "Calculating gene tree-species tree reconciliations"
+$SCRIPTS_DIR/add/add_fill_phyloxml.py --db_admin $DB_ADMIN\
+ --db_name $DB_NAME\
+ --db_password $DB_PASSWORD\
+
 
 timestamp_end=$(date +"%Y-%m-%d %H:%M:%S")
 

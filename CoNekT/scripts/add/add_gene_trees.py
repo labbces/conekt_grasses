@@ -19,7 +19,11 @@ parser.add_argument('--input_gzip_trees', type=str, metavar='gene_trees.gz',
 parser.add_argument('--gene_family_method_id', type=int, metavar='1',
                     dest='gene_family_method_id',
                     help='Gene family method identifier',
-                    required=True)
+                    required=False)
+parser.add_argument('--gene_family_method_description', type=str, metavar='Description',
+                    dest='gene_family_method_description',
+                    help='Gene family method description (alternative to providing id)',
+                    required=False)
 parser.add_argument('--gene_tree_method_description', type=str, metavar='Description of the gene tree method',
                     dest='tree_method_description',
                     help='Gene tree method description',
@@ -87,7 +91,8 @@ def __replace_ids(tree_string, conversion_table):
 
 
 def add_trees(gene_family_method_id, tree_method_description, tree_data_gzip, sequenceids_file, engine):
-    
+    print(f"add_trees: starting (trees='{tree_data_gzip}', seqids='{sequenceids_file}', gf_method_id={gene_family_method_id})")
+
     # First Add Method
     new_method = TreeMethod()
 
@@ -96,21 +101,25 @@ def add_trees(gene_family_method_id, tree_method_description, tree_data_gzip, se
 
     session.add(new_method)
     session.commit()
+    print(f"add_trees: created TreeMethod id={new_method.id}")
 
     # Build conversion table from SequenceIDs.txt
     seqids_f = open(sequenceids_file, "r")
     id_conversion = __read_sequence_ids(seqids_f.readlines())
 
     # Get original gene family names (used to link trees to families)
+    print("add_trees: loading gene families for method_id=", new_method.gene_family_method_id)
     with engine.connect() as conn:
-        stmt = select(GeneFamily).where(GeneFamily.__table__.c.method_id == new_method.gene_family_method_id)
-        gfs = conn.execute(stmt).all()
+        stmt = select([GeneFamily]).where(GeneFamily.__table__.c.method_id == new_method.gene_family_method_id)
+        gfs = conn.execute(stmt).fetchall()
     ori_name_to_id = {gf.original_name: gf.id for gf in gfs}
+    print(f"add_trees: found {len(ori_name_to_id)} gene families")
     tree_data = tree_data_gzip
 
     new_trees = []
     with tarfile.open(tree_data, mode='r:gz') as tf:
-        for name, entry in zip(tf.getnames(), tf):
+        print(f"add_trees: reading tar with {len(tf.getnames())} entries")
+        for idx, (name, entry) in enumerate(zip(tf.getnames(), tf), start=1):
             tree_string = str(tf.extractfile(entry).read().decode('utf-8')).replace('\r', '').replace('\n','')
 
             # get the gene families original name from the filename
@@ -128,8 +137,7 @@ def add_trees(gene_family_method_id, tree_method_description, tree_data_gzip, se
             if original_name in ori_name_to_id.keys():
                 gf_id = ori_name_to_id[original_name]
             else:
-                print('%s: Family %s not found in gene families generated using method %d !' %
-                        (name, original_name, new_method.gene_family_method_id))
+                print(f"{idx}: {name}: Family {original_name} not found in gene families for method {new_method.gene_family_method_id} !")
 
             new_tree = {
                 "gf_id": gf_id,
@@ -142,13 +150,14 @@ def add_trees(gene_family_method_id, tree_method_description, tree_data_gzip, se
             new_trees.append(new_tree)
             new_tree_obj = Tree(**new_tree)
             session.add(new_tree_obj)
-
             # add 400 trees at the time, more can cause problems with some database engines
             if len(new_trees) > 400:
+                print(f"add_trees: committing batch of {len(new_trees)} trees (idx={idx})")
                 session.commit()
                 new_trees = []
 
         # add the last set of trees
+        print(f"add_trees: committing final batch of {len(new_trees)} trees")
         session.commit()
 
 
@@ -172,9 +181,30 @@ TreeMethod = Base.classes.tree_methods
 GeneFamily = Base.classes.gene_families
 Tree = Base.classes.trees
 
+# optional: allow lookup of gene_family_method_id by description
+GeneFamilyMethod = None
+try:
+    GeneFamilyMethod = Base.classes.gene_family_methods
+except Exception:
+    GeneFamilyMethod = None
+
 # Create a Session
 Session = sessionmaker(bind=engine)
 session = Session()
+# If user provided a description instead of id, resolve it here
+if gene_family_method_id is None and args.gene_family_method_description:
+    if GeneFamilyMethod is None:
+        print('GeneFamilyMethod mapping not available, cannot lookup by description')
+        session.close()
+        raise SystemExit(1)
+    with engine.connect() as conn:
+        stmt = select([GeneFamilyMethod]).where(GeneFamilyMethod.__table__.c.method == args.gene_family_method_description)
+        res = conn.execute(stmt).fetchone()
+        if not res:
+            print(f"Gene family method with description '{args.gene_family_method_description}' not found in database.")
+            session.close()
+            raise SystemExit(1)
+        gene_family_method_id = res.id
 
 add_trees(gene_family_method_id, gene_tree_method_desc, tree_data_gzip, sequenceids_file, engine)
 
