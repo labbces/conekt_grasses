@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from fileinput import filename
 import getpass
 import argparse
 import os
@@ -60,151 +61,185 @@ if args.db_password:
 else:
 	db_password = getpass.getpass("Enter the database password: ")
 
-
-
 def add_obo_peco(filename, empty=True, compressed=False):
-	"""
-	Add the Plant Experimental Conditions Ontology from an OBO file to the database.
-	If empty is True, it will first empty the table.
-	"""
-	
-	logger.info("______________________________________________________________________")
-	logger.info("➡️  Adding Plant Experimental Conditions Ontology (PECO) data:")
+    """
+    Add the Plant Experimental Conditions Ontology from an OBO file to the database.
+    If empty is True, it will first empty the table.
+    """
+    logger.info("______________________________________________________________________")
+    logger.info("➡️  Adding Plant Experimental Conditions Ontology (PECO) data:")
 
-def add_obo_peco(filename, empty=True, compressed=False):
-	"""
-	Add the Plant Experimental Conditions Ontology from an OBO file to the database.
-	If empty is True, it will first empty the table.
-	"""
-	
-	logger.info("______________________________________________________________________")
-	logger.info("➡️  Adding Plant Experimental Conditions Ontology (PECO) data:")
+    if not filename or not os.path.exists(filename):
+        print_log_error(logger, f"PECO file not found: {filename}")
+        exit(1)
 
-	# If required empty the table first
-	file_size = os.stat(filename).st_size
-	if empty and file_size > 0:
-		try:
-			# If required empty the table first
-			logger.debug("Cleaning 'plant_experimental_conditions_ontology' table...")
-			with engine.connect() as conn:
-				stmt = delete(PlantExperimentalConditionsOntology)
-				conn.execute(stmt)
-			logger.debug("✅  Table cleaned successfully.")
-		except Exception as e:
-			print_log_error(logger, f"Error while cleaning 'plant_experimental_conditions_ontology' table: {e}")
-			exit(1)
+    # If required empty the table first
+    file_size = os.stat(filename).st_size
+    if empty and file_size > 0:
+        try:
+            logger.debug("Cleaning 'plant_experimental_conditions_ontology' table...")
+            with engine.connect() as conn:
+                stmt = delete(PlantExperimentalConditionsOntology)
+                conn.execute(stmt)
+            logger.debug("✅  Table cleaned successfully.")
+        except Exception as e:
+            print_log_error(logger, f"Error while cleaning 'plant_experimental_conditions_ontology' table: {e}")
+            exit(1)
 
-	obo_parser = OBOParser()
-	obo_parser.readfile(filename, compressed=compressed)
+    logger.debug(f"Reading PECO file: {filename}")
 
-	for i, term in enumerate(obo_parser.terms):
-		if term.id.startswith("PECO:"):
-			peco = PlantExperimentalConditionsOntology(
-				peco_term=term.id,
-				peco_class=term.name,
-				peco_annotation=term.definition
-			)
-			session.add(peco)
-		
-		if i % 500 == 0:
-			# commit to the db frequently to allow WHOOSHEE's indexing function to work without timing out
-			try:
-				session.commit()
-				logger.debug(f"{i} entries processed and committed...")
-			except Exception as e:
-				session.rollback()
-				print(e)
-					
-		
-	try:
-		session.commit()
-		logger.info(f"✅  All {i} entries added to table 'peco' successfully!")
-	except Exception as e:
-		session.rollback()
-		print_log_error(logger, f"Failed while inserting Peco entry number {i + 1}: {e}")
-		exit(1)
+    obo_parser = OBOParser()
+    obo_parser.readfile(filename, compressed=compressed)
+
+    inserted = 0
+
+    if obo_parser.terms:
+        for idx, term in enumerate(obo_parser.terms):
+            if term.id.startswith("PECO:"):
+                peco = PlantExperimentalConditionsOntology(
+                    peco_term=term.id,
+                    peco_class=term.name,
+                    peco_annotation=term.definition
+                )
+                session.add(peco)
+                inserted += 1
+
+            if idx % 500 == 0 and idx > 0:
+                try:
+                    session.commit()
+                    logger.debug(f"{idx} entries processed and committed...")
+                except Exception as e:
+                    session.rollback()
+                    print_log_error(logger, f"Failed while inserting Peco entry number {idx + 1}: {e}")
+                    exit(1)
+    else:
+        # TSV fallback: expect columns like id, name, defn (or similar)
+        try:
+            with open(filename, 'r') as fh:
+                header = fh.readline().strip().lower()
+                for idx, line in enumerate(fh, start=1):
+                    if not line.strip():
+                        continue
+                    cols = line.rstrip('\n').split('\t')
+                    if len(cols) >= 3:
+                        peco_term = cols[0].strip()
+                        peco_name = cols[1].strip()
+                        peco_def = cols[2].strip()
+                        if peco_term.startswith("PECO:"):
+                            peco = PlantExperimentalConditionsOntology(
+                                peco_term=peco_term,
+                                peco_class=peco_name,
+                                peco_annotation=peco_def
+                            )
+                            session.add(peco)
+                            inserted += 1
+
+                    if idx % 500 == 0:
+                        try:
+                            session.commit()
+                            logger.debug(f"{idx} entries processed and committed (TSV fallback)...")
+                        except Exception as e:
+                            session.rollback()
+                            print_log_error(logger, f"Failed while inserting Peco entry number {idx + 1} (TSV): {e}")
+                            exit(1)
+        except Exception as e:
+            print_log_error(logger, f"Failed to parse PECO file '{filename}' as TSV fallback: {e}")
+            exit(1)
+
+    try:
+        session.commit()
+        logger.info(f"✅  All {inserted} entries added to table 'peco' successfully!")
+    except Exception as e:
+        session.rollback()
+        print_log_error(logger, f"Failed while inserting Peco entries: {e}")
+        exit(1)
 
 def add_obo_po(filename, empty=True, compressed=False):
-	"""
-	Add the Plant Ontology from an OBO file to the database.
-	If empty is True, it will first empty the table.
-	"""
+    logger.info("______________________________________________________________________")
+    logger.info("➡️  Adding Plant Ontology data:")
 
-	logger.info("______________________________________________________________________")
-	logger.info("➡️  Adding Plant Ontology data:")
+    if not filename or not os.path.exists(filename):
+        print_log_error(logger, f"PO file not found: {filename}")
+        exit(1)
 
-	# If required empty the table first
-	file_size = os.stat(filename).st_size
-	if empty and file_size > 0:
-		try:
-			# If required empty the table first
-			logger.debug("Cleaning 'plant_ontology' table...")
-			with engine.connect() as conn:
-				stmt = delete(PlantOntology)
-				conn.execute(stmt)
-			logger.debug("✅  Table cleaned successfully.")
-		except Exception as e:
-			print_log_error(logger, f"Error while cleaning 'plant_ontology' table: {e}")
-			exit(1)
+    file_size = os.stat(filename).st_size
+    if empty and file_size > 0:
+        try:
+            logger.debug("Cleaning 'plant_ontology' table...")
+            with engine.connect() as conn:
+                stmt = delete(PlantOntology)
+                conn.execute(stmt)
+            logger.debug("✅  Table cleaned successfully.")
+        except Exception as e:
+            print_log_error(logger, f"Error while cleaning 'plant_ontology' table: {e}")
+            exit(1)
 
-	logger.debug(f"Reading Plant Ontology file: {filename}")
-	
-	obo_parser = OBOParser()
-	obo_parser.readfile(filename, compressed=compressed)
+    logger.debug(f"Reading Plant Ontology file: {filename}")
 
-	for i, term in enumerate(obo_parser.terms):
-		if term.id.startswith("PO:"):
-			po = PlantOntology(
-				po_term=term.id,
-				po_class=term.name,
-				po_annotation=term.definition
-			)
-			session.add(po)
-			
-		if i % 500 == 0:
-			# commit to the db frequently to allow WHOOSHEE's indexing function to work without timing out
-			try:
-				session.commit()
-				logger.debug(f"{i} entries processed and committed...")
-			except Exception as e:
-				session.rollback()
-				print_log_error(logger, f"Failed while inserting Plant Ontology entry number {i + 1}: {e}")
-				exit(1)
+    # Try OBO parsing first
+    obo_parser = OBOParser()
+    obo_parser.readfile(filename, compressed=compressed)
 
-	try:
-		session.commit()
-		logger.info(f"✅  All {i} entries added to table 'plant_ontology' successfully!")
-	except Exception as e:
-		session.rollback()
-		print_log_error(logger, f"Failed while inserting Plant Ontology entry number {i + 1}: {e}")
-		exit(1)
+    inserted = 0
 
-	for i, term in enumerate(obo_parser.terms):
-		if term.id.startswith("PO:"):
-			po = PlantOntology(
-				po_term=term.id,
-				po_class=term.name,
-				po_annotation=term.definition
-			)
-			session.add(po)
-			
-		if i % 500 == 0:
-			# commit to the db frequently to allow WHOOSHEE's indexing function to work without timing out
-			try:
-				session.commit()
-				logger.debug(f"{i} entries processed and committed...")
-			except Exception as e:
-				session.rollback()
-				print_log_error(logger, f"Failed while inserting Plant Ontology entry number {i + 1}: {e}")
-				exit(1)
+    if obo_parser.terms:
+        for idx, term in enumerate(obo_parser.terms):
+            if term.id.startswith("PO:"):
+                po = PlantOntology(
+                    po_term=term.id,
+                    po_class=term.name,
+                    po_annotation=term.definition
+                )
+                session.add(po)
+                inserted += 1
 
-	try:
-		session.commit()
-		logger.info(f"✅  All {i} entries added to table 'plant_ontology' successfully!")
-	except Exception as e:
-		session.rollback()
-		print_log_error(logger, f"Failed while inserting Plant Ontology entry number {i + 1}: {e}")
-		exit(1)
+            if idx % 500 == 0 and idx > 0:
+                try:
+                    session.commit()
+                    logger.debug(f"{idx} entries processed and committed...")
+                except Exception as e:
+                    session.rollback()
+                    print_log_error(logger, f"Failed while inserting Plant Ontology entry number {idx + 1}: {e}")
+                    exit(1)
+    else:
+        # Fallback: try parsing as tab-delimited table with header (id, name, defn)
+        try:
+            with open(filename, 'r') as fh:
+                header = fh.readline().strip().lower()
+                # If header looks like 'id\tname\tdefn' or contains 'id' and 'name'
+                for idx, line in enumerate(fh, start=1):
+                    if not line.strip():
+                        continue
+                    cols = line.rstrip('\n').split('\t')
+                    # expect at least id and name and definition in common PO exports
+                    if len(cols) >= 3:
+                        po_term = cols[0].strip()
+                        po_name = cols[1].strip()
+                        po_def = cols[2].strip()
+                        if po_term.startswith("PO:"):
+                            po = PlantOntology(po_term=po_term, po_class=po_name, po_annotation=po_def)
+                            session.add(po)
+                            inserted += 1
+
+                    if idx % 500 == 0:
+                        try:
+                            session.commit()
+                            logger.debug(f"{idx} entries processed and committed (TSV fallback)...")
+                        except Exception as e:
+                            session.rollback()
+                            print_log_error(logger, f"Failed while inserting Plant Ontology entry number {idx + 1} (TSV): {e}")
+                            exit(1)
+        except Exception as e:
+            print_log_error(logger, f"Failed to parse PO file '{filename}' as TSV fallback: {e}")
+            exit(1)
+
+    try:
+        session.commit()
+        logger.info(f"✅  All {inserted} entries added to table 'plant_ontology' successfully!")
+    except Exception as e:
+        session.rollback()
+        print_log_error(logger, f"Failed while inserting Plant Ontology entries: {e}")
+        exit(1)
 
 try:
 
@@ -251,12 +286,6 @@ try:
 	if ontology_data_count == 0:
 		print_log_error(logger, "Must add at least one type of ontology file (e.g., --plant_ontology)")
 		exit(1)
-
-		add_obo_po(po_file)
-
-		if ontology_data_count == 0:
-			print_log_error(logger, "Must add at least one type of ontology file (e.g., --plant_ontology)")
-			exit(1)
 
 	session.close()
 

@@ -21,6 +21,28 @@ from log_functions import *
 
 from utils.fasta import Fasta
 
+
+import re
+import unicodedata
+import html
+
+def _clean_text_for_db(x):
+    if x is None:
+        return ''
+    if isinstance(x, list):
+        x = ' '.join([str(i) for i in x if i])
+    x = str(x)
+    # Unescape HTML entities and remove HTML tags
+    x = html.unescape(x)
+    x = re.sub(r'<[^>]+>', ' ', x)
+    # Normalize unicode to composed form and collapse whitespace
+    x = unicodedata.normalize('NFKC', x)
+    x = re.sub(r'\s+', ' ', x).strip()
+    # Remove characters that can't be represented safely by the DB by encoding/decoding
+    x = x.encode('utf-8', 'ignore').decode('utf-8', 'ignore')
+    return x
+
+
 parser = argparse.ArgumentParser(description='Add species to the database')
 parser.add_argument('--input_table', type=str, metavar='conekt_species.tsv',
 					dest='species_file',
@@ -56,6 +78,7 @@ parser.add_argument('--py_verbose', type=str, metavar='Python script verbose',
 					help='Enable python verbose logging (true/false)',
 					required=False,
 					default="true")
+					
 
 
 args = parser.parse_args()
@@ -71,63 +94,85 @@ def add_literature(doi, session):
 	logger.info(f"➡️  Adding literature entry: {doi}")
 
 	try:
-
 		works = Works()
-		# verify if DOI already exists in DB, if not, collect data
 		literature_info = works.doi(doi)
-
-		qtd_author = len(literature_info['author'])
-		
-		if 'family' in literature_info['author'][0].keys():
-			author_names = literature_info['author'][0]['family']
-		else:
-			author_names = literature_info['author'][0]['name']
-
-		title = literature_info['title']
-		
-		if 'published-print' in literature_info.keys():
-			public_year = literature_info['published-print']['date-parts'][0][0]
-		elif 'published-online' in literature_info.keys():
-			public_year = literature_info['published-online']['date-parts'][0][0]
-		else:
-			public_year = literature_info['issued']['date-parts'][0][0]
-	
 	except Exception as e:
 		print_log_error(logger, f"Error while retrieving metadata for DOI '{doi}': {e}")
-		exit(1)
+		return None
 
 	try:
-		new_literature = LiteratureItem(qtd_author=qtd_author,
-										author_names=author_names,
-										title=title,
-										public_year=public_year,
-										doi=doi)
+		# authors
+		authors = literature_info.get('author', []) or []
+		qtd_author = len(authors)
+		if authors:
+			first = authors[0] or {}
+			author_names_raw = first.get('family') or first.get('name') or ''
+		else:
+			author_names_raw = ''
+
+		author_names = _clean_text_for_db(author_names_raw)
+
+		# title may be a list or string
+		raw_title = literature_info.get('title', '')
+		title = _clean_text_for_db(raw_title)
+
+		# publication year
+		if 'published-print' in literature_info:
+			public_year = literature_info['published-print']['date-parts'][0][0]
+		elif 'published-online' in literature_info:
+			public_year = literature_info['published-online']['date-parts'][0][0]
+		else:
+			# fall back to issued or None
+			public_year = None
+			if 'issued' in literature_info and literature_info['issued'].get('date-parts'):
+				try:
+					public_year = literature_info['issued']['date-parts'][0][0]
+				except Exception:
+					public_year = None
 	except Exception as e:
-		print_log_error(logger, f"Error while querying literature table for DOI '{doi}': {e}")
-		exit(1)
-	
+		print_log_error(logger, f"Error while parsing metadata for DOI '{doi}': {e}")
+		return None
+
 	try:
-		# stmt = select(LiteratureItem).where(LiteratureItem.doi == doi)
+		# check existing entry
 		literature = session.query(LiteratureItem).filter(LiteratureItem.doi == doi).first()
 	except Exception as e:
-		print_log_error(logger, f" Error while querying literature table for DOI '{doi}': {e}")
-		exit(1)
+		print_log_error(logger, f"Error while querying literature table for DOI '{doi}': {e}")
+		return None
+
+	if literature:
+		logger.debug(f"✅  Literature with DOI '{doi}' already exists. Skipping insertion.")
+		return literature.id
 
 	try:
-		# literature is not in the DB yet, add it
-		if not literature:
-			session.add(new_literature)
-			session.commit()
-			logger.debug(f"✅  New literature entry added for DOI: {doi}")
-			return new_literature.id
-		else:
-			logger.debug(f"✅  Literature with DOI '{doi}' already exists. Skipping insertion.")
-			return literature.id
+		new_literature = LiteratureItem(
+			qtd_author=qtd_author,
+			author_names=author_names,
+			title=title,
+			public_year=public_year,
+			doi=doi
+		)
+	except Exception as e:
+		print_log_error(logger, f"Error while constructing LiteratureItem for DOI '{doi}': {e}")
+		return None
+
+	try:
+		session.add(new_literature)
+		session.commit()
+		logger.debug(f"✅  New literature entry added for DOI: {doi}")
+		return new_literature.id
 	except Exception as e:
 		session.rollback()
+		# Try to recover if a concurrent insert happened
+		try:
+			literature = session.query(LiteratureItem).filter(LiteratureItem.doi == doi).first()
+			if literature:
+				logger.debug(f"✅  Literature with DOI '{doi}' already exists (after concurrent insert).")
+				return literature.id
+		except Exception:
+			pass
 		print_log_error(logger, f"Error while inserting literature entry for DOI '{doi}': {e}")
-		exit(1)
-
+		return None
 
 def add_species(code, name, session, data_type='genome',
 			color="#C7C7C7", highlight="#DEDEDE", description=None,
@@ -188,7 +233,7 @@ def get_te_class(te_class_name):
 	else:
 		return None
 
-def add_from_fasta(species_code, species_id, compressed=False, sequence_type='protein_coding'):
+def add_from_fasta(species_code, species_id, compressed=False, sequence_type='protein_coding', filename=None):
 	logger.info("______________________________________________________________________")
 	logger.info(f"➡️  Adding {sequence_type} sequences")
 
@@ -204,7 +249,9 @@ def add_from_fasta(species_code, species_id, compressed=False, sequence_type='pr
 		raise ValueError(f"Unsupported sequence type: {sequence_type}")
 
 	# Gets file name based on species ID and sequence type
-	filename = f"{args.species_dir}/{species_code}/{species_code}_{ftype}.fa"
+	# filename = f"{args.species_dir}/{species_code}/{species_code}_{ftype}.fa"
+	if not filename:
+		filename = f"{args.species_dir}/{species_code}/{species_code}_{ftype}.fa"
 
 	try:
 		logger.debug(f"Reading FASTA file: {filename}")
@@ -212,7 +259,7 @@ def add_from_fasta(species_code, species_id, compressed=False, sequence_type='pr
 		fasta_data.readfile(filename, compressed=compressed)
 	except Exception as e:
 		print_log_error(logger, f"Error while reading FASTA file '{filename}': {e}")
-		#exit(1)
+		return 0
 
 	total_sequences = len(fasta_data.sequences)
 	logger.debug(f"Found {total_sequences} sequences in the FASTA file.")
@@ -310,10 +357,14 @@ try:
 		if line.startswith("#"):
 			continue
 		line = line.rstrip()
-		name, code, genome_source, genome_version, doi = line.split("\t")
+		parts = [p.strip() for p in line.split("\t")]
+		if len(parts) < 7:
+			logger.error(f"Invalid line (expected >=7 cols): {line}")
+			continue
 
-		logger.info(f"Inserting species '{name}' data  ===============================================")
-		
+		name, code, genome_source, genome_version, doi, cds_file, rna_file = parts[:7]
+
+		logger.info(f"Inserting species '{name}' data  ===============================================")		
 		# skip if species exists
 		session = Session()
 
@@ -335,8 +386,8 @@ try:
 			species_id = add_species(code, name, session, source=genome_source, literature_id=literature_id, genome_version=genome_version)
 
 			# add sequences
-			num_seq_added_cds = add_from_fasta(code, species_id, sequence_type='protein_coding')
-			num_seq_added_rna = add_from_fasta(code, species_id, sequence_type='RNA')
+			num_seq_added_cds = add_from_fasta(code, species_id, sequence_type='protein_coding', filename=cds_file)
+			num_seq_added_rna = add_from_fasta(code, species_id, sequence_type='RNA', filename=rna_file)
 			num_seq_added_te = add_from_fasta(code, species_id, sequence_type='TE')
 
 			logger.info(f"✅  Added {num_seq_added_cds} CDS and {num_seq_added_rna} RNA sequences for {name} ({code})\n")

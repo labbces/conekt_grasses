@@ -1,17 +1,17 @@
 # ==================== Database Credentials ====================
 # Set your database credentials below
-DB_ADMIN=
-DB_NAME=
-DB_PASSWORD=          # Use quotes for special characters
+DB_ADMIN=conekt_grasses_admin
+DB_NAME=conekt_grasses_db
+DB_PASSWORD="E,~5*;{9f{p2VGp^"          # Use quotes for special characters
 
 
 
 # ==================== Directory Paths ====================
 # Base path of your CoNekT project (e.g, /home/user/conekt/conekt_grasses/). Set value here!
-BASE_DIR=/home/pturquetti/conekt/conekt_grasses/
+BASE_DIR=/home/vitor/conekt_grasses
 
 # Path where your input data files are stored
-DATA_DIR=/mnt/c/Users/Usuario/Desktop/DadosConekt
+DATA_DIR=/home/vitor/v0.3
 
 # Path to the species data (auto-filled based on DATA_DIR)
 SPECIES_DIR=$DATA_DIR/Species
@@ -27,7 +27,8 @@ LOG_DIR=$BASE_DIR/CoNekT/scripts/add/logs_populate
 SPECIES_TABLE=$SPECIES_DIR/info_species.tsv
 
 # Array of species codes to include (must match codes in SPECIES_TABLE exactly)
-SPECIES_ARRAY=( Svi Bdi Osa Sit Sbi Pvi Zma )
+# SPECIES_ARRAY=( Svi Bdi Osa Sit Sbi Pvi Zma )
+SPECIES_ARRAY=( Zma )
 
 #
 SPECIES_EXPRESSION_PROFILES=(  )
