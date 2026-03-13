@@ -1,227 +1,105 @@
 #!/usr/bin/env python3
 
 import argparse
-import psutil
-
-from sqlalchemy import create_engine
+from collections import defaultdict
+from sqlalchemy import create_engine, select
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.sql import select
-from collections import defaultdict
 
-# Create arguments
-parser = argparse.ArgumentParser(description='Add gene families to the database')
-parser.add_argument('--orthogroups', type=str, metavar='Orthogroups.txt',
-                    dest='orthogroups_file',
-                    help='The Orthogroups.txt file from OrthoFinder',
-                    required=True)
-parser.add_argument('--description', type=str, metavar='Description',
-                    dest='description',
-                    help='Description of the method as it should appear in CoNekT',
-                    required=True)
-parser.add_argument('--db_admin', type=str, metavar='DB admin',
-                    dest='db_admin',
-                    help='The database admin user',
-                    required=True)
-parser.add_argument('--db_name', type=str, metavar='DB name',
-                    dest='db_name',
-                    help='The database name',
-                    required=True)
-parser.add_argument('--db_password', type=str, metavar='DB password',
-                    dest='db_password',
-                    help='The database password',
-                    required=False)
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--orthogroups', required=True)
+    parser.add_argument('--description', required=True)
+    parser.add_argument('--db_admin', required=True)
+    parser.add_argument('--db_name', required=True)
+    parser.add_argument('--db_password')
+    args = parser.parse_args()
 
-args = parser.parse_args()
+    pwd = args.db_password or input("Enter DB password: ")
+    engine = create_engine(f"mysql+pymysql://{args.db_admin}:{pwd}@localhost/{args.db_name}")
+    Base = automap_base()
+    Base.prepare(autoload_with=engine)
 
-if args.db_password:
-    db_password = args.db_password
-else:
-    db_password = input("Enter the database password: ")
+    Method = Base.classes.gene_family_methods
+    Family = Base.classes.gene_families
+    Sequence = Base.classes.sequences
+    Assoc = Base.classes.sequence_family
 
+    Session = sessionmaker(bind=engine)
+    session = Session()
 
-def print_memory_usage():
-    # Get memory usage statistics
-    memory = psutil.virtual_memory()
+    try:
+        # Add method
+        existing_method = session.execute(select(Method).where(Method.method == args.description)).scalar_one_or_none()
+        if existing_method:
+            raise ValueError(f"Method '{args.description}' already exists.")
+        method = Method(method=args.description)
+        session.add(method)
+        session.commit()
+        session.refresh(method)  # Ensure method.id is available
 
-    # Print memory usage
-    print(f"Total Memory: {memory.total / (1024.0 ** 3):.2f} GB")
-    print(f"Available Memory: {memory.available / (1024.0 ** 3):.2f} GB")
-    print(f"Used Memory: {memory.used / (1024.0 ** 3):.2f} GB")
-    print(f"Memory Usage Percentage: {memory.percent}%\n")
+        # Load all protein-coding sequences
+        sequences = session.execute(
+            select(Sequence.id, Sequence.name).where(Sequence.type == 'protein_coding')
+        ).all()
+        gene_hash = {row.name.lower(): row.id for row in sequences}
 
-def add_family_method(description, engine):
-        
-        print_memory_usage()
+        print(f"Loaded {len(gene_hash)} protein-coding genes.")
 
-        with engine.connect() as conn:
-            stmt = select(GeneFamilyMethod).where(GeneFamilyMethod.__table__.c.method == description)
-            method = conn.execute(stmt).first()
-            if method:
-                print(f"Gene family method '{description}' already exists in the database")
-                exit(1)
-            print_memory_usage()
+        families = []
+        members = defaultdict(set)
+        batch_count = 0
 
-        try:
-            session.add(GeneFamilyMethod(method=description))
-            session.commit()
-        except Exception as e:
-            session.rollback()
-            raise e
+        with open(args.orthogroups) as f:
+            for line in f:
+                if batch_count >= 2000:
+                    _commit_families(session, families, members, Family, Assoc)
+                    families.clear()
+                    members.clear()
+                    batch_count = 0
 
+                parts = line.strip().split()
+                if not parts:
+                    continue
+                og_id = parts[0].rstrip(':')
+                family = Family(
+                    name=og_id.replace('OG', f'OG_{method.id:02d}_'),
+                    original_name=og_id,
+                    method_id=method.id
+                )
+                families.append(family)
+                for gene in parts[1:]:
+                    gene_key = gene.lower()
+                    if gene_key in gene_hash:
+                        members[family.name].add(gene_hash[gene_key])
+                batch_count += 1
 
-def add_families(families, family_members):
-        """
-        Adds gene families to the database and assigns genes to their designated family
+        if families:
+            _commit_families(session, families, members, Family, Assoc)
 
-        :param families: list of GeneFamily objects
-        :param family_members: dict (keys = gene family name) with lists of members
-        """
+        print(f"✅ Added gene families from '{args.orthogroups}'.")
 
-        for i, f in enumerate(families):
-            session.add(f)
+    finally:
+        session.close()
 
-            if i > 0 and i % 400 == 0:
-                # Commit to DB every 400 records
-                try:
-                    session.commit()
-                    print_memory_usage()
-                except Exception as e:
-                    session.rollback()
-                    quit()
+def _commit_families(session, families, members, Family, Assoc):
+    session.add_all(families)
+    session.commit()
+    # Refresh to get IDs
+    for f in families:
+        session.refresh(f)
 
-        try:
-            # Commit to DB remainder
-            session.commit()
-            print_memory_usage()
-        except Exception as e:
-            session.rollback()
-            quit()
+    associations = []
+    for family in families:
+        for seq_id in members.get(family.name, []):
+            associations.append(Assoc(sequence_id=seq_id, gene_family_id=family.id))
+            if len(associations) >= 400:
+                session.add_all(associations)
+                session.commit()
+                associations.clear()
+    if associations:
+        session.add_all(associations)
+        session.commit()
 
-        for i, f in enumerate(families):
-            
-            with engine.connect() as conn:
-                stmt = select(Sequence).where(Sequence.id.in_(list(family_members[f.name])))
-                family_sequences = conn.execute(stmt).all()
-
-            for member in family_sequences:
-                association = SequenceFamilyAssociation()
-                
-                association.sequence_id = member.id
-                association.gene_family_id = f.id
-
-                session.add(association)
-
-                if i > 0 and i % 400 == 0:
-                    # Commit to DB every 400 records
-                    try:
-                        session.commit()
-                        print_memory_usage()
-                    except Exception as e:
-                        session.rollback()
-                        quit()
-
-            del family_sequences
-
-        try:
-            # Commit to DB remainder
-            session.commit()
-            print_memory_usage()
-        except Exception as e:
-            session.rollback()
-            quit()
-
-
-def add_families_from_orthofinder(filename, description, engine):
-        """
-        Add gene families directly from OrthoFinder output (one line with all genes from one family)
-
-        :param filename: The file to load
-        :param description: Description of the method to store in the database
-        :return the new methods internal ID
-        """
-        # Create new method for these families
-        add_family_method(description, engine)
-
-        with engine.connect() as conn:
-            stmt = select(GeneFamilyMethod).where(GeneFamilyMethod.__table__.c.method == description)
-            method = conn.execute(stmt).first()
-            print_memory_usage()
-
-        gene_hash = {}
-        print_memory_usage()
-
-        with engine.connect() as conn:
-            stmt = select(Sequence.__table__.c.name, Sequence.__table__.c.id).where(Sequence.__table__.c.type == 'protein_coding')
-            all_sequences = conn.execute(stmt).all()
-            print_memory_usage()
-        
-        for sequence in all_sequences:
-            gene_hash[sequence.name.lower()] = sequence
-
-        print_memory_usage()
-        del all_sequences
-        print_memory_usage()
-
-        families = set()
-        family_members = defaultdict(set)
-
-        with open(filename, "r") as f_in:
-            for line in f_in:
-                
-                if len(families) >= 2000:
-                    # add all families
-                    add_families(families, family_members)
-                    print_memory_usage()
-                    
-                    del families
-                    del family_members
-                    families = set()
-                    family_members = defaultdict(set)
-
-                orthofinder_id, *parts = line.strip().split()
-                orthofinder_id = orthofinder_id.rstrip(':')
-
-                new_family = GeneFamily(name=orthofinder_id.replace('OG', 'OG_%02d_' % method.id))
-                new_family.original_name = orthofinder_id
-                new_family.method_id = method.id
-
-                families.add(new_family)
-
-                for p in parts:
-                    if p.lower() in gene_hash.keys():
-                        family_members[new_family.name].add(gene_hash[p.lower()][1])
-                        del gene_hash[p.lower()]
-
-        # add all families
-        add_families(families, family_members)
-        print_memory_usage()
-
-orthogroups_file = args.orthogroups_file
-description = args.description
-db_admin = args.db_admin
-db_name = args.db_name
-
-create_engine_string = "mysql+pymysql://"+db_admin+":"+db_password+"@localhost/"+db_name
-
-engine = create_engine(create_engine_string, echo=True)
-
-# Reflect an existing database into a new model
-Base = automap_base()
-
-# Use the engine to reflect the database
-Base.prepare(engine, reflect=True)
-
-GeneFamilyMethod = Base.classes.gene_family_methods
-GeneFamily = Base.classes.gene_families
-Sequence = Base.classes.sequences
-SequenceFamilyAssociation = Base.classes.sequence_family
-
-# Create a Session
-Session = sessionmaker(bind=engine)
-session = Session()
-
-# Run the function to add the families
-add_families_from_orthofinder(orthogroups_file, description, engine)
-
-session.close()
+if __name__ == '__main__':
+    main()

@@ -1,181 +1,117 @@
 #!/usr/bin/env python3
 
 import argparse
-
-from sqlalchemy import create_engine
-from sqlalchemy.ext.automap import automap_base
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.sql import select
-
 import tarfile
 import newick
+from sqlalchemy import create_engine, select
+from sqlalchemy.ext.automap import automap_base
+from sqlalchemy.orm import sessionmaker
 
-
-parser = argparse.ArgumentParser(description='Add gene trees to the database')
-parser.add_argument('--input_gzip_trees', type=str, metavar='gene_trees.gz',
-                    dest='trees_file',
-                    help='The GZIP file with the gene trees',
-                    required=True)
-parser.add_argument('--gene_family_method_id', type=int, metavar='1',
-                    dest='gene_family_method_id',
-                    help='Gene family method identifier',
-                    required=True)
-parser.add_argument('--gene_tree_method_description', type=str, metavar='Description of the gene tree method',
-                    dest='tree_method_description',
-                    help='Gene tree method description',
-                    required=True)
-parser.add_argument('--sequence_ids_orthofinder', type=str, metavar='SequenceIDs.txt',
-                    dest='sequenceids_file',
-                    help='SequenceIDs.txt file from OrthoFinder',
-                    required=True)
-parser.add_argument('--db_admin', type=str, metavar='DB admin',
-                    dest='db_admin',
-                    help='The database admin user',
-                    required=True)
-parser.add_argument('--db_name', type=str, metavar='DB name',
-                    dest='db_name',
-                    help='The database name',
-                    required=True)
-parser.add_argument('--db_password', type=str, metavar='DB password',
-                    dest='db_password',
-                    help='The database password',
-                    required=False)
-
-args = parser.parse_args()
-
-if args.db_password:
-    db_password = args.db_password
-else:
-    db_password = input("Enter the database password: ")
-
-
-def __read_sequence_ids(data):
-    """
-    Reads SequenceIDs.txt (file included in OrthoFinder Output) and parses it to a dict
-
-    :param data: list of lines in SequenceIDs.txt
-    :return: dict with key: OrthoFinder ID en value: the proper name
-    """
+def read_sequence_ids(lines):
     output = {}
-
-    for l in data:
-        if l.strip() != '':
-            k, v = l.split(': ')
+    for line in lines:
+        line = line.strip()
+        if line and ': ' in line:
+            k, v = line.split(': ', 1)
             output[k] = v
-
     return output
 
-
-def __replace_ids(tree_string, conversion_table):
-    """
-    Replaces identifiers in a newick string with those defined in the conversion table
-
-    :param tree_string: tree in newick format
-    :param conversion_table: dict with name conversion
-    :return: parsed tree, in newick format
-    """
+def replace_ids(tree_string, conversion_table):
     tree = newick.loads(tree_string.strip(), strip_comments=True)[0]
-
-    # Remove internal names, and need to be replaced with proper reconciliation.
     tree.remove_internal_names()
-
     for leaf in tree.get_leaves():
-        if leaf.name in conversion_table.keys():
+        if leaf.name in conversion_table:
             leaf.name = conversion_table[leaf.name]
-
     return newick.dumps([tree])
 
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--input_gzip_trees', required=True)
+    parser.add_argument('--gene_family_method_id', type=int, required=True)
+    parser.add_argument('--gene_tree_method_description', required=True)
+    parser.add_argument('--sequence_ids_orthofinder', required=True)
+    parser.add_argument('--db_admin', required=True)
+    parser.add_argument('--db_name', required=True)
+    parser.add_argument('--db_password')
+    args = parser.parse_args()
 
-def add_trees(gene_family_method_id, tree_method_description, tree_data_gzip, sequenceids_file, engine):
-    
-    # First Add Method
-    new_method = TreeMethod()
+    pwd = args.db_password or input("Enter DB password: ")
+    engine = create_engine(f"mysql+pymysql://{args.db_admin}:{pwd}@localhost/{args.db_name}")
+    Base = automap_base()
+    Base.prepare(autoload_with=engine)
 
-    new_method.gene_family_method_id = gene_family_method_id
-    new_method.description = tree_method_description
+    TreeMethod = Base.classes.tree_methods
+    GeneFamily = Base.classes.gene_families
+    Tree = Base.classes.trees
 
-    session.add(new_method)
-    session.commit()
+    Session = sessionmaker(bind=engine)
+    session = Session()
 
-    # Build conversion table from SequenceIDs.txt
-    seqids_f = open(sequenceids_file, "r")
-    id_conversion = __read_sequence_ids(seqids_f.readlines())
-
-    # Get original gene family names (used to link trees to families)
-    with engine.connect() as conn:
-        stmt = select(GeneFamily).where(GeneFamily.__table__.c.method_id == new_method.gene_family_method_id)
-        gfs = conn.execute(stmt).all()
-    ori_name_to_id = {gf.original_name: gf.id for gf in gfs}
-    tree_data = tree_data_gzip
-
-    new_trees = []
-    with tarfile.open(tree_data, mode='r:gz') as tf:
-        for name, entry in zip(tf.getnames(), tf):
-            tree_string = str(tf.extractfile(entry).read().decode('utf-8')).replace('\r', '').replace('\n','')
-
-            # get the gene families original name from the filename
-            if name.startswith('./'):
-                # remove the ./ from the beginning of the name
-                # this was an issue after compressing the trees with 
-                # find . -name "OG*.txt" -print | tar -czvf trees.tgz -T -
-                name_replaced = str(name.replace('./', ''))
-                original_name = str(name_replaced.split('_')[0])
-            else:
-                original_name = str(name.split('_')[0])
-                
-            gf_id = None
-
-            if original_name in ori_name_to_id.keys():
-                gf_id = ori_name_to_id[original_name]
-            else:
-                print('%s: Family %s not found in gene families generated using method %d !' %
-                        (name, original_name, new_method.gene_family_method_id))
-
-            new_tree = {
-                "gf_id": gf_id,
-                "label": original_name + "_tree",
-                "method_id": new_method.id,
-                "data_newick": __replace_ids(tree_string, id_conversion),
-                "data_phyloxml": None
-            }
-
-            new_trees.append(new_tree)
-            new_tree_obj = Tree(**new_tree)
-            session.add(new_tree_obj)
-
-            # add 400 trees at the time, more can cause problems with some database engines
-            if len(new_trees) > 400:
-                session.commit()
-                new_trees = []
-
-        # add the last set of trees
+    try:
+        # Add method
+        method = TreeMethod(
+            gene_family_method_id=args.gene_family_method_id,
+            description=args.gene_tree_method_description
+        )
+        session.add(method)
         session.commit()
+        session.refresh(method)
 
+        # Load sequence ID mapping
+        with open(args.sequence_ids_orthofinder) as f:
+            id_conversion = read_sequence_ids(f.readlines())
 
-db_admin = args.db_admin
-db_name = args.db_name
-gene_family_method_id = args.gene_family_method_id
-gene_tree_method_desc = args.tree_method_description
-sequenceids_file = args.sequenceids_file
-tree_data_gzip = args.trees_file
+        # Load gene families for this method
+        families = session.execute(
+            select(GeneFamily).where(GeneFamily.method_id == args.gene_family_method_id)
+        ).scalars().all()
+        ori_name_to_id = {gf.original_name: gf.id for gf in families}
 
-create_engine_string = "mysql+pymysql://"+db_admin+":"+db_password+"@localhost/"+db_name
+        print(f"Loaded {len(ori_name_to_id)} gene families.")
 
-engine = create_engine(create_engine_string, echo=True)
+        trees_added = 0
+        batch = []
 
-# Reflect an existing database into a new model
-Base = automap_base()
+        with tarfile.open(args.input_gzip_trees, 'r:gz') as tf:
+            for member in tf:
+                if not member.isfile():
+                    continue
+                name = member.name
+                if name.startswith('./'):
+                    name = name[2:]
+                original_name = name.split('_')[0]
 
-Base.prepare(engine, reflect=True)
+                gf_id = ori_name_to_id.get(original_name)
+                if gf_id is None:
+                    print(f"Warning: Family {original_name} not found.")
+                    continue
 
-TreeMethod = Base.classes.tree_methods
-GeneFamily = Base.classes.gene_families
-Tree = Base.classes.trees
+                tree_data = tf.extractfile(member).read().decode('utf-8').replace('\r', '').replace('\n', '')
+                newick_str = replace_ids(tree_data, id_conversion)
 
-# Create a Session
-Session = sessionmaker(bind=engine)
-session = Session()
+                tree = Tree(
+                    gf_id=gf_id,
+                    label=f"{original_name}_tree",
+                    method_id=method.id,
+                    data_newick=newick_str,
+                    data_phyloxml=None
+                )
+                batch.append(tree)
+                trees_added += 1
 
-add_trees(gene_family_method_id, gene_tree_method_desc, tree_data_gzip, sequenceids_file, engine)
+                if len(batch) >= 400:
+                    session.add_all(batch)
+                    session.commit()
+                    batch.clear()
+                    print(f"Committed {trees_added} trees...")
 
-session.close()
+            if batch:
+                session.add_all(batch)
+                session.commit()
+
+        print(f"✅ Successfully added {trees_added} gene trees.")
+    finally:
+        session.close()
+
+if __name__ == '__main__':
+    main()

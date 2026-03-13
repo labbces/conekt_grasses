@@ -1,286 +1,177 @@
 #!/usr/bin/env python3
 
 import argparse
-import psutil
-import sys
 import gzip
 import operator
 import time
-
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.sql import select
-
 from crossref.restful import Works
-
-parser = argparse.ArgumentParser(description='Add species to the database')
-parser.add_argument('--input_table', type=str, metavar='conekt_species.tsv',
-                    dest='species_file',
-                    help='The TSV file with the species information',
-                    required=True)
-parser.add_argument('--db_admin', type=str, metavar='DB admin',
-                    dest='db_admin',
-                    help='The database admin user',
-                    required=True)
-parser.add_argument('--db_name', type=str, metavar='DB name',
-                    dest='db_name',
-                    help='The database name',
-                    required=True)
-parser.add_argument('--db_password', type=str, metavar='DB password',
-                    dest='db_password',
-                    help='The database password',
-                    required=False)
-
-args = parser.parse_args()
-
-if args.db_password:
-    db_password = args.db_password
-else:
-    db_password = input("Enter the database password: ")
-
 
 class Fasta:
     def __init__(self):
         self.sequences = {}
 
-    def remove_subset(self, length):
-        """
-        Removes a set of sequences and returns those as a subset
+    def readfile(self, filename, compressed=False):
+        opener = gzip.open if compressed else open
+        mode = 'rt' if compressed else 'r'
+        with opener(filename, mode) as f:
+            name = ''
+            seq = []
+            for line in f:
+                line = line.rstrip()
+                if line.startswith('>'):
+                    if name:
+                        self.sequences[name] = ''.join(seq)
+                        seq = []
+                    name = line[1:]
+                else:
+                    seq.append(line)
+            if name:
+                self.sequences[name] = ''.join(seq)
 
-        :param length: number of sequences to remove
-        :return: Fasta object with the sequences removed from the current one
-        """
-        output = Fasta()
-        keys = list(self.sequences.keys())
-        output.sequences = {k: self.sequences[k] for k in keys[:length]}
+def add_literature(session, doi):
+    Lit = session.get_bind().execute.__self__.class_registry['literature']
+    existing = session.execute(select(Lit).where(Lit.doi == doi)).scalar_one_or_none()
+    if existing:
+        return existing.id
 
-        self.sequences = {k: self.sequences[k] for k in keys[length:]}
-
-        return output
-
-    def readfile(self, filename, compressed=False, verbose=False):
-        """
-        Reads a fasta file to the dictionary
-
-        :param filename: file to read
-        :param compressed: set to true if reading form a gzipped file
-        :param verbose: set to true to get extra debug information printed to STDERR
-        """
-        if verbose:
-            print("Reading FASTA file:" + filename + "...", file=sys.stderr)
-
-        # Initialize variables
-        name = ''
-        sequence = []
-        count = 1
-
-        # open file
-        if compressed:
-            f = gzip.open(filename, 'rt')
-        else:
-            f = open(filename, 'r')
-
-        for line in f:
-            line = line.rstrip()
-            if line.startswith(">"):
-                # ignore if first
-                if not name == '':
-                    self.sequences[name] = ''.join(sequence)
-                    count += 1
-                name = line.lstrip('>')
-                sequence = []
-            else:
-                sequence.append(line)
-
-        # add last gene
-        self.sequences[name] = ''.join(sequence)
-
-        f.close()
-        if verbose:
-            print("Done! (found ", count, " sequences)", file=sys.stderr)
-
-    def writefile(self, filename):
-        """
-        writes the sequences back to a fasta file
-
-        :param filename: file to write to
-        """
-        with open(filename, 'w') as f:
-            for k, v in self.sequences.items():
-                print(">" + k, file=f)
-                print(v, file=f)
-
-def print_memory_usage():
-    # Get memory usage statistics
-    memory = psutil.virtual_memory()
-
-    # Print memory usage
-    print(f"Total Memory: {memory.total / (1024.0 ** 3):.2f} GB")
-    print(f"Available Memory: {memory.available / (1024.0 ** 3):.2f} GB")
-    print(f"Used Memory: {memory.used / (1024.0 ** 3):.2f} GB")
-    print(f"Memory Usage Percentage: {memory.percent}%\n")
-
-def add_literature(doi, engine):
-
-        works = Works()
-        # verify if DOI already exists in DB, if not, collect data
-        literature_info = works.doi(doi)
-
-        qtd_author = len(literature_info['author'])
-        
-        if 'family' in literature_info['author'][0].keys():
-            author_names = literature_info['author'][0]['family']
-        else:
-            author_names = literature_info['author'][0]['name']
-
-        title = literature_info['title']
-        
-        if 'published-print' in literature_info.keys():
-            public_year = literature_info['published-print']['date-parts'][0][0]
-        elif 'published-online' in literature_info.keys():
-            public_year = literature_info['published-online']['date-parts'][0][0]
-        else:
-            public_year = literature_info['issued']['date-parts'][0][0]
-
-        new_literature = LiteratureItem(qtd_author=qtd_author,
-                                        author_names=author_names,
-                                        title=title,
-                                        public_year=public_year,
-                                        doi=doi)
-    
-        with engine.connect() as conn:
-            stmt = select(LiteratureItem).where(LiteratureItem.__table__.c.doi == doi)
-            literature = conn.execute(stmt).first()
-
-        # literature is not in the DB yet, add it
-        if not literature:
-            session.add(new_literature)
-            session.commit()
-
-            return new_literature.id
-        else:
-            return literature.id
-
-
-def add_species(code, name, engine, data_type='genome',
-            color="#C7C7C7", highlight="#DEDEDE", description=None,
-            source=None, literature_id=None, genome_version=None):
-
-        new_species = Species(code=code,
-                              name=name,
-                              data_type=data_type,
-                              color=color,
-                              highlight=highlight,
-                              description=description,
-                              source=source,
-                              sequence_count = 0,
-                              profile_count = 0,
-                              network_count = 0,
-                              literature_id=literature_id,
-                              genome_version=genome_version)
-
-        with engine.connect() as conn:
-            stmt = select(Species).where(Species.__table__.c.code == code)
-            species = conn.execute(stmt).first()
-
-        # species is not in the DB yet, add it
-        if not species:
-            session.add(new_species)
-            session.commit()
-
-            return new_species.id
-        else:
-            return species.id
-
-
-def add_from_fasta(filename, species_id, compressed=False, sequence_type='protein_coding'):
-    fasta_data = Fasta()
-    fasta_data.readfile(filename, compressed=compressed)
-
-    new_sequences = []
-
-    # Loop over sequences, sorted by name (key here) and add to db
-    for name, sequence in sorted(fasta_data.sequences.items(), key=operator.itemgetter(0)):
-        new_sequence = {"species_id": species_id,
-                        "name": name,
-                        "description": None,
-                        "coding_sequence": sequence,
-                        "type": sequence_type,
-                        "is_mitochondrial": False,
-                        "is_chloroplast": False}
-
-        new_sequences.append(new_sequence)
-
-        new_sequence_obj = Sequence(**new_sequence)
-
-        session.add(new_sequence_obj)
-
-        # add 400 sequences at the time
-        if len(new_sequences) > 400:
-            session.commit()
-            print_memory_usage()
-            new_sequences = []
-
-    # add the last set of sequences
+    works = Works()
+    info = works.doi(doi)
+    author = info['author'][0].get('family') or info['author'][0].get('name', 'Unknown')
+    title = info.get('title', [''])[0] if isinstance(info.get('title'), list) else info.get('title', '')
+    year = (
+        info.get('published-print', {}).get('date-parts', [[None]])[0][0] or
+        info.get('published-online', {}).get('date-parts', [[None]])[0][0] or
+        info.get('issued', {}).get('date-parts', [[None]])[0][0] or
+        0
+    )
+    new_lit = Lit(
+        qtd_author=len(info['author']),
+        author_names=author,
+        title=title,
+        public_year=year,
+        doi=doi
+    )
+    session.add(new_lit)
     session.commit()
-    print_memory_usage()
+    return new_lit.id
 
-    return len(fasta_data.sequences.keys())
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--input_table', required=True)
+    parser.add_argument('--db_admin', required=True)
+    parser.add_argument('--db_name', required=True)
+    parser.add_argument('--db_password')
+    args = parser.parse_args()
 
+    pwd = args.db_password or input("Enter DB password: ")
+    engine = create_engine(f"mysql+pymysql://{args.db_admin}:{pwd}@localhost/{args.db_name}")
+    Base = automap_base()
+    Base.prepare(autoload_with=engine)
 
-db_admin = args.db_admin
-db_name = args.db_name
+    Species = Base.classes.species
+    Sequence = Base.classes.sequences
+    Lit = Base.classes.literature
 
-create_engine_string = "mysql+pymysql://"+db_admin+":"+db_password+"@localhost/"+db_name
+    Session = sessionmaker(bind=engine)
+    session = Session()
 
-engine = create_engine(create_engine_string, echo=True)
+    try:
+        with open(args.input_table) as f:
+            for line in f:
+                if line.startswith('#') or not line.strip():
+                    continue
+                parts = line.strip().split('\t')
+                if len(parts) != 7:
+                    continue
+                name, code, source, version, doi, cds_file, rna_file = parts
 
-# Reflect an existing database into a new model
-Base = automap_base()
+                # Skip if already exists
+                existing = session.execute(select(Species).where(Species.code == code)).scalar_one_or_none()
+                if existing:
+                    print(f"Skipping existing species: {code}")
+                    continue
 
-Base.prepare(engine, reflect=True)
+                # Add literature if DOI provided
+                lit_id = None
+                if doi and doi != 'None':
+                    try:
+                        lit_id = add_literature(session, doi)
+                        time.sleep(3)  # Be kind to CrossRef
+                    except Exception as e:
+                        print(f"Warning: failed to fetch literature for {doi}: {e}")
 
-Species = Base.classes.species
-Sequence = Base.classes.sequences
-LiteratureItem = Base.classes.literature
+                # Add species
+                species = Species(
+                    code=code,
+                    name=name,
+                    data_type='genome',
+                    color="#C7C7C7",
+                    highlight="#DEDEDE",
+                    description=None,
+                    source=source,
+                    sequence_count=0,
+                    profile_count=0,
+                    network_count=0,
+                    literature_id=lit_id,
+                    genome_version=version
+                )
+                session.add(species)
+                session.commit()
+                session.refresh(species)
 
-# Create a Session
-Session = sessionmaker(bind=engine)
-session = Session()
+                # Add CDS sequences
+                fasta = Fasta()
+                compressed = cds_file.endswith('.gz')
+                fasta.readfile(cds_file, compressed=compressed)
+                seq_batch = []
+                for name, seq in sorted(fasta.sequences.items(), key=operator.itemgetter(0)):
+                    seq_batch.append(Sequence(
+                        species_id=species.id,
+                        name=name,
+                        description=None,
+                        coding_sequence=seq,
+                        type='protein_coding',
+                        is_mitochondrial=False,
+                        is_chloroplast=False
+                    ))
+                    if len(seq_batch) >= 400:
+                        session.add_all(seq_batch)
+                        session.commit()
+                        seq_batch.clear()
+                if seq_batch:
+                    session.add_all(seq_batch)
+                    session.commit()
 
-# Loop over species file and add to DB
-species_file = open(args.species_file, 'r')
+                # Add RNA sequences
+                fasta = Fasta()
+                compressed = rna_file.endswith('.gz')
+                fasta.readfile(rna_file, compressed=compressed)
+                seq_batch = []
+                for name, seq in sorted(fasta.sequences.items(), key=operator.itemgetter(0)):
+                    seq_batch.append(Sequence(
+                        species_id=species.id,
+                        name=name,
+                        description=None,
+                        coding_sequence=seq,
+                        type='RNA',
+                        is_mitochondrial=False,
+                        is_chloroplast=False
+                    ))
+                    if len(seq_batch) >= 400:
+                        session.add_all(seq_batch)
+                        session.commit()
+                        seq_batch.clear()
+                if seq_batch:
+                    session.add_all(seq_batch)
+                    session.commit()
 
-for line in species_file:
-    if line.startswith("#"):
-        continue
-    line = line.rstrip()
-    name, code, genome_source, genome_version, doi, cds_file, rna_file = line.split("\t")
+                print(f"✅ Added species {code} ({name}) with {len(fasta.sequences)} RNA sequences.")
 
-    # skip if species exists
-    with engine.connect() as conn:
-        stmt = select(Species).where(Species.__table__.c.code == code)
-        species = conn.execute(stmt).first()
-    
-    if species:
-        continue
+    finally:
+        session.close()
 
-    # add literature
-    if doi:
-        literature_id = add_literature(doi, engine)
-        time.sleep(3)
-    else:
-        literature_id = None
-
-    # add species
-    species_id = add_species(code, name, engine, source=genome_source, literature_id=literature_id, genome_version=genome_version)
-
-    # add sequences
-    num_seq_added_cds = add_from_fasta(cds_file, species_id, sequence_type='protein_coding')
-    num_seq_added_rna = add_from_fasta(rna_file, species_id, sequence_type='RNA')
-
-    print(f"Added {num_seq_added_cds} CDS and {num_seq_added_rna} RNA sequences for {name} ({code})")
-
-
-session.close()
+if __name__ == '__main__':
+    main()
