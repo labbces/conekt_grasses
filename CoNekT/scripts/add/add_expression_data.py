@@ -3,390 +3,333 @@
 import argparse
 import json
 import time
-
-from sqlalchemy import create_engine
+import unicodedata
+from sqlalchemy import create_engine, select
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.sql import select
-
 from crossref.restful import Works
 
-# Create arguments
-parser = argparse.ArgumentParser(description='Add expression data to the database')
-parser.add_argument('--expression_matrix', type=str, metavar='matrix.txt',
-                    dest='expression_file',
-                    help='The expression_matrix.txt file from LSTrAP',
-                    required=True)
-parser.add_argument('--species_code', type=str, metavar='Svi',
-                    dest='species_code',
-                    help='The CoNekT Grasses species code',
-                    required=True)
-parser.add_argument('--sample_annotation', type=str, metavar='Sample Annotation File',
-                    dest='sample_annotation',
-                    help='Sample annotation file',
-                    required=True)
-parser.add_argument('--db_admin', type=str, metavar='DB admin',
-                    dest='db_admin',
-                    help='The database admin user',
-                    required=True)
-parser.add_argument('--db_name', type=str, metavar='DB name',
-                    dest='db_name',
-                    help='The database name',
-                    required=True)
-parser.add_argument('--db_password', type=str, metavar='DB password',
-                    dest='db_password',
-                    help='The database password',
-                    required=False)
+def clean_latin1(text):
+    """Remove ou substitui caracteres não suportados em latin1"""
+    if not text:
+        return ""
+    normalized = unicodedata.normalize('NFD', str(text))
+    ascii_only = normalized.encode('ascii', 'ignore').decode('ascii')
+    cleaned = ''.join(c for c in ascii_only if ord(c) < 128)
+    return cleaned.strip() or "Unknown"
 
-args = parser.parse_args()
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--expression_matrix', required=True)
+    parser.add_argument('--sample_annotation', required=True)
+    parser.add_argument('--species_code', required=True)
+    parser.add_argument('--db_admin', required=True)
+    parser.add_argument('--db_name', required=True)
+    parser.add_argument('--db_password')
+    args = parser.parse_args()
 
-if args.db_password:
-    db_password = args.db_password
-else:
-    db_password = input("Enter the database password: ")
+    pwd = args.db_password or input("Enter DB password: ")
+    engine = create_engine(f"mysql+pymysql://{args.db_admin}:{pwd}@localhost/{args.db_name}")
+    Base = automap_base()
+    Base.prepare(autoload_with=engine)
 
+    Species = Base.classes.species
+    Sequence = Base.classes.sequences
+    Sample = Base.classes.samples
+    PlantOntology = Base.classes.plant_ontology
+    PECO = Base.classes.plant_experimental_conditions_ontology
+    Lit = Base.classes.literature
+    SampleLit = Base.classes.sample_literature
+    SamplePO = Base.classes.sample_po
+    SamplePECO = Base.classes.sample_peco
+    ExprProf = Base.classes.expression_profiles
 
-def add_literature(doi, engine):
+    Session = sessionmaker(bind=engine)
+    session = Session()
 
-        works = Works()
-        # verify if DOI already exists in DB, if not, collect data
-        literature_info = works.doi(doi)
+    def get_or_create_lit(doi):
+        # Verifica se já existe
+        existing = session.execute(select(Lit).where(Lit.doi == doi)).scalar_one_or_none()
+        if existing:
+            return existing
 
-        qtd_author = len(literature_info['author'])
-        
-        if 'family' in literature_info['author'][0].keys():
-            author_names = literature_info['author'][0]['family']
-        else:
-            author_names = literature_info['author'][0]['name']
+        try:
+            works = Works()
+            info = works.doi(doi)
+            
+            # Processa autor
+            author_info = info['author'][0] if info.get('author') else {}
+            author = author_info.get('family') or author_info.get('name', 'Unknown')
+            author = clean_latin1(author)
 
-        title = literature_info['title']
-        
-        if 'published-print' in literature_info.keys():
-            public_year = literature_info['published-print']['date-parts'][0][0]
-        elif 'published-online' in literature_info.keys():
-            public_year = literature_info['published-online']['date-parts'][0][0]
-        else:
-            public_year = literature_info['issued']['date-parts'][0][0]
+            # Processa título
+            title_raw = info.get('title', [''])[0] if isinstance(info.get('title'), list) else info.get('title', '')
+            title = clean_latin1(title_raw)
 
-        new_literature = LiteratureItem(qtd_author=qtd_author,
-                                        author_names=author_names,
-                                        title=title,
-                                        public_year=public_year,
-                                        doi=doi)
-    
-        with engine.connect() as conn:
-            stmt = select(LiteratureItem).where(LiteratureItem.__table__.c.doi == doi)
-            literature = conn.execute(stmt).first()
+            # Processa ano
+            year = (
+                info.get('published-print', {}).get('date-parts', [[None]])[0][0] or
+                info.get('published-online', {}).get('date-parts', [[None]])[0][0] or
+                info.get('issued', {}).get('date-parts', [[None]])[0][0] or
+                0
+            )
 
-        # literature is not in the DB yet, add it
-        if not literature:
-            session.add(new_literature)
+            new_lit = Lit(
+                qtd_author=len(info.get('author', [])),
+                author_names=author,
+                title=title,
+                public_year=year,
+                doi=doi
+            )
+            session.add(new_lit)
             session.commit()
+            return new_lit
+            
+        except Exception as e:
+            print(f"Warning: Failed to fetch literature for DOI {doi}: {e}")
+            # Retorna um registro genérico
+            fallback = Lit(
+                qtd_author=1,
+                author_names="Unknown",
+                title=f"Publication with DOI {doi}",
+                public_year=0,
+                doi=doi
+            )
+            session.add(fallback)
+            session.commit()
+            return fallback
 
-            return new_literature
-        else:
-            return literature
+    try:
+        species = session.execute(select(Species).where(Species.code == args.species_code)).scalar_one_or_none()
+        if not species:
+            raise ValueError(f"Species '{args.species_code}' not found.")
+        species_id = species.id
 
-def add_sample_po_association(sample_name, po_term, po_branch):
+        # Load sequences
+        seqs = session.execute(
+            select(Sequence).where(Sequence.species_id == species_id, Sequence.type == "protein_coding")
+        ).scalars().all()
+        seq_dict = {s.name.upper(): s.id for s in seqs}
 
-    with engine.connect() as conn:
-        stmt = select(Sample).where(Sample.__table__.c.sample_name == sample_name)
-        sample = conn.execute(stmt).first()
-    
-    if not sample:
-        print(f'Sample not found in database: {sample_name}')
-        exit(1)
-    
-    with engine.connect() as conn:
-        stmt = select(PlantOntology).where(PlantOntology.__table__.c.po_term == po_term)
-        po = conn.execute(stmt).first()
-    
-    if not po:
-        print(f'PO not found in database: {po.po_term}')
-        exit(1)
+        # Parse annotation
+        annotation = {}
+        with open(args.sample_annotation, 'r', encoding='utf-8') as f:
+            header = f.readline().strip()
+            if not header:
+                raise ValueError("Annotation file is empty")
+            
+            for line_num, line in enumerate(f, start=2):
+                line = line.rstrip('\r\n')
+                if not line:
+                    continue
+                    
+                parts = [p.strip() for p in line.split('\t')]
+                if len(parts) != 9:
+                    print(f"Warning: Line {line_num} has {len(parts)} columns (expected 9). Skipping.")
+                    continue
+                    
+                run, doi, desc, rep, strand, layout, po_anat, po_dev, peco = parts
 
-    species_id = sample.species_id
+                # PO anatomy is mandatory
+                if not po_anat or not po_anat.strip():
+                    raise ValueError(f"Line {line_num}: PO_anatomy is empty (mandatory)")
 
-    with engine.connect() as conn:
-        stmt = select(SamplePOAssociation)\
-        .where(SamplePOAssociation.__table__.c.sample_id == sample.id,
-               SamplePOAssociation.__table__.c.po_id == po.id)
-        sample_po = conn.execute(stmt).first()
-    
-    if sample_po:
-        print(f'Association between sample {sample.sample_name} and PO {po.po_class} already exists.')
-        exit(1)
-    else:
-        association = SamplePOAssociation(**{'sample_id': sample.id,
-                    'po_id': po.id,
-                    'species_id': species_id,
-                    'po_branch': po_branch})
-    
-        session.add(association)
-        session.commit()
+                # Verifica se amostra já existe
+                existing_sample = session.execute(
+                    select(Sample).where(Sample.sample_name == run, Sample.species_id == species_id)
+                ).scalar_one_or_none()
 
-def add_sample_peco_association(sample_name, peco_term):
-
-    # Not checking sample existence
-    # because it is already done in add_sample_po_association
-    # for which PO anatomy is mandatory
-
-    with engine.connect() as conn:
-        stmt = select(Sample).where(Sample.__table__.c.sample_name == sample_name)
-        sample = conn.execute(stmt).first()
-
-    with engine.connect() as conn:
-        stmt = select(PlantExperimentalConditionsOntology)\
-        .where(PlantExperimentalConditionsOntology.__table__.c.peco_term == peco_term)
-        peco = conn.execute(stmt).first()
-    
-    if not peco:
-        print(f'PECO not found in database: {peco.peco_term}')
-        exit(1)
-
-    species_id = sample.species_id
-
-    with engine.connect() as conn:
-        stmt = select(SamplePECOAssociation)\
-        .where(SamplePECOAssociation.__table__.c.sample_id == sample.id,
-               SamplePECOAssociation.__table__.c.peco_id == peco.id)
-        sample_peco = conn.execute(stmt).first()
-    
-    if sample_peco:
-        print(f'Association between sample {sample.sample_name} and PECO {peco.peco_class} already exists.')
-        exit(1)
-    else:
-        association = SamplePECOAssociation(**{'sample_id': sample.id,
-                    'peco_id': peco.id,
-                    'species_id': species_id})
-    
-        session.add(association)
-        session.commit()
-
-def add_sample_lit_association(sample_name, lit_doi, species_id, engine):
-        
-    # Not checking sample existence
-    # because it is already done in add_sample_po_association
-    # for which PO anatomy is mandatory
-
-    with engine.connect() as conn:
-        stmt = select(Sample).where(Sample.__table__.c.sample_name == sample_name)
-        sample = conn.execute(stmt).first()
-
-    with engine.connect() as conn:
-        stmt = select(LiteratureItem).where(LiteratureItem.__table__.c.doi == lit_doi)
-        literature_item = conn.execute(stmt).first()
-
-    if not literature_item:
-        literature_item = add_literature(lit_doi, engine)
-        time.sleep(3)
-
-    association = {'sample_id': sample.id,
-                   'literature_id': literature_item.id,
-                   'species_id': species_id}
-    
-    session.add(SampleLitAssociation(**association))
-    session.commit()
-
-
-def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, order_color_file=None):
-    """
-    Function to convert an (normalized) expression matrix (lstrap output) into a profile
-
-    :param matrix_file: path to the expression matrix
-    :param annotation_file: path to the file assigning samples to conditions
-    :param species_id: internal id of the species
-    :param order_color_file: tab delimited file that contains the order and color of conditions
-    """
-
-    with engine.connect() as conn:
-        stmt = select(Species).where(Species.__table__.c.code == species_code)
-        species_id = conn.execute(stmt).first().id
-    
-    if not species_id:
-        print(f'Species not found in database: {species_code}')
-        exit(1)
-
-    annotation = {}
-
-    with open(annotation_file, 'r') as fin:
-        # get rid of the header
-        _ = fin.readline()
-        for line in fin:
-            # 9 parts (columns)
-            parts = line.split('\t')
-            if len(parts) == 9:        
-                run, literature_doi,\
-                description, replicate,\
-                strandness,\
-                layout, po_anatomy,\
-                po_dev_stage, peco = parts
-                peco = peco.rstrip()
-                
-                session.add(Sample(sample_name=run,
-                           strandness=strandness,
-                           layout=layout,
-                           description=description,
-                           replicate=replicate,
-                           species_id=species_id))
-                session.commit()
-
-                annotation[run] = {}
-                annotation[run]["description"] = description
-                annotation[run]["replicate"] = replicate
-
-                # 'po_anatomy' is mandatory
-                if po_anatomy:
-                    annotation[run]["po_anatomy"] = po_anatomy
-                    add_sample_po_association(run, po_anatomy, "po_anatomy")
-                    with engine.connect() as conn:
-                        stmt = select(PlantOntology).where(PlantOntology.__table__.c.po_term == po_anatomy)
-                        po = conn.execute(stmt).first()
-                    annotation[run]["po_anatomy_class"] = po.po_class
+                if existing_sample:
+                    sample = existing_sample
                 else:
-                    print(f"The 'po_anatomy' of sample {run} is absent (mandatory info)")
-                    exit(1)
-                # 'po_dev_stage' is optional
-                if po_dev_stage:
-                    annotation[run]["po_dev_stage"] = po_dev_stage
-                    add_sample_po_association(run, po_dev_stage, "po_dev_stage")
-                    with engine.connect() as conn:
-                        stmt = select(PlantOntology).where(PlantOntology.__table__.c.po_term == po_dev_stage)
-                        po = conn.execute(stmt).first()
-                    annotation[run]["po_dev_stage_class"] = po.po_class
-                # 'peco' is optional
-                if peco:
-                    annotation[run]["peco"] = peco
-                    add_sample_peco_association(run, peco)
-                    with engine.connect() as conn:
-                        stmt = select(PlantExperimentalConditionsOntology).where(PlantExperimentalConditionsOntology.__table__.c.peco_term == peco)
-                        peco_details = conn.execute(stmt).first()
-                    annotation[run]["peco_class"] = peco_details.peco_class
-            else:
-                print(f"Error parsing line: {line}")
-                exit(1)
+                    sample = Sample(
+                        sample_name=run,
+                        strandness=strand,
+                        layout=layout,
+                        description=desc,
+                        replicate=rep,
+                        species_id=species_id
+                    )
+                    session.add(sample)
+                    session.commit()
+
+                # PO anatomy
+                po_anat_clean = po_anat.strip()
+                po_anat_obj = session.execute(
+                    select(PlantOntology).where(PlantOntology.po_term == po_anat_clean)
+                ).scalar_one_or_none()
+                if not po_anat_obj:
+                    raise ValueError(f"Line {line_num}: PO term '{po_anat_clean}' not found in database")
+
+                # Verifica associação PO anatomy
+                existing_po = session.execute(
+                    select(SamplePO).where(
+                        SamplePO.sample_id == sample.id,
+                        SamplePO.po_id == po_anat_obj.id
+                    )
+                ).scalar_one_or_none()
+
+                if not existing_po:
+                    session.add(SamplePO(
+                        sample_id=sample.id,
+                        po_id=po_anat_obj.id,
+                        species_id=species_id,
+                        po_branch="po_anatomy"
+                    ))
+                    session.commit()
+
+                # Optional PO dev stage
+                if po_dev and po_dev.strip():
+                    po_dev_clean = po_dev.strip()
+                    po_dev_obj = session.execute(
+                        select(PlantOntology).where(PlantOntology.po_term == po_dev_clean)
+                    ).scalar_one_or_none()
+                    if po_dev_obj:
+                        existing_po_dev = session.execute(
+                            select(SamplePO).where(
+                                SamplePO.sample_id == sample.id,
+                                SamplePO.po_id == po_dev_obj.id
+                            )
+                        ).scalar_one_or_none()
+                        if not existing_po_dev:
+                            session.add(SamplePO(
+                                sample_id=sample.id,
+                                po_id=po_dev_obj.id,
+                                species_id=species_id,
+                                po_branch="po_dev_stage"
+                            ))
+                            session.commit()
+
+                # Optional PECO
+                if peco and peco.strip():
+                    peco_clean = peco.strip()
+                    peco_obj = session.execute(
+                        select(PECO).where(PECO.peco_term == peco_clean)
+                    ).scalar_one_or_none()
+                    if peco_obj:
+                        existing_peco = session.execute(
+                            select(SamplePECO).where(
+                                SamplePECO.sample_id == sample.id,
+                                SamplePECO.peco_id == peco_obj.id
+                            )
+                        ).scalar_one_or_none()
+                        if not existing_peco:
+                            session.add(SamplePECO(
+                                sample_id=sample.id,
+                                peco_id=peco_obj.id,
+                                species_id=species_id
+                            ))
+                            session.commit()
+
+                # Literature
+                lit = get_or_create_lit(doi)
+                existing_lit = session.execute(
+                    select(SampleLit).where(
+                        SampleLit.sample_id == sample.id,
+                        SampleLit.literature_id == lit.id
+                    )
+                ).scalar_one_or_none()
+                if not existing_lit:
+                    session.add(SampleLit(
+                        sample_id=sample.id,
+                        literature_id=lit.id,
+                        species_id=species_id
+                    ))
+                    session.commit()
+
+                annotation[run] = {
+                    "description": desc, "replicate": rep, "lit_doi": doi,
+                    "po_anatomy": po_anat_clean, "po_anatomy_class": po_anat_obj.po_class
+                }
+                if po_dev and po_dev.strip():
+                    if po_dev_obj:
+                        annotation[run]["po_dev_stage"] = po_dev_clean
+                        annotation[run]["po_dev_stage_class"] = po_dev_obj.po_class
+                if peco and peco.strip():
+                    if peco_obj:
+                        annotation[run]["peco"] = peco_clean
+                        annotation[run]["peco_class"] = peco_obj.peco_class
+
+        # Load expression matrix
+        profiles = []
+        with open(args.expression_matrix, 'r', encoding='utf-8') as f:
+            header_line = f.readline().strip()
+            if not header_line:
+                raise ValueError("Expression matrix is empty")
+            colnames = [c.replace('.htseq', '') for c in header_line.split('\t')[1:]]
+
+            order = sorted({annotation[c]["po_anatomy_class"] for c in colnames if c in annotation})
+
+            for line_num, line in enumerate(f, start=2):
+                line = line.rstrip('\r\n')
+                if not line:
+                    continue
+                parts = line.split('\t')
+                if len(parts) < 2:
+                    continue
+                transcript = parts[0]
+                values = parts[1:]
+
+                if len(values) != len(colnames):
+                    print(f"Warning: Line {line_num} has {len(values)} values but {len(colnames)} samples. Skipping.")
+                    continue
+
+                # ✅ INICIALIZAÇÃO COMPLETA DE TODAS AS CATEGORIAS
+                profile_data = {
+                    'tpm': {}, 
+                    'annotation': {}, 
+                    'replicate': {}, 
+                    'lit_doi': {},
+                    'po_anatomy': {}, 
+                    'po_anatomy_class': {},
+                    'po_dev_stage': {}, 
+                    'po_dev_stage_class': {},
+                    'peco': {}, 
+                    'peco_class': {}
+                }
                 
-            # Add literature-sample association
-            add_sample_lit_association(run, literature_doi, species_id, engine)
-            annotation[run]["lit_doi"] = literature_doi
+                for c, v in zip(colnames, values):
+                    if c in annotation:
+                        try:
+                            profile_data['tpm'][c] = float(v)
+                        except ValueError:
+                            profile_data['tpm'][c] = 0.0
+                        profile_data['annotation'][c] = annotation[c]['description']
+                        profile_data['replicate'][c] = annotation[c]['replicate']
+                        profile_data['lit_doi'][c] = annotation[c]['lit_doi']
+                        profile_data['po_anatomy'][c] = annotation[c]['po_anatomy']
+                        profile_data['po_anatomy_class'][c] = annotation[c]['po_anatomy_class']
+                        
+                        # PO dev stage (se existir nos dados)
+                        if 'po_dev_stage' in annotation[c]:
+                            profile_data['po_dev_stage'][c] = annotation[c]['po_dev_stage']
+                            profile_data['po_dev_stage_class'][c] = annotation[c]['po_dev_stage_class']
+                        
+                        # PECO (se existir nos dados)
+                        if 'peco' in annotation[c]:
+                            profile_data['peco'][c] = annotation[c]['peco']
+                            profile_data['peco_class'][c] = annotation[c]['peco_class']
 
-    #See the modifications in other parts of code
-    order, colors = [], []
-    if order_color_file is not None:
-        with open(order_color_file, 'r') as fin:
-            for line in fin:
-                try:
-                    o, c = line.strip().split('\t')
-                    order.append(o)
-                    colors.append(c)
-                except Exception as _:
-                    pass
-    
-    # build conversion table for sequences
-    with engine.connect() as conn:
-        stmt = select(Sequence).where(Sequence.__table__.c.species_id == species_id,
-                                      Sequence.__table__.c.type == "protein_coding")
-        sequences = conn.execute(stmt).all()
+                seq_id = seq_dict.get(transcript.upper())
+                prof = ExprProf(
+                    species_id=species_id,
+                    probe=transcript,
+                    sequence_id=seq_id,
+                    profile=json.dumps({"order": order, "colors": [], "data": profile_data})
+                )
+                profiles.append(prof)
+                if len(profiles) >= 300:
+                    session.add_all(profiles)
+                    session.commit()
+                    profiles.clear()
 
-    sequence_dict = {}  # key = sequence name uppercase, value internal id
-    for s in sequences:
-        sequence_dict[s.name.upper()] = s.id
-
-    with open(matrix_file) as fin:
-        # read header
-        _, *colnames = fin.readline().rstrip().split()
-
-        colnames = [c.replace('.htseq', '') for c in colnames]
-
-        # determine order after annotation is not defined
-        if order == []:        
-            for c in colnames:
-                if c in annotation.keys():
-                    if annotation[c]['po_anatomy_class'] not in order:
-                        order.append(annotation[c]['po_anatomy_class'])
-            order.sort()
-
-        # read each line and build profile
-        new_probes = []
-        for line in fin:
-            transcript, *values = line.rstrip().split()
-            profile = {'tpm': {},
-                        'annotation': {},
-                        'replicate': {},
-                        'po_anatomy': {},
-                        'po_anatomy_class': {},
-                        'po_dev_stage': {},
-                        'po_dev_stage_class': {},
-                        'peco': {},
-                        'peco_class': {},
-                        'lit_doi': {}}
-
-            for c, v in zip(colnames, values):
-                if c in annotation.keys():
-                    profile['tpm'][c] = float(v)
-                    profile['annotation'][c] = annotation[c]['description']
-                    profile['replicate'][c] = annotation[c]['replicate']
-                    profile['lit_doi'][c] = annotation[c]['lit_doi']
-                    profile['po_anatomy'][c] = annotation[c]["po_anatomy"]
-                    profile['po_anatomy_class'][c] = annotation[c]["po_anatomy_class"]
-                    # not mandatory fields
-                    if 'po_dev_stage' in annotation[c]:
-                        profile['po_dev_stage'][c] = annotation[c]["po_dev_stage"]
-                        profile['po_dev_stage_class'][c] = annotation[c]["po_dev_stage_class"]
-                    if 'peco' in annotation[c]:
-                        profile['peco'][c] = annotation[c]["peco"]
-                        profile['peco_class'][c] = annotation[c]["peco_class"]
-
-
-            new_probe = {"species_id": species_id,
-                            "probe": transcript,
-                            "sequence_id": sequence_dict[transcript.upper()] if transcript.upper() in sequence_dict.keys() else None,
-                            "profile": json.dumps({"order": order,
-                                                    "colors": colors,
-                                                    "data": profile})
-                            }
-
-            new_probes.append(new_probe)
-            session.add(ExpressionProfile(**new_probe))
-
-            if len(new_probes) > 300:
+            if profiles:
+                session.add_all(profiles)
                 session.commit()
-                new_probes = []
 
-        session.commit()
+        print(f"✅ Expression data for '{args.species_code}' loaded successfully ({len(annotation)} samples, {len(profiles)} profiles).")
+    finally:
+        session.close()
 
-db_admin = args.db_admin
-db_name = args.db_name
-
-create_engine_string = "mysql+pymysql://"+db_admin+":"+db_password+"@localhost/"+db_name
-
-engine = create_engine(create_engine_string, echo=True)
-
-# Reflect an existing database into a new model
-Base = automap_base()
-
-Base.prepare(engine, reflect=True)
-
-Species = Base.classes.species
-Sequence = Base.classes.sequences
-Sample = Base.classes.samples
-SampleLitAssociation = Base.classes.sample_literature
-PlantOntology = Base.classes.plant_ontology
-PlantExperimentalConditionsOntology = Base.classes.plant_experimental_conditions_ontology
-ExpressionProfile = Base.classes.expression_profiles
-SamplePOAssociation = Base.classes.sample_po
-SamplePECOAssociation = Base.classes.sample_peco
-LiteratureItem = Base.classes.literature
-
-# Create a Session
-Session = sessionmaker(bind=engine)
-session = Session()
-
-species_code = args.species_code
-matrix_file = args.expression_file
-annotation_file = args.sample_annotation
-
-# Adds expression profiles from LSTrAP
-add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine)
-
-session.close()
+if __name__ == '__main__':
+    main()
