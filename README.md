@@ -10,7 +10,7 @@ CoNekT Grasses derives from CoNekT, described in Proost *et al*. 2018. ( [https:
   * [The Basics](CoNekT/docs/source/building/001_GO_InterPro_CAZymes_domains.md)
   * [Expression profiles, heatmaps and specificity](CoNekT/docs/source/building/003_expression_profiles.md)
   * [Gene Families and Phylogenetic trees](CoNekT/docs/source/building/005_comparative_genomics.md)
-  * [Comparing specificity](CoNekT/docs/source/building/tutorials/002_species_functional_data.md)
+  * [Comparing specificity](CoNekT/docs/source/building/002_species_functional_data.md)
   * [Coexpression Networks and Clusters](CoNekT/docs/source/building/004_coexpression_network_cluster.md)
 
 
