@@ -4,95 +4,198 @@
 
 CoNekT Grasses derives from CoNekT, described in Proost *et al*. 2018. ( [https://doi.org/10.1093/nar/gky336](https://doi.org/10.1093/nar/gky336) )
 
-
 # Tutorial
-## CoNekT Grasses Installation and Population
 
-## 1. Preparação do ambiente
+## CoNekT Grasses Installation and Database Population
 
-1. Crie um diretório para o CoNekT.
-2. Baixe o CoNekT do GitHub:
-   ```bash
-   git clone https://github.com/labbces/conekt_grasses.git
-   ```
-3. Crie o ambiente virtual **CoNeKT**seguindo as instruções em [Quick Start for developers](https://github.com/labbces/conekt_grasses/blob/working_install/README.md#quick-start-for-developers).
-4. Crie o ambiente virtual **Populate**conforme o [README_populate](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/scripts/README_populate.md#setting-up-the-virtual-environment)
+## Overview
 
-## 2. Configuração do banco de dados
+CoNekT Grasses is a platform for exploring gene expression networks in grass species.
+This tutorial describes how to install the system and populate the database with expression data.
 
-1. Siga as instruções em [Build the database](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/connect_mysql.md) no GitHub para criar o banco.
-2. Edite o arquivo de configuração do MariaDB:
-   ```bash
-   sudo nano /etc/mysql/mariadb.conf.d/50-server.cnf
-   ```
-3. Descomente ou adicione a linha:
-   ```ini
-   max_allowed_packet = 512M
-   ```
-4. Reinicie o MariaDB:
-   ```bash
-   sudo systemctl restart mariadb
-   ```
-5. Verifique se funcionou:
-   ```sql
-   SHOW VARIABLES LIKE 'max_allowed_packet';
-   ```
-   → O valor deve ser **536870912** (512 MB em bytes).
+---
 
-## 3. Organização dos dados
+## 1. System Requirements
 
-1. No script `populate_conekt_grasses.sh`, altere estas variáveis:
-   - `BASE_DIR`
-   - `SCRIPTS_DIR`
-   - `DATA_DIR`
-   - `SPECIES_ARRAY` (coloque as espécies que deseja, ex: `Scp1`)
-2. Prepare o arquivo `info_species.tsv` com o caminho dos seus dados:
-   ```
-   species_code	data_path
-   Scp1	/home/seu_usuario/dados/Scp1
-   ```
-Atenção: O nome dos dados deve ser o mesmo na pasta do diretório, na variável SPECIES ARRAY  e no arquivo info_species.tsv
+Before starting, make sure your system has the following installed:
 
-3. **Verifique o arquivo de anotação (`expression_annotation.txt`):**
-   - Deve ter **9 colunas separadas por tabs**.
-   - A coluna `Replicate` deve conter **apenas números inteiros** (1, 2, 3...), **nunca letras** (B, M, P...).
+* Linux (tested on Ubuntu)
+* Python 3
+* Git
+* MariaDB
 
-## 4. Execução do pipeline
+For large datasets it is recommended to have:
 
-Execute o pipeline:
+* **32–64 GB RAM**
+* **Tens of GB of disk space**
+
+---
+
+## 2. Environment Setup
+
+1. Create a directory for CoNekT.
+
+2. Clone the repository from GitHub into the directory you created:
+
+```bash
+git clone https://github.com/labbces/conekt_grasses.git
+```
+
+3. Create the **CoNekT** virtual environment by following the instructions in:
+
+https://github.com/labbces/conekt_grasses/blob/working_install/README.md#quick-start-for-developers
+
+4. Create the **Populate** virtual environment as described in:
+
+https://github.com/labbces/conekt_grasses/blob/main/CoNekT/scripts/README_populate.md#setting-up-the-virtual-environment
+
+---
+
+## 3. Database Configuration
+
+1. Follow the instructions below to create the database:
+
+https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/connect_mysql.md
+
+2. Edit the MariaDB configuration file:
+
+```bash
+sudo nano /etc/mysql/mariadb.conf.d/50-server.cnf
+```
+
+3. Uncomment or add the following line:
+
+```ini
+max_allowed_packet = 512M
+```
+
+4. Restart MariaDB:
+
+```bash
+sudo systemctl restart mariadb
+```
+
+5. Verify the configuration:
+
+```sql
+SHOW VARIABLES LIKE 'max_allowed_packet';
+```
+
+Expected value:
+
+```
+536870912
+```
+
+---
+
+## 4. Data Organization
+
+1. In the script `populate_conekt_grasses.sh`, modify the following variables:
+
+* `BASE_DIR`
+* `SCRIPTS_DIR`
+* `DATA_DIR`
+* `SPECIES_ARRAY` (add the species you want, e.g., `Scp1`)
+
+2. Prepare the file `info_species.tsv` with the path to your data:
+
+```
+species_code    data_path
+Scp1            /home/your_user/data/Scp1
+```
+
+**Important:**
+The species name must match in:
+
+* the data directory
+* the `SPECIES_ARRAY` variable
+* the `info_species.tsv` file
+
+3. **Check the annotation file (`expression_annotation.txt`):**
+
+* It must contain **9 tab-separated columns**
+* The `Replicate` column must contain **only integers** (1, 2, 3...), **never letters** (B, M, P...)
+
+---
+
+## 5. Running the Pipeline
+
+Navigate to:
+
+```
+CoNekT/scripts
+```
+
+Run the pipeline:
+
 ```bash
 ./populate_conekt_grasses.sh
 ```
 
-- Se tudo correr bem, você verá:  
-  `Pipeline concluído com sucesso!`
-- **Atenção:** Para cana-de-açúcar (`Scp1`), o pipeline pode levar **24–72 horas**, dependendo do hardware.
-- O cálculo de especificidade é a etapa mais demorada — não interrompa!
+If everything runs correctly, you should see:
 
-## 5. Dicas de monitoramento
+```
+Pipeline completed successfully!
+```
 
-- Use `htop` ou `watch -n 2 free -h` para monitorar uso de CPU e memória.
-- Verifique o progresso pelas mensagens:
-  ```
-  → Processed 10000 profiles
-  → Committed 400 specificities
-  ```
+**Important**
 
-## 6. Adicionando novos dados depois
+For sugarcane (`Scp1`), the pipeline may take **24–72 hours**, depending on the hardware.
 
-Os scripts encontram-se na pasta: CoNekT/scripts/add
+The **specificity calculation** step is the most computationally intensive — do not interrupt it.
 
-- Para **adicionar mais perfis de expressão da mesma espécie**, use apenas:
-  ```bash
-  python add/add_expression_data.py --species_code Scp1 ...
-  ```
--Para **adicionar uma nova espécie**, repita as etapas de:
-  - `add_species.py`
-  - `add_gene_descriptions.py`
-  - `add_interproscan.py`, `add_go.py`, `add_cazymes.py`
-  - `add_expression_data.py`
-  - (opcional) `calculate_specificities_fast.py`
-  - `update_counts.py`
+---
+
+## 6. Monitoring the Pipeline
+
+You can monitor system resources using:
+
+```bash
+htop
+```
+
+or
+
+```bash
+watch -n 2 free -h
+```
+
+Progress messages may look like:
+
+```
+→ Processed 10000 profiles
+→ Committed 400 specificities
+```
+
+---
+
+## 7. Adding New Data
+
+Scripts are located in:
+
+```
+CoNekT/scripts/add
+```
+
+### Adding more expression profiles for the same species
+
+```bash
+python add/add_expression_data.py --species_code Scp1 ...
+```
+
+### Adding a new species
+
+Run the following scripts:
+
+* `add_species.py`
+* `add_gene_descriptions.py`
+* `add_interproscan.py`
+* `add_go.py`
+* `add_cazymes.py`
+* `add_expression_data.py`
+* (optional) `calculate_specificities_fast.py`
+* `update_counts.py`
 
  
 
