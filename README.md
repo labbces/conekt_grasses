@@ -5,8 +5,8 @@
 CoNekT Grasses derives from CoNekT, described in Proost *et al*. 2018. ( [https://doi.org/10.1093/nar/gky336](https://doi.org/10.1093/nar/gky336) )
 
 
-## Tutorial
-# CoNekT Grasses Installation and Population
+# Tutorial
+## CoNekT Grasses Installation and Population
 
 ## 1. Preparação do ambiente
 
@@ -15,9 +15,8 @@ CoNekT Grasses derives from CoNekT, described in Proost *et al*. 2018. ( [https:
    ```bash
    git clone https://github.com/labbces/conekt_grasses.git
    ```
-3. Crie o ambiente virtual **CoNeKT** seguindo as instruções em [Quick Start for developers](https://https://github.com/labbces/conekt_grasses/blob/working_install/README.md#quick-start-for-developers).
-4. Crie o ambiente virtual **Populate** conforme o [README_populate](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/scripts/README_populate.md#setting-up-the-virtual-environment)
-
+3. Crie o ambiente virtual **CoNeKT**seguindo as instruções em [Quick Start for developers](https://github.com/labbces/conekt_grasses/blob/working_install/README.md#quick-start-for-developers).
+4. Crie o ambiente virtual **Populate**conforme o [README_populate](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/scripts/README_populate.md#setting-up-the-virtual-environment)
 
 ## 2. Configuração do banco de dados
 
@@ -87,7 +86,7 @@ Os scripts encontram-se na pasta: CoNekT/scripts/add
   ```bash
   python add/add_expression_data.py --species_code Scp1 ...
   ```
-- Para **adicionar uma nova espécie**, repita as etapas de:
+-Para **adicionar uma nova espécie**, repita as etapas de:
   - `add_species.py`
   - `add_gene_descriptions.py`
   - `add_interproscan.py`, `add_go.py`, `add_cazymes.py`
@@ -95,8 +94,8 @@ Os scripts encontram-se na pasta: CoNekT/scripts/add
   - (opcional) `calculate_specificities_fast.py`
   - `update_counts.py`
 
-
  
+
 ## Quick Start for developers
 
 CoNekT Grasses currently requires:
