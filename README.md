@@ -232,19 +232,18 @@ Dependencies are usually installed using `apt` and `pip`:
 
 
 ```bash
-apt install python3.8-venv python3.8-dev
+sudo apt install python3.8-venv python3.8-dev
 python3.8 -m ensurepip --default-pip
 python3.8 -m pip install --upgrade pip setuptools wheel
-pip3.8 install virtualenv
 ```
 
 To set up the environment from the root directory of the repository, run:
 
 ```bash
-virtualenv --python=python3.8 CoNekT
+python3.8 -m venv CoNekT
 source CoNekT/bin/activate
 sudo apt-get install python3.8-dev libmysqlclient-dev apache2 apache2-dev libapache2-mod-wsgi-py3
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 Next steps:
