@@ -49,6 +49,12 @@ https://github.com/labbces/conekt_grasses/blob/working_install/README.md#quick-s
 
 https://github.com/labbces/conekt_grasses/blob/main/CoNekT/scripts/README_populate.md#setting-up-the-virtual-environment
 
+Additionally, create the file mariadb_credentials.txt in the same directory (CoNekT/scripts) with the following content:
+
+DB_ADMIN=conekt_grasses_admin
+DB_NAME=conekt_grasses_db
+DB_PASSWORD=E,~5*;{9f{p2VGp^
+
 ---
 
 ## 3. Database Configuration
@@ -144,6 +150,16 @@ Pipeline completed successfully!
 For sugarcane (`Scp1`), the pipeline may take **24–72 hours**, depending on the hardware.
 
 The **specificity calculation** step is the most computationally intensive — do not interrupt it.
+
+**Note**
+
+Some steps in the pipeline (e.g., coexpression networks and clustering) may be commented out in the script by default.
+
+This is intentional, as these steps require specific input data that may not always be available.
+
+Users are free to enable or disable any step in the pipeline according to their available data by commenting or uncommenting sections of the script.
+
+Make sure that all required input files for a given step are properly configured before enabling it.
 
 ---
 
