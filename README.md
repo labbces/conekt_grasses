@@ -2,18 +2,9 @@
 
 ## What is CoNekT Grasses?
 
-CoNekT Grasses derives from CoNekT, described in Proost *et al*. 2018. ( [https://doi.org/10.1093/nar/gky336](https://doi.org/10.1093/nar/gky336) )
-
-# Tutorial
+CoNekT Grasses derives from CoNekT, described in Proost *et al*. 2018. ( [https://doi.org/10.1093/nar/gky336](https://doi.org/10.1093/nar/gky336) ), an interactive and open-source web server dedicated to grasses expression data analysis.
 
 ## CoNekT Grasses Installation and Database Population
-
-## Overview
-
-CoNekT Grasses is a platform for exploring gene expression networks in grass species.
-This tutorial describes how to install the system and populate the database with expression data.
-
----
 
 ## 1. System Requirements
 
@@ -243,6 +234,7 @@ To set up the environment from the root directory of the repository, run:
 python3.8 -m venv CoNekT
 source CoNekT/bin/activate
 sudo apt-get install python3.8-dev libmysqlclient-dev apache2 apache2-dev libapache2-mod-wsgi-py3
+cd ../
 pip3 install -r requirements.txt
 ```
 
@@ -257,11 +249,24 @@ Next steps:
 
 Documentation can be generated using Sphinx.
 
+In the CoNekT directory, active the virtual environment: 
+
+```bash
+cd CoNekT/
+source CoNekT/bin/activate
+```
+
 To generate the documentation, run:
 
 ```bash
 cd CoNekT/docs/
 sphinx-build -b html source/ build/
+```
+
+To view the documentation:
+
+```bash
+xdg-open build/index.html
 ```
 
 Note that we changed the default Sphinx builder to use the Markdown parser. This is done by adding the following line to `conf.py` file in the `CoNekT/docs` folder:
