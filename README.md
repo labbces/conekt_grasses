@@ -64,13 +64,13 @@ sudo apt install python3.12-venv
 Create the virtual environment:
 
 ```bash
-python3 -m venv Populate_Conekt
+python3 -m venv populate_conekt
 ```
 
 Activate the virtual environment and install its requirements:
 
 ```bash
-source Populate_CoNekT/bin/activate
+source populate_conekt/bin/activate
 pip install -r requirements.txt
 ```
 
