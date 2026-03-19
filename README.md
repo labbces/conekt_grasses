@@ -2,7 +2,9 @@
 
 ## What is CoNekT Grasses?
 
-CoNekT Grasses derives from CoNekT, described in Proost *et al*. 2018. ( [https://doi.org/10.1093/nar/gky336](https://doi.org/10.1093/nar/gky336) ), an interactive and open-source web server dedicated to grasses expression data analysis.
+CoNekT Grasses is a platform designed for the exploration and analysis of gene expression and co-expression networks in grass species. It allows researchers to integrate, visualize, and interpret large-scale transcriptomic datasets in an intuitive and efficient way.
+
+CoNekT Grasses is based on CoNekT, described in Proost et al. (2018) (https://doi.org/10.1093/nar/gky336), an interactive, open-source web server dedicated to the analysis of gene expression data in grasses.
 
 ## CoNekT Grasses Installation and Database Population
 
@@ -32,9 +34,37 @@ For large datasets it is recommended to have:
 git clone https://github.com/labbces/conekt_grasses.git
 ```
 
-3. Create the **CoNekT** virtual environment by following the instructions in:
+3. Create the **CoNekT** virtual environment:
 
-https://github.com/labbces/conekt_grasses/blob/working_install/README.md#quick-start-for-developers
+CoNekT Grasses currently requires:
+ * Python 3.8
+
+To install Python 3.8 execute the following commands:
+
+```bash
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt-get update
+sudo apt-get install python3.8
+```
+
+Dependencies are usually installed using `apt` and `pip`:
+
+
+```bash
+sudo apt install python3.8-venv python3.8-dev
+python3.8 -m ensurepip --default-pip
+python3.8 -m pip install --upgrade pip setuptools wheel
+```
+
+To set up the environment from the root directory of the repository, run:
+
+```bash
+python3.8 -m venv conekt
+source conekt/bin/activate
+sudo apt-get install python3.8-dev libmysqlclient-dev apache2 apache2-dev libapache2-mod-wsgi-py3
+cd ../
+pip3 install -r requirements.txt
+```
 
 4. Create the **Populate** virtual environment:
 
@@ -55,7 +85,7 @@ Check the Python version on your machine:
 python3 --version
 ```
 
-Install the env package according to the Python version installed on your machine. For example, if the version is 3.12.3, the download will be as follows:
+Install the venv package according to the Python version installed on your machine. For example, if the version is 3.12.3, the download will be as follows:
 
 ```bash
 sudo apt install python3.12-venv
@@ -87,7 +117,62 @@ DB_PASSWORD=E,~5*;{9f{p2VGp^
 
 1. Follow the instructions below to create the database:
 
-https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/connect_mysql.md
+# Creating the Flask configuration file
+
+First, create a copy of the configuration template file. From the repo root, run:
+
+```bash
+cd CoNekT/
+cp config.template.py config.py
+```
+
+Change settings in `config.py`. **Apart from configuring paths, also change the secret key and the admin password !**
+
+
+# Setting up MySQL/MariaDB for CoNekT Grasses
+ 
+In the config file the connection needs to be set up using :
+
+    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://user:pass@ip_address/database'
+    
+    
+## Setting up the database using the MySQL CLI
+
+First create a MySQL/MariaDB user with root:
+
+    CREATE USER conekt_grasses_admin@localhost IDENTIFIED BY 'E,~5*;{9f{p2VGp^';
+
+The character set and collate are important as sqlalchemy-migrate doesn't work with utf8mb4 (the default).
+
+    CREATE DATABASE conekt_grasses_db CHARACTER SET latin1 COLLATE latin1_general_ci;
+
+If the database already exists, change the character set as:
+
+    ALTER DATABASE conekt_grasses_db COLLATE = 'latin1_general_ci';
+    
+Give permissions to a user (conekt_grasses_admin in this example) to access the database:
+
+    GRANT INDEX, CREATE, DROP, SELECT, UPDATE, DELETE, ALTER, EXECUTE, INSERT on conekt_grasses_db.* TO conekt_grasses_admin@localhost;
+
+    GRANT FILE on *.* TO conekt_grasses_admin@localhost;
+
+
+# Running the database migrations
+
+Two commands are usually necessary, `initdb` (initialize the database) and `db init` (create a migration repository). From the repo root, run:
+
+```bash
+export FLASK_APP=run.py
+flask initdb
+flask db init
+```
+
+
+# Running the web application
+
+```bash
+flask run
+```
 
 2. Edit the MariaDB configuration file:
 
@@ -109,8 +194,8 @@ sudo systemctl restart mariadb
 
 5. Verify the configuration:
 
-```sql
-SHOW VARIABLES LIKE 'max_allowed_packet';
+```bash
+mariadb -u conekt_grasses_admin -p -e "SHOW VARIABLES LIKE 'max_allowed_packet';"
 ```
 
 Expected value:
@@ -240,45 +325,6 @@ Run the following scripts:
 * `update_counts.py`
 
  
-
-## Quick Start for developers
-
-CoNekT Grasses currently requires:
- * Python 3.8
-
-To install Python 3.8 execute the following codes:
-
-```bash
-sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt-get update
-sudo apt-get install python3.8
-```
-
-Dependencies are usually installed using `apt` and `pip`:
-
-
-```bash
-sudo apt install python3.8-venv python3.8-dev
-python3.8 -m ensurepip --default-pip
-python3.8 -m pip install --upgrade pip setuptools wheel
-```
-
-To set up the environment from the root directory of the repository, run:
-
-```bash
-python3.8 -m venv CoNekT
-source CoNekT/bin/activate
-sudo apt-get install python3.8-dev libmysqlclient-dev apache2 apache2-dev libapache2-mod-wsgi-py3
-cd ../
-pip3 install -r requirements.txt
-```
-
-Next steps:
-
- * [Running tests](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/run_tests.md)
- * [Build the datatase](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/connect_mysql.md)
- * [Add data to CoNekT Grasses](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/building_conekt.md)
-
 ## Building documentation with Sphinx
 
 
