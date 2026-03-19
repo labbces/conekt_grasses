@@ -26,15 +26,15 @@ For large datasets it is recommended to have:
 
 ## 2. Environment Setup
 
-1. Create a directory for CoNekT.
+2.1 Create a directory for CoNekT.
 
-2. Clone the repository from GitHub into the directory you created:
+2.2 Clone the repository from GitHub into the directory you created:
 
 ```bash
 git clone https://github.com/labbces/conekt_grasses.git
 ```
 
-3. Create the **CoNekT** virtual environment:
+2.3 Create the **CoNekT** virtual environment:
 
 CoNekT Grasses currently requires:
  * Python 3.8
@@ -66,7 +66,7 @@ cd ../
 pip3 install -r requirements.txt
 ```
 
-4. Create the **Populate** virtual environment:
+2.4 Create the **Populate** virtual environment:
 
 Deactivate any existing virtual environment:
 
@@ -115,9 +115,9 @@ DB_PASSWORD=E,~5*;{9f{p2VGp^
 
 ## 3. Database Configuration
 
-1. Follow the instructions below to create the database:
+3.1 Follow the instructions below to create the database:
 
-# Creating the Flask configuration file
+## Creating the Flask configuration file
 
 First, create a copy of the configuration template file. From the repo root, run:
 
@@ -129,7 +129,7 @@ cp config.template.py config.py
 Change settings in `config.py`. **Apart from configuring paths, also change the secret key and the admin password !**
 
 
-# Setting up MySQL/MariaDB for CoNekT Grasses
+## Setting up MySQL/MariaDB for CoNekT Grasses
  
 In the config file the connection needs to be set up using :
 
@@ -157,7 +157,7 @@ Give permissions to a user (conekt_grasses_admin in this example) to access the 
     GRANT FILE on *.* TO conekt_grasses_admin@localhost;
 
 
-# Running the database migrations
+## Running the database migrations
 
 Two commands are usually necessary, `initdb` (initialize the database) and `db init` (create a migration repository). From the repo root, run:
 
@@ -167,32 +167,31 @@ flask initdb
 flask db init
 ```
 
-
-# Running the web application
+## Running the web application
 
 ```bash
 flask run
 ```
 
-2. Edit the MariaDB configuration file:
+3.2 Edit the MariaDB configuration file:
 
 ```bash
 sudo nano /etc/mysql/mariadb.conf.d/50-server.cnf
 ```
 
-3. Uncomment or add the following line:
+3.3 Uncomment or add the following line:
 
 ```ini
 max_allowed_packet = 512M
 ```
 
-4. Restart MariaDB:
+3.4 Restart MariaDB:
 
 ```bash
 sudo systemctl restart mariadb
 ```
 
-5. Verify the configuration:
+3.5 Verify the configuration:
 
 ```bash
 mariadb -u conekt_grasses_admin -p -e "SHOW VARIABLES LIKE 'max_allowed_packet';"
@@ -208,14 +207,14 @@ Expected value:
 
 ## 4. Data Organization
 
-1. In the script `populate_conekt_grasses.sh`, modify the following variables:
+4.1. In the script `populate_conekt_grasses.sh`, modify the following variables:
 
 * `BASE_DIR`
 * `SCRIPTS_DIR`
 * `DATA_DIR`
 * `SPECIES_ARRAY` (add the species you want, e.g., `Scp1`)
 
-2. Prepare the file `info_species.tsv` with the path to your data:
+4.2 Prepare the file `info_species.tsv` with the path to your data:
 
 ```
 species_code    data_path
@@ -229,7 +228,7 @@ The species name must match in:
 * the `SPECIES_ARRAY` variable
 * the `info_species.tsv` file
 
-3. **Check the annotation file (`expression_annotation.txt`):**
+4.3. **Check the annotation file (`expression_annotation.txt`):**
 
 * It must contain **9 tab-separated columns**
 * The `Replicate` column must contain **only integers** (1, 2, 3...), **never letters** (B, M, P...)
@@ -326,7 +325,6 @@ Run the following scripts:
 
  
 ## Building documentation with Sphinx
-
 
 Documentation can be generated using Sphinx.
 
