@@ -36,9 +36,43 @@ git clone https://github.com/labbces/conekt_grasses.git
 
 https://github.com/labbces/conekt_grasses/blob/working_install/README.md#quick-start-for-developers
 
-4. Create the **Populate** virtual environment as described in:
+4. Create the **Populate** virtual environment:
 
-https://github.com/labbces/conekt_grasses/blob/main/CoNekT/scripts/README_populate.md#setting-up-the-virtual-environment
+Deactivate any existing virtual environment:
+
+```bash
+deactivate
+```
+Go to the scripts directory:
+
+```bash
+cd CoNekT/scripts/
+```
+
+Check the Python version on your machine:
+
+```bash
+python3 --version
+```
+
+Install the env package according to the Python version installed on your machine. For example, if the version is 3.12.3, the download will be as follows:
+
+```bash
+sudo apt install python3.12-venv
+```
+
+Create the virtual environment:
+
+```bash
+python3 -m venv Populate_Conekt
+```
+
+Activate the virtual environment and install its requirements:
+
+```bash
+source Populate_CoNekT/bin/activate
+pip install -r requirements.txt
+```
 
 Additionally, create the file mariadb_credentials.txt in the same directory (CoNekT/scripts) with the following content:
 
