@@ -76,10 +76,11 @@ pip install -r requirements.txt
 
 Additionally, create the file mariadb_credentials.txt in the same directory (CoNekT/scripts) with the following content:
 
+```text
 DB_ADMIN=conekt_grasses_admin
 DB_NAME=conekt_grasses_db
 DB_PASSWORD=E,~5*;{9f{p2VGp^
-
+```
 ---
 
 ## 3. Database Configuration
