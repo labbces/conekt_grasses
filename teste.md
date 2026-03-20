@@ -47,6 +47,7 @@ CoNekT Grasses is designed for bioinformaticians and plant researchers working w
 | Disk | 20 GB | Tens of GB |
 | Python | 3.8 | 3.8 |
 | Other | Git, MariaDB | — |
+| Permissions | `sudo` access or machine administrator | — |
 
 ---
 
@@ -57,9 +58,8 @@ CoNekT Grasses is designed for bioinformaticians and plant researchers working w
 Create a working directory and clone the repository:
 
 ```bash
-mkdir CoNekT && cd CoNekT
+mkdir conekt_grasses && cd conekt_grasses
 git clone https://github.com/labbces/conekt_grasses.git
-cd conekt_grasses
 ```
 
 ### 2. CoNekT Virtual Environment
@@ -67,6 +67,7 @@ cd conekt_grasses
 Install Python 3.8 (if not already available):
 
 ```bash
+cd CoNekT/
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt-get update
 sudo apt-get install python3.8
@@ -83,6 +84,7 @@ python3.8 -m venv conekt
 source conekt/bin/activate
 
 sudo apt-get install python3.8-dev libmysqlclient-dev apache2 apache2-dev libapache2-mod-wsgi-py3
+cd ../
 pip3 install -r requirements.txt
 ```
 
@@ -92,7 +94,7 @@ Deactivate the current environment and go to the scripts directory:
 
 ```bash
 deactivate
-cd scripts/
+cd CoNekT/scripts/
 ```
 
 Check your system Python version:
@@ -127,7 +129,7 @@ DB_PASSWORD=YOUR_DB_PASSWORD
 ### 1. Create the Flask configuration file
 
 ```bash
-cd conekt_grasses/
+cd conekt_grasses/CoNekT/
 cp config.template.py config.py
 ```
 
@@ -141,7 +143,13 @@ ADMIN_PASSWORD = 'your-admin-password' # change this!
 
 ### 2. Set up MariaDB
 
-Connect as root and run:
+Open MariaDB as root:
+
+```bash
+sudo mariadb
+```
+
+And run:
 
 ```sql
 CREATE USER conekt_grasses_admin@localhost IDENTIFIED BY 'YOUR_DB_PASSWORD';
@@ -179,6 +187,8 @@ mariadb -u conekt_grasses_admin -p -e "SHOW VARIABLES LIKE 'max_allowed_packet';
 ### 4. Initialize the database
 
 ```bash
+cd conekt_grasses/CoNekT/
+source conekt/bin/activate
 export FLASK_APP=run.py
 flask initdb
 flask db init
@@ -190,25 +200,81 @@ flask db init
 flask run
 ```
 
+> **Note:** Running the web application is **not required** for data population. You can proceed directly to the [Data Organization](#data-organization) and [Running the Pipeline](#running-the-pipeline) sections. Once the pipeline completes, start the application to explore and verify how the data was loaded into the platform.
+
 ---
 
 ## Data Organization
 
-### Project directory structure
+### Repository structure
+
+After cloning, the repository root (`conekt_grasses/`) will look like this:
 
 ```
-CoNekT/
-├── conekt_grasses/         # Main application
-│   ├── config.py           # Your local configuration (not committed)
-│   ├── config.template.py  # Configuration template
-│   └── scripts/
-│       ├── populate_conekt_grasses.sh
-│       ├── mariadb_credentials.txt   # Not committed
-│       ├── info_species.tsv
-│       └── add/            # Scripts for adding new data
-└── data/
-    └── Scp1/               # Species-specific data directory
+conekt_grasses/                      # Repository root
+├── conekt/                          # CoNekT virtual environment (created during setup)
+├── conekt/                          # Main Flask application
+│   ├── app.py
+│   ├── controllers/                 # Route controllers
+│   ├── models/                      # Database models
+│   ├── templates/                   # HTML templates
+│   └── static/                      # Static assets
+├── scripts/                         # Population scripts
+│   ├── populate_conekt_grasses.sh   # Main pipeline script
+|   ├── mariadb_credentials.txt      # DB credentials (NOT committed)
+│   ├── requirements.txt
+│   ├── add/                         # Scripts for adding new data
+│   └── populate_conekt/             # Populate virtual environment (created during setup)
+├── tests/                           # Test suite
+│   └── data/                        # Example input files (useful as reference)
+│       ├── expression/
+│       ├── functional_data/
+│       └── ontology/
+├── artwork/                         # Logos and visual assets
+├── config.py                        # Your local configuration (NOT committed)
+├── config.template.py               # Configuration template
+├── run.py
+├── requirements.txt
+├── LICENSE
+└── LICENSE_CoNekT.md
 ```
+
+### Data directory structure
+
+The pipeline expects all input data to be organized in a dedicated directory **outside** the repository. The path to this directory is defined by the `DATA_DIR` variable in `populate_conekt_grasses.sh`.
+
+The expected structure is:
+
+```
+conekt_dados/
+├── BLAST/
+│   ├── BLASTn/
+│   │   └── AllCDS.fasta              # BLAST nucleotide database
+│   └── BLASTp/
+│       └── AllProteins.fasta         # BLAST protein database
+├── ComparativeGenomics/
+│   └── Orthogroups.txt               # Gene families (e.g., from OrthoFinder)
+├── FunctionalData/
+│   ├── interpro.xml                  # InterPro database (XML)
+│   ├── go.obo                        # Gene Ontology (OBO format)
+│   └── CAZyDB.08062022.fam-activities.txt  # CAZy database
+├── Ontology/
+│   ├── plant-ontology.txt            # Plant Ontology (PO)
+│   └── peco.tsv                      # Plant Experimental Conditions Ontology (PECO)
+└── Species/
+    ├── info_species.tsv              # Species metadata table
+    └── <SPECIES_CODE>/               # One directory per species (e.g., Scp1, Osa, Zma)
+        ├── <CODE>_cds.fa                        # CDS sequences (FASTA)
+        ├── <CODE>_rnas.fa                       # RNA sequences (FASTA)
+        ├── <CODE>_cds_description.txt           # Gene descriptions
+        ├── <CODE>_interproscan.tsv              # InterProScan results (.tsv or .tsv.gz)
+        ├── <CODE>_go.txt                        # GO annotations
+        ├── <CODE>_cazymes.txt                   # CAZyme annotations
+        ├── <CODE>_expression_matrix.txt         # TPM expression matrix
+        └── <CODE>_expression_annotation.txt     # Sample annotation file
+```
+
+> ⚠️ **Important:** File names must follow the `<SPECIES_CODE>_<filetype>` convention exactly, replacing `<SPECIES_CODE>` with the code defined in `SPECIES_ARRAY` and `info_species.tsv` (e.g., `Scp1_expression_matrix.txt`). The pipeline locates files by constructing paths from these codes — any mismatch will cause the step to be skipped or fail.
 
 ### Configuring the pipeline script
 
