@@ -62,7 +62,7 @@ CoNekT Grasses is designed for bioinformaticians and plant researchers working w
 Create a working directory and clone the repository:
 
 ```bash
-mkdir conekt_grasses && cd conekt_grasses
+mkdir conekt_work && cd conekt_work
 git clone https://github.com/labbces/conekt_grasses.git
 ```
 
@@ -71,7 +71,7 @@ git clone https://github.com/labbces/conekt_grasses.git
 Install Python 3.8 (if not already available):
 
 ```bash
-cd CoNekT/
+cd conekt_grasses/CoNekT/
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt-get update
 sudo apt-get install python3.8
@@ -80,7 +80,7 @@ sudo apt-get install python3.8
 Install dependencies and set up the environment:
 
 ```bash
-sudo apt install python3.8-venv python3.8-dev
+sudo apt install python3.8-venv python3.8-dev pkg-config default-libmysqlclient-dev python3-dev build-essential
 python3.8 -m ensurepip --default-pip
 python3.8 -m pip install --upgrade pip setuptools wheel
 
@@ -224,7 +224,7 @@ mariadb -u conekt_grasses_admin -p -e "SHOW VARIABLES LIKE 'max_allowed_packet';
 
 ```bash
 cd conekt_grasses/CoNekT/
-source conekt/bin/activate
+source conekt_ve/bin/activate
 export FLASK_APP=run.py
 flask initdb
 flask db init
@@ -286,7 +286,7 @@ Navigate to the scripts directory and edit `populate_conekt_grasses.sh` and set 
 ```bash
 BASE_DIR="${HOME}/path/to/conekt_grasses"     # Root of the cloned repository
 SCRIPTS_DIR="$BASE_DIR/CoNekT/scripts"
-DATA_DIR="${HOME}/path/to/data"               # Root of your data directory
+DATA_DIR="${HOME}/path/to/your/data"          # Root of your data directory
 SPECIES_ARRAY=("Scp1")                        # Species codes to process
 ```
 
@@ -430,8 +430,8 @@ Run the following scripts in order:
 Build the HTML documentation with Sphinx:
 
 ```bash
-cd conekt_grasses/
-source conekt/bin/activate
+cd conekt_grasses/CoNekT
+source conekt_ve/bin/activate
 cd docs/
 sphinx-build -b html source/ build/
 xdg-open build/index.html
