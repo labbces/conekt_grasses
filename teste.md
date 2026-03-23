@@ -281,24 +281,37 @@ conekt_dados/
 Edit `populate_conekt_grasses.sh` and set the following variables:
 
 ```bash
-BASE_DIR="/path/to/CoNekT"
-SCRIPTS_DIR="$BASE_DIR/conekt_grasses/scripts"
-DATA_DIR="/path/to/data"
-SPECIES_ARRAY=("Scp1")      # Add your species codes here
+BASE_DIR="/path/to/conekt_grasses"              # Root of the cloned repository  
+SCRIPTS_DIR="$BASE_DIR/conekt_grasses/scripts"  
+DATA_DIR="/path/to/data"                        # Root of your data directory
+SPECIES_ARRAY=("Scp1")                          # Add your species codes here
 ```
 
 ### info_species.tsv
 
+This file, located at `DATA_DIR/Species/info_species.tsv`, provides metadata for each species to be loaded. It has **7 tab-separated columns** and supports comments with `#`. Example:
+
 ```tsv
-species_code	data_path
-Scp1	/home/your_user/data/Scp1
+#Species_name                   Code    Source      Genome_Transcriptome_version    DOI                         CDS_file                                        RNA_file
+Sugarcane pan-transcriptome v1  Scp1    LabBCES     Scp1                                                        /home/user/conekt_dados/Species/Scp1/Scp1_cds.fa   /home/user/conekt_dados/Species/Scp1/Scp1_rnas.fa
+Oryza sativa                    Osa     Phytozome   Osativa_v7_0                    10.1093/nar/gkl976          /home/user/conekt_dados/Species/Osa/Osa_cds.fa     /home/user/conekt_dados/Species/Osa/Osa_rnas.fa
 ```
 
-> ⚠️ **Important:** The species code must be **identical** in the data directory name, `SPECIES_ARRAY`, and `info_species.tsv`.
+| Column | Description |
+|--------|-------------|
+| `Species_name` | Full species name or assembly description |
+| `Code` | Short species code used throughout the pipeline (e.g., `Scp1`) |
+| `Source` | Origin of the genome/transcriptome (e.g., Phytozome, LabBCES) |
+| `Genome_Transcriptome_version` | Version identifier of the assembly |
+| `DOI` | Publication DOI (optional, can be left empty) |
+| `CDS_file` | Absolute path to the CDS FASTA file |
+| `RNA_file` | Absolute path to the RNA FASTA file |
+
+> ⚠️ **Important:** The species code (`Code` column) must be **identical** in the directory name under `Species/`, in `SPECIES_ARRAY`, and in this file. Lines starting with `#` are treated as comments and ignored by the pipeline.
 
 ### Expression annotation file
 
-The file `expression_annotation.txt` must have **exactly 9 tab-separated columns**.  
+The file `<CODE>_expression_annotation.txt` must have **exactly 9 tab-separated columns**.  
 The `Replicate` column must contain **only integers** (e.g., 1, 2, 3) — letters are not accepted (e.g., B, M, P will cause errors).
 
 ---
