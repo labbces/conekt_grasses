@@ -77,7 +77,7 @@ EOF
 # --- Etapa 1: Inicialização do banco de dados ---
 log_step "Inicializando o banco de dados CoNekT Grasses"
 cd "$BASE_DIR/CoNekT"
-source bin/activate
+source conekt_ve/bin/activate
 flask initdb
 
 if [ -d "$BASE_DIR/CoNekT/migrations" ]; then
@@ -91,7 +91,7 @@ deactivate
 
 # --- Etapa 2: Ativar ambiente de população ---
 log_step "Ativando ambiente virtual para população de dados"
-source "$SCRIPTS_DIR/Populate_CoNekT/bin/activate"
+source "$SCRIPTS_DIR/populate_conekt_ve/bin/activate"
 
 # --- Etapa 3: Dados funcionais ---
 log_step "Populando dados funcionais (InterPro, GO, CAZy)"
