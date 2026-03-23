@@ -15,7 +15,11 @@ CoNekT Grasses enables researchers to integrate, visualize, and interpret large-
   - [2. CoNekT Virtual Environment](#2-conekt-virtual-environment)
   - [3. Populate Virtual Environment](#3-populate-virtual-environment)
 - [Database Configuration](#database-configuration)
-- [Data Organization](#data-organization)
+- [Data Preparation](#data-preparation)
+  - [Data directory structure](#data-directory-structure)
+  - [Configuring the pipeline script](#configuring-the-pipeline-script)
+  - [info_species.tsv](#info_speciestsv)
+  - [Expression annotation file](#expression-annotation-file)
 - [Running the Pipeline](#running-the-pipeline)
 - [Monitoring the Pipeline](#monitoring-the-pipeline)
 - [Adding New Data](#adding-new-data)
@@ -58,7 +62,7 @@ CoNekT Grasses is designed for bioinformaticians and plant researchers working w
 Create a working directory and clone the repository:
 
 ```bash
-mkdir CoNekT && cd CoNekT
+mkdir conekt_grasses && cd conekt_grasses
 git clone https://github.com/labbces/conekt_grasses.git
 ```
 
@@ -80,10 +84,11 @@ sudo apt install python3.8-venv python3.8-dev
 python3.8 -m ensurepip --default-pip
 python3.8 -m pip install --upgrade pip setuptools wheel
 
-python3.8 -m venv conekt
+python3.8 -m venv conekt_ve
 source conekt/bin/activate
 
 sudo apt-get install python3.8-dev libmysqlclient-dev apache2 apache2-dev libapache2-mod-wsgi-py3
+cd ../
 pip3 install -r requirements.txt
 ```
 
@@ -93,7 +98,7 @@ Deactivate the current environment and go to the scripts directory:
 
 ```bash
 deactivate
-cd scripts/
+cd CoNekT/scripts/
 ```
 
 Check your system Python version:
@@ -106,7 +111,7 @@ Create and activate the populate environment (adjust the version below to match 
 
 ```bash
 sudo apt install python3.12-venv        # replace 3.12 with your version
-python3 -m venv populate_conekt
+python3 -m venv populate_conekt_ve
 source populate_conekt/bin/activate
 pip install -r requirements.txt
 ```
@@ -121,7 +126,38 @@ DB_PASSWORD=YOUR_DB_PASSWORD
 
 > ⚠️ **Security:** Never commit this file to version control. Add `mariadb_credentials.txt` to your `.gitignore`.
 
----
+Now that you have cloned the repository, created both virtual environments, and added the necessary files, your repository structure should look like this:
+
+```
+CoNekT/                              # Repository root (created by git clone)
+├── artwork/                         # Logos and visual assets
+├── bin/                             # CoNekT virtual environment binaries
+├── conekt/                          # Main Flask application
+│   ├── app.py
+│   ├── controllers/                 # Route controllers
+│   ├── models/                      # Database models
+│   ├── templates/                   # HTML templates
+│   └── static/                      # Static assets
+├── conekt_ve/                          # CoNekT virtual environment (lib, include, etc.)
+├── scripts/                         # Population scripts
+│   ├── populate_conekt_grasses.sh   # Main pipeline script
+│   ├── mariadb_credentials.txt      # DB credentials (NOT committed)
+│   ├── requirements.txt
+│   ├── add/                         # Scripts for adding new data
+│   └── populate_conekt_ve/          # Populate virtual environment
+├── tests/                           # Test suite
+│   └── data/                        
+│       ├── expression/
+│       ├── functional_data/
+│       └── ontology/
+├── utils/                           # Utility modules
+├── config.py                        # Your local configuration (NOT committed)
+├── config.template.py               # Configuration template
+├── run.py
+├── requirements.txt
+├── LICENSE
+└── LICENSE_CoNekT.md
+```
 
 ## Database Configuration
 
@@ -135,9 +171,7 @@ cp config.template.py config.py
 Edit `config.py` to set your database URI, secret key, and admin password:
 
 ```python
-SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://conekt_grasses_admin:YOUR_DB_PASSWORD@localhost/conekt_grasses_db'
-SECRET_KEY = 'your-secret-key-here'   # change this!
-ADMIN_PASSWORD = 'your-admin-password' # change this!
+SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://conekt_grasses_admin:YOUR_DB_PASSWORD@localhost/conekt_grasses_db' # Your DB_PASSWORD must be the same as the one in the mariadb_credentials file.
 ```
 
 ### 2. Set up MariaDB
@@ -151,7 +185,8 @@ sudo mariadb
 And run:
 
 ```sql
-CREATE USER conekt_grasses_admin@localhost IDENTIFIED BY 'YOUR_DB_PASSWORD';
+CREATE USER conekt_grasses_admin@localhost IDENTIFIED BY 'YOUR_DB_PASSWORD'; 
+# Your DB_PASSWORD must be the same as the one in the mariadb_credentials file.
 
 CREATE DATABASE conekt_grasses_db CHARACTER SET latin1 COLLATE latin1_general_ci;
 
@@ -180,6 +215,7 @@ Restart MariaDB and verify:
 ```bash
 sudo systemctl restart mariadb
 mariadb -u conekt_grasses_admin -p -e "SHOW VARIABLES LIKE 'max_allowed_packet';"
+# This command will ask for your MariaDB password, have it ready.
 # Expected output: 536870912
 ```
 
@@ -199,95 +235,58 @@ flask db init
 flask run
 ```
 
-> **Note:** Running the web application is **not required** for data population. You can proceed directly to the [Data Organization](#data-organization) and [Running the Pipeline](#running-the-pipeline) sections. Once the pipeline completes, start the application to explore and verify how the data was loaded into the platform.
+> **Note:** Running the web application is **not required** for data population. You can proceed directly to [Data Preparation](#data-preparation) and [Running the Pipeline](#running-the-pipeline). Once the pipeline completes, start the application to explore and verify how the data was loaded into the platform.
 
 ---
 
-## Data Organization
+## Data Preparation
 
-### Repository structure
-
-After cloning, the repository root (`conekt_grasses/`) will look like this:
-
-```
-conekt_grasses/                      # Repository root
-├── conekt/                          # CoNekT virtual environment (created during setup)
-├── CoNekT/                          # Main Flask application
-│   ├── app.py
-│   ├── controllers/                 # Route controllers
-│   ├── models/                      # Database models
-│   ├── templates/                   # HTML templates
-│   └── static/                      # Static assets
-├── scripts/                         # Population scripts
-│   ├── populate_conekt_grasses.sh   # Main pipeline script
-│   ├── validate_input_data.sh       # Input data validation
-│   ├── info_species.tsv             # Species metadata (configure this)
-│   ├── mariadb_credentials.txt      # DB credentials (NOT committed)
-│   ├── requirements.txt
-│   ├── add/                         # Scripts for adding new data
-│   └── Populate_CoNekT/             # Populate virtual environment (created during setup)
-├── tests/                           
-│   └── data/                        
-│       ├── expression/
-│       ├── functional_data/
-│       └── ontology/
-├── artwork/                         # Logos and visual assets
-├── config.py                        # Your local configuration (NOT committed)
-├── config.template.py               # Configuration template
-├── run.py
-├── requirements.txt
-├── LICENSE
-└── LICENSE_CoNekT.md
-```
-
-> 💡 **Tip:** The `tests/data/` directory contains small example input files that are useful as formatting references when preparing your own data.
+Before running the pipeline, you need to organize your input data in a dedicated directory **outside** the repository and configure the pipeline script accordingly.
 
 ### Data directory structure
 
-The pipeline expects all input data to be organized in a dedicated directory **outside** the repository. The path to this directory is defined by the `DATA_DIR` variable in `populate_conekt_grasses.sh`.
-
-The expected structure is:
+The path to this directory is defined by the `DATA_DIR` variable in `populate_conekt_grasses.sh`. The expected structure is:
 
 ```
 conekt_dados/
 ├── BLAST/
 │   ├── BLASTn/
-│   │   └── AllCDS.fasta              # BLAST nucleotide database
+│   │   └── AllCDS.fasta                        # BLAST nucleotide database
 │   └── BLASTp/
-│       └── AllProteins.fasta         # BLAST protein database
+│       └── AllProteins.fasta                   # BLAST protein database
 ├── ComparativeGenomics/
-│   └── Orthogroups.txt               # Gene families (e.g., from OrthoFinder)
+│   └── Orthogroups.txt                         # Gene families (e.g., from OrthoFinder)
 ├── FunctionalData/
-│   ├── interpro.xml                  # InterPro database (XML)
-│   ├── go.obo                        # Gene Ontology (OBO format)
-│   └── CAZyDB.08062022.fam-activities.txt  # CAZy database
+│   ├── interpro.xml                            # InterPro database (XML)
+│   ├── go.obo                                  # Gene Ontology (OBO format)
+│   └── CAZyDB.08062022.fam-activities.txt      # CAZy database
 ├── Ontology/
-│   ├── plant-ontology.txt            # Plant Ontology (PO)
-│   └── peco.tsv                      # Plant Experimental Conditions Ontology (PECO)
+│   ├── plant-ontology.txt                      # Plant Ontology (PO)
+│   └── peco.tsv                                # Plant Experimental Conditions Ontology (PECO)
 └── Species/
-    ├── info_species.tsv              # Species metadata table
-    └── <SPECIES_CODE>/               # One directory per species (e.g., Scp1, Osa, Zma)
-        ├── <CODE>_cds.fa                        # CDS sequences (FASTA)
-        ├── <CODE>_rnas.fa                       # RNA sequences (FASTA)
-        ├── <CODE>_cds_description.txt           # Gene descriptions
-        ├── <CODE>_interproscan.tsv              # InterProScan results (.tsv or .tsv.gz)
-        ├── <CODE>_go.txt                        # GO annotations
-        ├── <CODE>_cazymes.txt                   # CAZyme annotations
-        ├── <CODE>_expression_matrix.txt         # TPM expression matrix
-        └── <CODE>_expression_annotation.txt     # Sample annotation file
+    ├── info_species.tsv                        # Species metadata table
+    └── <SPECIES_CODE>/                         # One directory per species (e.g., Scp1, Osa, Zma)
+        ├── <CODE>_cds.fa                       # CDS sequences (FASTA)
+        ├── <CODE>_rnas.fa                      # RNA sequences (FASTA)
+        ├── <CODE>_cds_description.txt          # Gene descriptions
+        ├── <CODE>_interproscan.tsv             # InterProScan results (.tsv or .tsv.gz)
+        ├── <CODE>_go.txt                       # GO annotations
+        ├── <CODE>_cazymes.txt                  # CAZyme annotations
+        ├── <CODE>_expression_matrix.txt        # TPM expression matrix
+        └── <CODE>_expression_annotation.txt    # Sample annotation file
 ```
 
 > ⚠️ **Important:** File names must follow the `<SPECIES_CODE>_<filetype>` convention exactly, replacing `<SPECIES_CODE>` with the code defined in `SPECIES_ARRAY` and `info_species.tsv` (e.g., `Scp1_expression_matrix.txt`). The pipeline locates files by constructing paths from these codes — any mismatch will cause the step to be skipped or fail.
 
 ### Configuring the pipeline script
 
-Edit `populate_conekt_grasses.sh` and set the following variables to match your environment:
+Navigate to the scripts directory and edit `populate_conekt_grasses.sh` and set the following variables to match your environment:
 
 ```bash
-BASE_DIR="${HOME}/path/to/conekt_grasses"   # Root of the cloned repository
+BASE_DIR="${HOME}/path/to/conekt_grasses"     # Root of the cloned repository
 SCRIPTS_DIR="$BASE_DIR/CoNekT/scripts"
 DATA_DIR="${HOME}/path/to/conekt_dados/v0.3"  # Root of your data directory
-SPECIES_ARRAY=("Scp1")                      # Species codes to process
+SPECIES_ARRAY=("Scp1")                        # Species codes to process
 ```
 
 ### info_species.tsv
@@ -295,9 +294,9 @@ SPECIES_ARRAY=("Scp1")                      # Species codes to process
 This file, located at `DATA_DIR/Species/info_species.tsv`, provides metadata for each species to be loaded. It has **7 tab-separated columns** and supports comments with `#`. Example:
 
 ```tsv
-#Species_name                   Code    Source      Genome_Transcriptome_version    DOI                         CDS_file                                        RNA_file
-Sugarcane pan-transcriptome v1  Scp1    LabBCES     Scp1                                                        /home/user/conekt_dados/Species/Scp1/Scp1_cds.fa   /home/user/conekt_dados/Species/Scp1/Scp1_rnas.fa
-Oryza sativa                    Osa     Phytozome   Osativa_v7_0                    10.1093/nar/gkl976          /home/user/conekt_dados/Species/Osa/Osa_cds.fa     /home/user/conekt_dados/Species/Osa/Osa_rnas.fa
+#Species_name                   Code    Source      Genome_Transcriptome_version    DOI                  CDS_file                                          RNA_file
+Sugarcane pan-transcriptome v1  Scp1    LabBCES     Scp1                                                 /home/user/conekt_dados/Species/Scp1/Scp1_cds.fa  /home/user/conekt_dados/Species/Scp1/Scp1_rnas.fa
+Oryza sativa                    Osa     Phytozome   Osativa_v7_0                    10.1093/nar/gkl976   /home/user/conekt_dados/Species/Osa/Osa_cds.fa    /home/user/conekt_dados/Species/Osa/Osa_rnas.fa
 ```
 
 | Column | Description |
@@ -314,8 +313,36 @@ Oryza sativa                    Osa     Phytozome   Osativa_v7_0                
 
 ### Expression annotation file
 
-The file `<CODE>_expression_annotation.txt` must have **exactly 9 tab-separated columns**.  
-The `Replicate` column must contain **only integers** (e.g., 1, 2, 3) — letters are not accepted (e.g., B, M, P will cause errors).
+The file `<CODE>_expression_annotation.txt` describes each RNA-seq sample used in the expression matrix. It must have **exactly 9 tab-separated columns** with the following header:
+
+```
+SampleID	DOI	ConditionDescription	Replicate	Strandness	Layout	PO_anatomy	PO_dev_stage	PECO
+```
+
+Example rows:
+
+```tsv
+SampleID        DOI                     ConditionDescription    Replicate   Strandness       Layout      PO_anatomy   PO_dev_stage  PECO
+SRR768594       10.1038/nbt.3019        Segment 01              1           unstranded       single-end  PO:0025034
+SRR17151210     10.1111/jipb.13357      cold stress - 2h        3           strand specific  paired-end  PO:0025034
+SRR15993148     10.1038/s42003-021...   Zax2_+P_Sh_24hr         1           strand specific  paired-end  PO:0025297
+```
+
+| Column | Description | Required |
+|--------|-------------|----------|
+| `SampleID` | SRA run accession or any unique sample identifier | ✅ |
+| `DOI` | Publication DOI for the dataset | ✅ |
+| `ConditionDescription` | Free-text description of the experimental condition | ✅ |
+| `Replicate` | Replicate number — **must be an integer** (1, 2, 3...) | ✅ |
+| `Strandness` | Library strandness: `unstranded` or `strand specific` | ✅ |
+| `Layout` | Sequencing layout: `single-end` or `paired-end` | ✅ |
+| `PO_anatomy` | Plant Ontology term for the tissue/anatomy (e.g., `PO:0025034`) | ⚠️ recommended |
+| `PO_dev_stage` | Plant Ontology term for the developmental stage | ⚠️ recommended |
+| `PECO` | Plant Experimental Conditions Ontology term | ⚠️ recommended |
+
+> ⚠️ **Critical:** The `Replicate` column must contain **only integers** (1, 2, 3...). Using letters (e.g., A, B, C) or any non-integer value will cause the pipeline to fail at the expression data loading step.
+
+> 💡 **Tip:** The ontology columns (`PO_anatomy`, `PO_dev_stage`, `PECO`) can be left empty, but filling them in enables the expression specificity features of the platform.
 
 ---
 
@@ -374,8 +401,11 @@ Scripts for adding data are located in `scripts/add/`.
 ### Add more expression profiles for an existing species
 
 ```bash
-python add/add_expression_data.py --species_code Scp1 [other options]
+python add_expression_data.py   --db_admin conekt_grasses_admin   --db_name conekt_grasses_db   --db_password 'YOUR DB_PASSWORD'   --species_code 'YOUR_SPECIES'   --expression_matrix '/path/to/your/data'   --sample_annotation '/path/to/your/data'
 ```
+
+> 💡 **Tip:** To find out all the information the script requests, type the name of the desired script followed by -h or --help, for example: python add_expression_data.py -h or --help
+
 
 ### Add a new species
 
