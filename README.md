@@ -49,15 +49,38 @@ CoNekT Grasses is designed for bioinformaticians and plant researchers working w
 | OS | Linux (Ubuntu tested) | Ubuntu 20.04+ |
 | RAM | 16 GB | 32–64 GB |
 | Disk | 20 GB | Tens of GB |
-| Python | 3.8 | 3.8 |
 | Other | Git, MariaDB | — |
 | Permissions | `sudo` access or machine administrator | — |
 
+Before proceeding, verify that MariaDB is installed on your system:
+
+```bash
+mariadb --version
+```
+
+If the command returns `command not found`, MariaDB is not installed. See the [Database Configuration](#database-configuration) section for installation instructions.
+
+Also verify that Git is installed:
+
+```bash
+git --version
+```
+
+If the command returns `command not found`, Git is not installed. See the [Installation](#installation) section for installation instructions.
+
+---
 ---
 
 ## Installation
 
 ### 1. Clone the Repository
+
+If Git is not yet installed, run:
+
+```bash
+sudo apt-get update
+sudo apt-get install git
+```
 
 Create a working directory and clone the repository:
 
@@ -88,16 +111,26 @@ python3.8 -m venv conekt_ve
 source conekt_ve/bin/activate
 
 sudo apt-get install python3.8-dev libmysqlclient-dev apache2 apache2-dev libapache2-mod-wsgi-py3
-cd ../
-pip3 install -r requirements.txt
+pip3 install -r ../requirements.txt
+```
+
+If you want to check if the packages listed in the requirements.txt file have been installed:
+
+```bash
+pip install
+```
+
+After completing the setup, deactivate the virtual environment:
+
+```bash
+deactivate
 ```
 
 ### 3. Populate Virtual Environment
 
-Deactivate the current environment and go to the scripts directory:
+Go to the scripts directory:
 
 ```bash
-deactivate
 cd CoNekT/scripts/
 ```
 
@@ -113,10 +146,28 @@ Create and activate the populate environment (adjust the version below to match 
 sudo apt install python3.12-venv        # replace 3.12 with your version
 python3 -m venv populate_conekt_ve
 source populate_conekt_ve/bin/activate
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
-Create the credentials file `scripts/mariadb_credentials.txt`:
+If you want to check if the packages listed in the requirements.txt file have been installed:
+
+```bash
+pip install
+```
+
+After completing the setup, deactivate the virtual environment:
+
+```bash
+deactivate
+```
+
+Create the credentials file mariadb_credentials.txt inside the scripts directory:
+
+```bash
+nano mariadb_credentials.txt
+```
+
+Add and edit the content below with your own information:
 
 ```text
 DB_ADMIN=conekt_grasses_admin
@@ -124,51 +175,59 @@ DB_NAME=conekt_grasses_db
 DB_PASSWORD=YOUR_DB_PASSWORD
 ```
 
+> 💡 **Tip:** To save and exit `nano`: press `Ctrl+O` to write the file, confirm with `Enter`, then press `Ctrl+X` to exit.
+
 > ⚠️ **Security:** Never commit this file to version control. Add `mariadb_credentials.txt` to your `.gitignore`.
 
 Now that you have cloned the repository, created both virtual environments, and added the necessary files, your repository structure should look like this:
 
 ```
-CoNekT/                              # Repository root (created by git clone)
-├── artwork/                         # Logos and visual assets
-├── bin/                             # CoNekT virtual environment binaries
-├── conekt/                          # Main Flask application
-│   ├── app.py
-│   ├── controllers/                 # Route controllers
-│   ├── models/                      # Database models
-│   ├── templates/                   # HTML templates
-│   └── static/                      # Static assets
-├── conekt_ve/                       # CoNekT virtual environment (lib, include, etc.)
-├── scripts/                         # Population scripts
-│   ├── populate_conekt_grasses.sh   # Main pipeline script
-│   ├── mariadb_credentials.txt      # DB credentials (NOT committed)
-│   ├── requirements.txt
-│   ├── add/                         # Scripts for adding new data
-│   └── populate_conekt_ve/          # Populate virtual environment
-├── tests/                           # Test suite
-│   └── data/                        
-│       ├── expression/
-│       ├── functional_data/
-│       └── ontology/
-├── utils/                           # Utility modules
-├── config.py                        # Your local configuration (NOT committed)
-├── config.template.py               # Configuration template
-├── run.py
-├── requirements.txt
+conekt_grasses/                      # Repository root (created by git clone)
+├── CoNekT/                          # Main project directory
+│   ├── artwork/                     # Logos and visual assets
+│   ├── conekt/                      # Main Flask application
+│   │   ├── app.py
+│   │   ├── controllers/             # Route controllers
+│   │   ├── models/                  # Database models
+│   │   ├── templates/               # HTML templates
+│   │   └── static/                  # Static assets
+│   ├── conekt_ve/                   # CoNekT virtual environment (created during setup)
+│   ├── scripts/                     # Population scripts
+│   │   ├── populate_conekt_grasses.sh   # Main pipeline script
+│   │   ├── mariadb_credentials.txt      # DB credentials (NOT committed)
+│   │   ├── populate_conekt_ve/          # Populate virtual environment (created during setup)
+│   │   ├── add/                         # Scripts for adding new data
+│   │   ├── README_populate.md
+│   │   └── requirements.txt
+│   ├── tests/                       
+│   │   └── data/                    
+│   │       ├── expression/
+│   │       ├── functional_data/
+│   │       └── ontology/
+│   └── utils/                       # Utility modules
 ├── LICENSE
-└── LICENSE_CoNekT.md
+├── LICENSE_CoNekT.md
+├── README.md
+└── requirements.txt
 ```
 
 ## Database Configuration
 
 ### 1. Create the Flask configuration file
 
+Inside the CoNekT directory type:
+
 ```bash
-cd conekt_grasses/CoNekT/
 cp config.template.py config.py
 ```
 
-Edit `config.py` to set your database URI, secret key, and admin password:
+Open the config.py file:
+
+```bash
+nano config.py
+```
+
+Find the line below and set your database URI and secret key:
 
 ```python
 SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://conekt_grasses_admin:YOUR_DB_PASSWORD@localhost/conekt_grasses_db' 
@@ -176,6 +235,13 @@ SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://conekt_grasses_admin:YOUR_DB_PASSWORD
 ```
 
 ### 2. Set up MariaDB
+
+If MariaDB is not yet installed, run:
+
+```bash
+sudo apt-get update
+sudo apt-get install mariadb-server
+```
 
 Open MariaDB as root:
 
@@ -197,6 +263,12 @@ GRANT INDEX, CREATE, DROP, SELECT, UPDATE, DELETE, ALTER, EXECUTE, INSERT
 GRANT FILE ON *.* TO conekt_grasses_admin@localhost;
 ```
 
+To exit MariDB, type:
+
+```sql
+exit
+```
+
 > **Note:** The `latin1` character set is required — `utf8mb4` (MariaDB default) is not compatible with sqlalchemy-migrate.
 
 ### 3. Increase the max allowed packet size
@@ -210,6 +282,8 @@ Add or uncomment the following line:
 ```ini
 max_allowed_packet = 512M
 ```
+
+> 💡 **Tip:** To save and exit `nano`: press `Ctrl+O` to write the file, confirm with `Enter`, then press `Ctrl+X` to exit.
 
 Restart MariaDB and verify:
 
@@ -230,13 +304,32 @@ flask initdb
 flask db init
 ```
 
-### 5. Start the web application
+After completing the setup, deactivate the virtual environment:
 
 ```bash
-flask run
+deactivate
 ```
 
+### 5. Start the web application
+
 > **Note:** Running the web application is **not required** for data population. You can proceed directly to [Data Preparation](#data-preparation) and [Running the Pipeline](#running-the-pipeline). Once the pipeline completes, start the application to explore and verify how the data was loaded into the platform.
+
+Starting the web application is independent from the database initialization above and can be done at any time. To start it, open a terminal and run:
+
+```bash
+cd conekt_grasses/CoNekT/
+source conekt_ve/bin/activate
+flask run
+```
+After running the command, the terminal will display a message similar to:
+
+```
+* Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+```
+
+Open your browser and navigate to `http://127.0.0.1:5000/`
+
+> **Note:** To stop the application, press `Ctrl+C` in the terminal where `flask run` is running and disable the virtual environment.
 
 ---
 
@@ -281,7 +374,12 @@ conekt_dados/
 
 ### Configuring the pipeline script
 
-Navigate to the scripts directory and edit `populate_conekt_grasses.sh` and set the following variables to match your environment:
+In the scripts directory, type:
+
+```bash
+nano populate_conekt_grasses.sh
+```
+And set the following variables to match your environment:
 
 ```bash
 BASE_DIR="${HOME}/path/to/conekt_grasses"     # Root of the cloned repository
@@ -289,6 +387,8 @@ SCRIPTS_DIR="$BASE_DIR/CoNekT/scripts"
 DATA_DIR="${HOME}/path/to/your/data"          # Root of your data directory
 SPECIES_ARRAY=("Scp1")                        # Species codes to process
 ```
+
+> 💡 **Tip:** To save and exit `nano`: press `Ctrl+O` to write the file, confirm with `Enter`, then press `Ctrl+X` to exit.
 
 ### info_species.tsv
 
@@ -352,7 +452,6 @@ SRR15993148     10.1038/s42003-021...   Zax2_+P_Sh_24hr         1           stra
 Navigate to the scripts directory and execute:
 
 ```bash
-cd scripts/
 ./populate_conekt_grasses.sh
 ```
 
@@ -378,14 +477,6 @@ Some pipeline steps (e.g., co-expression networks, clustering) are **commented o
 
 ## Monitoring the Pipeline
 
-Monitor system resources during a long run:
-
-```bash
-htop
-# or
-watch -n 2 free -h
-```
-
 Example progress messages:
 
 ```
@@ -397,16 +488,21 @@ Example progress messages:
 
 ## Adding New Data
 
+To run the scripts, you need to activate the virtual environment in the scripts directory:
+
+```bash
+source populate_conekt/bin/activate
+```
+
 Scripts for adding data are located in `scripts/add/`.
 
 ### Add more expression profiles for an existing species
 
 ```bash
-python add_expression_data.py   --db_admin conekt_grasses_admin   --db_name conekt_grasses_db   --db_password 'YOUR DB_PASSWORD'   --species_code 'YOUR_SPECIES'   --expression_matrix '/path/to/your/data'   --sample_annotation '/path/to/your/data'
+python add/add_expression_data.py --species_code 'YOUR_SPECIES' [other options]
 ```
 
 > 💡 **Tip:** To find out all the information the script requests, type the name of the desired script followed by -h or --help, for example: python add_expression_data.py -h or --help
-
 
 ### Add a new species
 
@@ -422,6 +518,9 @@ Run the following scripts in order:
 | 6 | `add_expression_data.py` |
 | 7 (optional) | `calculate_specificities_fast.py` |
 | 8 | `update_counts.py` |
+
+
+After adding the desired data, deactivate the virtual environment.
 
 ---
 
