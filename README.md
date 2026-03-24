@@ -69,7 +69,6 @@ git --version
 If the command returns `command not found`, Git is not installed. See the [Installation](#installation) section for installation instructions.
 
 ---
----
 
 ## Installation
 
@@ -257,7 +256,7 @@ CREATE USER conekt_grasses_admin@localhost IDENTIFIED BY 'YOUR_DB_PASSWORD';
 
 CREATE DATABASE conekt_grasses_db CHARACTER SET latin1 COLLATE latin1_general_ci;
 
-GRANT INDEX, CREATE, DROP, SELECT, UPDATE, DELETE, ALTER, EXECUTE, INSERT
+GRANT INDEX, CREATE, DROP, SELECT, UPDATE, DELETE, ALTER, EXECUTE, INSERT 
   ON conekt_grasses_db.* TO conekt_grasses_admin@localhost;
 
 GRANT FILE ON *.* TO conekt_grasses_admin@localhost;
@@ -385,7 +384,7 @@ And set the following variables to match your environment:
 BASE_DIR="${HOME}/path/to/conekt_grasses"     # Root of the cloned repository
 SCRIPTS_DIR="$BASE_DIR/CoNekT/scripts"
 DATA_DIR="${HOME}/path/to/your/data"          # Root of your data directory
-SPECIES_ARRAY=("Scp1")                        # Species codes to process
+SPECIES_ARRAY=( your species here )           # Species codes to process
 ```
 
 > 💡 **Tip:** To save and exit `nano`: press `Ctrl+O` to write the file, confirm with `Enter`, then press `Ctrl+X` to exit.
@@ -491,7 +490,7 @@ Example progress messages:
 To run the scripts, you need to activate the virtual environment in the scripts directory:
 
 ```bash
-source populate_conekt/bin/activate
+source populate_conekt_ve/bin/activate
 ```
 
 Scripts for adding data are located in `scripts/add/`.
