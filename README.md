@@ -49,7 +49,7 @@ CoNekT Grasses is designed for bioinformaticians and plant researchers working w
 | OS | Linux (Ubuntu tested) | Ubuntu 20.04+ |
 | RAM | 16 GB | 32–64 GB |
 | Disk | 20 GB | Tens of GB |
-| Other | Git, MariaDB | — |
+| Other |  MariaDB, Git | — |
 | Permissions | `sudo` access or machine administrator | — |
 
 Before proceeding, verify that MariaDB is installed on your system:
