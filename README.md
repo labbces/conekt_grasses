@@ -313,7 +313,7 @@ deactivate
 
 > **Note:** Running the web application is **not required** for data population. You can proceed directly to [Data Preparation](#data-preparation) and [Running the Pipeline](#running-the-pipeline). Once the pipeline completes, start the application to explore and verify how the data was loaded into the platform.
 
-Starting the web application is independent from the database initialization above and can be done at any time. To start it, open a terminal and run:
+To begin, open a terminal and run the following command in the CoNekT directory:
 
 ```bash
 cd conekt_grasses/CoNekT/
