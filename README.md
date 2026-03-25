@@ -386,6 +386,9 @@ SCRIPTS_DIR="$BASE_DIR/CoNekT/scripts"
 DATA_DIR="${HOME}/path/to/your/data"          # Root of your data directory
 SPECIES_ARRAY=( your species here )           # Species codes to process
 ```
+### Optional steps
+
+Some pipeline steps (e.g., co-expression networks, clustering) are **commented out by default** because they require specific input data that may not always be available. Enable or disable steps by commenting/uncommenting the corresponding sections in the script. Make sure all required input files are in place before enabling a step.
 
 > 💡 **Tip:** To save and exit `nano`: press `Ctrl+O` to write the file, confirm with `Enter`, then press `Ctrl+X` to exit.
 
@@ -468,10 +471,6 @@ Pipeline completed successfully!
 
 > ⚠️ **Do not interrupt the specificity calculation step** — it is the most computationally intensive part of the pipeline.
 
-### Optional steps
-
-Some pipeline steps (e.g., co-expression networks, clustering) are **commented out by default** because they require specific input data that may not always be available. Enable or disable steps by commenting/uncommenting the corresponding sections in the script. Make sure all required input files are in place before enabling a step.
-
 ---
 
 ## Monitoring the Pipeline
@@ -519,7 +518,7 @@ Run the following scripts in order:
 | 8 | `update_counts.py` |
 
 
-After adding the desired data, deactivate the virtual environment.
+After adding the data, deactivate the virtual environment.
 
 ---
 
