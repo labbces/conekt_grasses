@@ -14,7 +14,15 @@ class Sample(db.Model):
     description = db.Column(db.Text)
     replicate = db.Column(db.Integer, default=1)
     species_id = db.Column(db.Integer, db.ForeignKey('species.id', ondelete='CASCADE'), index=True)
-    
+
+    sample_groups = db.relationship(
+        'SampleGroupAssociation',
+        backref=db.backref('sample', lazy='joined'),
+        lazy='dynamic',
+        cascade="all, delete-orphan",
+        passive_deletes=True
+    )
+
     def __init__(self, sample_name, strandness, layout, species_id,
                  description, replicate):
         self.sample_name = sample_name
@@ -23,6 +31,6 @@ class Sample(db.Model):
         self.description = description
         self.replicate = replicate
         self.species_id = species_id
-    
+
     def __repr__(self):
         return str(self.id) + ". " + self.sample_name (self.species_id)

@@ -408,6 +408,79 @@ def prepare_expression_profile(data, show_sample_count=False, xlabel='', ylabel=
 	return output
 
 
+def prepare_group_profiles(profiles, group_type, normalize=False, xlabel='', ylabel=''):
+	"""
+	Renders a line chart (one series per gene) where each gene's expression
+	values are aggregated by SampleGroupAssociation group_type (e.g. 'tissue').
+
+	:param profiles: list of ExpressionProfile objects (profile deferred loaded)
+	:param group_type: the group_type key to aggregate by
+	:param normalize: normalize each series to its own max value
+	:param xlabel: x-axis label
+	:param ylabel: y-axis label
+	:return: Chart.js-compatible dict, or empty dict if no group data found
+	"""
+	datasets = []
+	labels_list = None
+
+	for count, p in enumerate(profiles):
+		grouped = p.group_profile(group_type)
+		if grouped is None:
+			continue
+
+		if labels_list is None:
+			labels_list = grouped['order']
+
+		means = [mean(grouped['data'][g]) if g in grouped['data'] else 0
+				 for g in labels_list]
+
+		if normalize and max(means, default=0) > 0:
+			max_val = max(means)
+			means = [v / max_val for v in means]
+
+		datasets.append({
+			'label': p.probe if p.sequence_id is None else p.sequence.name,
+			'fill': True,
+			'showLine': True,
+			'backgroundColor': "rgba(220,220,220,0.1)" if len(profiles) > 12 else COLORS[count % len(COLORS)],
+			'borderColor': "rgba(175,175,175,0.2)" if len(profiles) > 12 else COLORS[count % len(COLORS)],
+			'pointRadius': 3 if len(profiles) < 13 else 0,
+			'data': means
+		})
+
+	if labels_list is None:
+		return {}
+
+	return {
+		'type': 'line',
+		'data': {
+			'labels': [lbl.capitalize() for lbl in labels_list],
+			'datasets': datasets
+		},
+		'options': {
+			'legend': {'display': len(profiles) < 13},
+			'tooltips': {
+				'enabled': len(profiles) < 13,
+				'mode': 'label',
+				'intersect': False
+			},
+			'scales': {
+				'xAxes': [{
+					'scaleLabel': {'display': xlabel != '', 'labelString': xlabel},
+					'gridLines': {'display': True},
+					'ticks': {'maxRotation': 90, 'minRotation': 90}
+				}],
+				'yAxes': [{
+					'scaleLabel': {'display': ylabel != '', 'labelString': ylabel},
+					'ticks': {'beginAtZero': True}
+				}]
+			},
+			'pan': {'enabled': True, 'mode': 'y'},
+			'zoom': {'enabled': True, 'mode': 'y'}
+		}
+	}
+
+
 def prepare_profile_comparison(data_first, data_second, labels, normalize=1, xlabel='', ylabel=''):
 	processed_first_means = {}
 	processed_second_means = {}

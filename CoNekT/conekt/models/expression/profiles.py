@@ -399,6 +399,74 @@ class ExpressionProfile(db.Model):
 
         return {'labels':order, 'order': order, 'heatmap_data': output}
 
+    def group_profile(self, group_type):
+        """
+        Aggregates the expression profile by a dynamic group_type embedded
+        directly in the profile JSON (e.g. profile['data']['tissue'][run_id] = 'root').
+
+        :param group_type: the group_type key to aggregate by
+        :return: dict with 'order', 'colors', 'data' compatible with
+                 prepare_expression_profile(), or None if no groups found
+        """
+        profile_data = json.loads(self.profile)
+
+        group_map = profile_data['data'].get(group_type)
+        if not group_map:
+            return None
+
+        grouped_values = {}
+        for run_id, tpm in profile_data['data']['tpm'].items():
+            group_name = group_map.get(run_id)
+            if group_name:
+                grouped_values.setdefault(group_name, []).append(tpm)
+
+        if not grouped_values:
+            return None
+
+        order = sorted(grouped_values.keys())
+
+        return {
+            'order': order,
+            'colors': profile_data.get('colors', []),
+            'data': grouped_values
+        }
+
+    @staticmethod
+    def get_available_group_types(species_id):
+        """
+        Returns distinct dynamic group_type keys found in profile JSON data for a given species.
+        Scans the first profile with data to discover keys beyond the known reserved ones.
+
+        :param species_id: internal species ID
+        :return: sorted list of group_type strings
+        """
+        _RESERVED_KEYS = {
+            'tpm', 'annotation', 'replicate', 'lit_doi',
+            'po_anatomy', 'po_anatomy_class',
+            'po_dev_stage', 'po_dev_stage_class',
+            'peco', 'peco_class'
+        }
+
+        profiles = (
+            ExpressionProfile.query
+            .options(undefer('profile'))
+            .filter_by(species_id=species_id)
+            .limit(100)
+            .all()
+        )
+
+        group_types = set()
+        for p in profiles:
+            try:
+                data = json.loads(p.profile)
+                for key in data.get('data', {}).keys():
+                    if key not in _RESERVED_KEYS:
+                        group_types.add(key)
+            except Exception:
+                continue
+
+        return sorted(group_types)
+
     @staticmethod
     def get_profiles(species_id, probes, limit=1000):
         """
