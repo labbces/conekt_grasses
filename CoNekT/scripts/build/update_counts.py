@@ -186,6 +186,11 @@ try:
 					Sequence.type == 'protein_coding'
 				).scalar()
 
+				te_count = session.query(func.count()).filter(
+					Sequence.species_id == s.id,
+					Sequence.type == 'TE'
+				).scalar()
+
 				profile_count = session.query(func.count()).filter(
 					ExpressionProfile.species_id == s.id
 				).scalar()
@@ -199,6 +204,7 @@ try:
 					.where(Species.id == s.id)
 					.values(
 						non_coding_seq_count=seq_count,
+						te_count=te_count,
 						profile_count=profile_count,
 						network_count=network_count
 					)
