@@ -236,7 +236,11 @@ sudo chown -R mysql data
 sudo chown -R mysql:mysql tmp
 ```
 
-Create a `my.cnf` file  in  `/etc/mysql`, you can use [this](my.cnf) as template.
+Create a `my.cnf` file  in  `/etc/mysql`, you can use [this](my.cnf) as template, and then start the server
+
+```bash
+sudo ./bin/mariadbd-safe --defaults-file=/etc/mysql/my.cnf --user=mysql &
+```
 
 ### 1. Create the Flask configuration file
 
