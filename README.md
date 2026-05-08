@@ -211,6 +211,32 @@ conekt_grasses/                      # Repository root (created by git clone)
 ```
 
 ## Database Configuration
+### 0. Installing MariaDB
+
+Ger MariaDB  from https://mariadb.org/download/, get a binary tarball
+
+Here we will be installing mariadb-12.2.2, we will use as base dir `/data`
+
+```bash
+sudo mkdir -p /data/
+cd ~/Downloads/
+tar xzf mariadb-12.2.2-linux-systemd-x86_64.tar.gz
+sudo mv  mariadb-12.2.2-linux-systemd-x86_64/ /data/
+cd /data/mariadb-12.2.2-linux-systemd-x86_64/
+sudo groupadd mysql
+sudo useradd -g mysql mysql
+sudo ln -s /data/mariadb-12.2.2-linux-systemd-x86_64/ /usr/local/mysql
+cd /usr/local/mysql
+sudo mkdir -p tmp
+sudo chown -R mysql .
+sudo chgrp -R mysql .
+sudo ./scripts/mariadb-install-db --user=mysql
+sudo chown -R root .
+sudo chown -R mysql data
+sudo chown -R mysql:mysql tmp
+```
+
+Create a `my.cnf` file  in  `/etc/mysql`, you can use [this](my.cnf) as template.
 
 ### 1. Create the Flask configuration file
 
@@ -234,13 +260,6 @@ SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://conekt_grasses_admin:YOUR_DB_PASSWORD
 ```
 
 ### 2. Set up MariaDB
-
-If MariaDB is not yet installed, run:
-
-```bash
-sudo apt-get update
-sudo apt-get install mariadb-server
-```
 
 Open MariaDB as root:
 
