@@ -107,6 +107,7 @@ def configure_blueprints(app):
     from conekt.controllers.specificity_comparison import specificity_comparison
     from conekt.controllers.tree import tree
     from conekt.controllers.literature import literature
+    from conekt.models.relationships.sample_group import SampleGroupAssociation  # noqa: F401
 
     BLAST_ENABLED = app.config['BLAST_ENABLED']
 

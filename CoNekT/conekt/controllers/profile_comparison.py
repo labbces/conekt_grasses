@@ -7,7 +7,7 @@ from sqlalchemy.orm import noload
 
 from conekt import cache
 from conekt.forms.profile_comparison import ProfileComparisonForm
-from conekt.helpers.chartjs import prepare_profiles, prepare_profiles_download
+from conekt.helpers.chartjs import prepare_profiles, prepare_profiles_download, prepare_group_profiles
 from conekt.models.expression.coexpression_clusters import CoexpressionCluster
 from conekt.models.expression.profiles import ExpressionProfile
 from conekt.models.relationships.sequence_cluster import SequenceCoexpressionClusterAssociation
@@ -118,6 +118,17 @@ def profile_comparison_main():
         peco_profile_chart = prepare_profiles(profiles[:50], doi, normalize,
                                          ylabel='TPM' + (' (normalized)' if normalize == 1 else ''), category='peco')
 
+        # Build group-type charts for dynamic grouping
+        available_group_types = ExpressionProfile.get_available_group_types(species_id)
+        group_type_charts = {}
+        for gt in available_group_types:
+            chart = prepare_group_profiles(
+                profiles[:50], gt, normalize=normalize,
+                ylabel='TPM' + (' (normalized)' if normalize else '')
+            )
+            if chart:
+                group_type_charts[gt] = json.dumps(chart)
+
         # Get table in base64 format for download
         data = base64.encodebytes(prepare_profiles_download(profiles[:50], doi, normalize).encode('utf-8'))
 
@@ -125,6 +136,7 @@ def profile_comparison_main():
                                po_anatomy_profiles=json.dumps(po_anatomy_profile_chart),
                                po_dev_stage_profiles=json.dumps(po_dev_stage_profile_chart),
                                peco_profiles=json.dumps(peco_profile_chart),
+                               group_type_charts=group_type_charts,
                                form=form, data=data.decode('utf-8'))
     else:
         profiles = ExpressionProfile.query.filter(ExpressionProfile.sequence_id is not None).order_by(ExpressionProfile.species_id).limit(5).all()
@@ -136,7 +148,7 @@ def profile_comparison_main():
 
         if len(profiles) > 0:
             example['species_id'] = profiles[0].species_id
-            example['probes'] = ' '.join([p.sequence.name for p in profiles])
+            example['probes'] = ' '.join([p.sequence.name for p in profiles if p.sequence is not None][:5])
 
         return render_template("expression_profile_comparison.html", form=form, example=example)
 
