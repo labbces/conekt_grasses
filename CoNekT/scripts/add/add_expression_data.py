@@ -330,7 +330,7 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
             _ = fin.readline()  # skip header
             for line in fin:
                 parts = line.split('\t')
-                if len(parts) >= 9:
+                if len(parts)in [9, 10]:  # run, literature_doi, description, replicate, strandness, layout, po_anatomy, po_dev_stage, peco + optional groups
                     run, literature_doi, description, replicate, strandness, layout, po_anatomy, po_dev_stage, peco = parts[:9]
                     peco = peco.rstrip()
                     groups_raw = parts[9].strip() if len(parts) > 9 else ''
@@ -351,10 +351,10 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
                     else:
                         new_sample = Sample(
                             sample_name=run,
-                            strandness=strandness,
+                            strandness=strandness or None,
                             layout=layout,
-                            description=description,
-                            replicate=replicate,
+                            description=description or None,
+                            replicate=replicate or None,
                             species_id=species_id
                         )
                         session.add(new_sample)
@@ -466,8 +466,7 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
         logger.debug(f"Building sequence dictionary")
         with engine.connect() as conn:
             stmt = select([Sequence]).where(
-                (Sequence.__table__.c.species_id == species_id) &
-                (Sequence.__table__.c.type == "protein_coding")
+                Sequence.__table__.c.species_id == species_id
             )
             sequences = conn.execute(stmt).fetchall()
 
@@ -481,6 +480,19 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
     try:
         logger.debug(f"Parsing expression matrix and inserting profiles")
         added = 0
+        skipped = 0
+
+        # Load existing probes for this species upfront to avoid duplicate inserts
+        with engine.connect() as conn:
+            existing_probes = set(
+                row[0] for row in conn.execute(
+                    select([ExpressionProfile.__table__.c.probe]).where(
+                        ExpressionProfile.__table__.c.species_id == species_id
+                    )
+                )
+            )
+        logger.debug(f"Found {len(existing_probes)} existing expression profiles for species '{species_code}'")
+
         with open(matrix_file) as fin:
             _, *colnames = fin.readline().rstrip().split()
             colnames = [c.replace('.htseq', '') for c in colnames]
@@ -535,6 +547,11 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
                         for gt, gn in annotation[c].get("groups", {}).items():
                             profile[gt][c] = gn
 
+                if transcript in existing_probes:
+                    logger.warning(f"⚠️ Skipping probe '{transcript}': already exists in expression_profiles for species '{species_code}'")
+                    skipped += 1
+                    continue
+
                 new_probe = {
                     "species_id": species_id,
                     "probe": transcript,
@@ -547,8 +564,9 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
                 }
 
                 new_probes.append(new_probe)
+                existing_probes.add(transcript)
                 session.add(ExpressionProfile(**new_probe))
-                added+=1
+                added += 1
 
                 if len(new_probes) > 400:
                     session.commit()
@@ -556,9 +574,8 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
                 
                 if added % 10000 == 0:
                     logger.debug(f"{added} expression profiles processed and committed...")
-
             session.commit()
-            logger.info(f"✅ {added} expression profiles from '{matrix_file}' for {species_code} added successfully.")
+            logger.info(f"✅ {added} expression profiles from '{matrix_file}' for {species_code} added successfully. ({skipped} skipped — probe already in database)")
     except Exception as e:
         session.rollback()
         print_log_error(logger, f"Error while processing matrix file '{matrix_file}': {e}")
