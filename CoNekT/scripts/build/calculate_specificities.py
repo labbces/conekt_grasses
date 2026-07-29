@@ -206,68 +206,102 @@ def entropy_from_values(values, num_bins=20):
     return entropy(hist)
 
 
-def _fuzzy_cmeans_1d(arr, m=2.0, max_iter=150, tol=1e-6):
+def _fuzzy_cmeans_nd(matrix, m=2.0, max_iter=100, tol=1e-6):
     """
-    1D Fuzzy c-means with c=2 clusters.
-    Returns the membership weight of each element to the upper (higher centroid) cluster.
+    Multi-dimensional fuzzy c-means (c=2) on a (n_genes, n_conditions) matrix.
+    Matches e1071::cmeans(centers=2, m=2, dist='euclidean') from Lüleci & Yılmaz (2022).
+    Returns (c_low, c_high), each of shape (n_conditions,).
     Requires numpy.
     """
-    arr = np.asarray(arr, dtype=float)
-    if len(arr) < 2:
-        return np.ones(len(arr), dtype=float)
+    n_genes, n_conds = matrix.shape
+    if n_genes < 2:
+        return np.min(matrix, axis=0), np.max(matrix, axis=0)
 
-    c_low = float(np.percentile(arr, 25))
-    c_high = float(np.percentile(arr, 75))
-    if c_low == c_high:
-        c_low, c_high = float(np.min(arr)), float(np.max(arr))
-    if c_low == c_high:
-        return np.full(len(arr), 0.5)
+    c_low  = np.percentile(matrix, 25, axis=0)
+    c_high = np.percentile(matrix, 75, axis=0)
+
+    same = c_low == c_high
+    if np.any(same):
+        c_low  = np.where(same, np.min(matrix, axis=0),  c_low)
+        c_high = np.where(same, np.max(matrix, axis=0), c_high)
+
+    if np.allclose(c_low, c_high):
+        return c_low, c_high
 
     exp = 2.0 / (m - 1)
+
     for _ in range(max_iter):
-        d_low  = np.maximum(np.abs(arr - c_low),  1e-10)
-        d_high = np.maximum(np.abs(arr - c_high), 1e-10)
+        d_low  = np.maximum(np.linalg.norm(matrix - c_low[None, :],  axis=1), 1e-10)
+        d_high = np.maximum(np.linalg.norm(matrix - c_high[None, :], axis=1), 1e-10)
+
         u_high = 1.0 / (1.0 + (d_high / d_low) ** exp)
         u_low  = 1.0 - u_high
 
-        new_c_high = float(np.sum((u_high ** m) * arr) / np.sum(u_high ** m))
-        new_c_low  = float(np.sum((u_low  ** m) * arr) / np.sum(u_low  ** m))
+        w_high = u_high ** m
+        w_low  = u_low  ** m
+        new_c_high = (w_high @ matrix) / w_high.sum()
+        new_c_low  = (w_low  @ matrix) / w_low.sum()
 
-        if abs(new_c_high - c_high) < tol and abs(new_c_low - c_low) < tol:
+        if np.max(np.abs(new_c_high - c_high)) < tol and np.max(np.abs(new_c_low - c_low)) < tol:
             break
         c_high, c_low = new_c_high, new_c_low
 
-    return u_high
+    # Guarantee c_high is the upper cluster
+    if np.mean(c_low) > np.mean(c_high):
+        c_low, c_high = c_high, c_low
+
+    return c_low, c_high
 
 
-def _compute_doi_z_val(cond_value_lists, fallback_z_val=1.0, m=2.0):
+def _compute_doi_z_val(doi_gene_data, all_conditions, fallback_z_val=1.0, m=2.0):
     """
-    Derives z_val for one DOI following Lüleci & Yılmaz (2022) Methods:
-      1. For each condition: apply Fuzzy c-means (c=2) on non-zero mean-TPM values
-         across all genes → ratio = n_up / n_total_nonzero
-      2. Aggregate per-condition ratios → optimal_ratio (median across conditions)
-      3. z_val = norm.ppf(optimal_ratio)
+    Derives z_val for one DOI faithfully following Lüleci & Yılmaz (2022) BioData Mining 15:31.
+
+    Algorithm (mirrors clusterCenters + combine_values + get_threshold from supplementary R code):
+      1. Build gene × condition matrix from specific-expression genes (values floored to 1).
+      2. Apply multi-dimensional Fuzzy c-means (c=2) on the full matrix.
+      3. Per condition: threshold_ratio = #{genes above cluster midpoint} / n_genes.
+      4. optimized_ratio = mean(threshold_ratios)  [linear regression on ordered ratios
+         reduces to the mean, an OLS algebraic identity].
+      5. z_val = qnorm(0.9999) − |qnorm(optimized_ratio)|.
 
     Falls back to fallback_z_val when scipy is unavailable or data is insufficient.
     """
-    if not _HAS_SCIPY:
+    if not _HAS_SCIPY or not doi_gene_data:
         return fallback_z_val
 
-    ratios = []
-    for values in cond_value_lists.values():
-        nonzero = np.array([v for v in values if v > 0], dtype=float)
-        if len(nonzero) < 4:
-            continue
-        u_high = _fuzzy_cmeans_1d(nonzero, m=m)
-        ratios.append(int(np.sum(u_high > 0.5)) / len(nonzero))
+    conditions = sorted(all_conditions)
+    n_conds = len(conditions)
+    cond_idx = {c: i for i, c in enumerate(conditions)}
 
-    if not ratios:
+    # Build matrix; missing condition values floored to 1 (paper: ifelse(. < 1, 1, .))
+    rows = []
+    for gene_cond_dict in doi_gene_data.values():
+        row = np.ones(n_conds)
+        for cond, val in gene_cond_dict.items():
+            if cond in cond_idx:
+                row[cond_idx[cond]] = max(float(val), 1.0)
+        rows.append(row)
+
+    if len(rows) < 4:
         return fallback_z_val
 
-    optimal_ratio = float(np.clip(np.median(ratios), 1e-3, 1 - 1e-3))
-    # Use (1 - ratio): small ratio (few genes in upper cluster) → high z_val (stringent threshold).
-    # norm.ppf(ratio) would give negative z_val, pushing dist_ss above x_max (nothing qualifies).
-    return float(_scipy_norm.ppf(1.0 - optimal_ratio))
+    matrix = np.array(rows, dtype=float)
+
+    try:
+        c_low, c_high = _fuzzy_cmeans_nd(matrix, m=m)
+    except Exception:
+        return fallback_z_val
+
+    cluster_midpoint = (c_low + c_high) / 2.0
+
+    ratios = [np.sum(matrix[:, j] > cluster_midpoint[j]) / len(rows)
+              for j in range(n_conds)]
+
+    mean_ratio = float(np.clip(np.mean(ratios), 1e-4, 1 - 1e-4))
+
+    # Paper formula: qnorm(0.9999) - abs(qnorm(mean_ratio))
+    return float(_scipy_norm.ppf(0.9999) - abs(_scipy_norm.ppf(mean_ratio)))
 
 
 def _get_or_create_method(engine, session, description, species_id, literature_id,
@@ -672,12 +706,15 @@ def calculate_extended_tau_specificities(species_code, engine,
             continue
 
         # --- Pass 1.5: compute data-driven z_val per DOI (Lüleci & Yılmaz 2022) ---
+        # Collect gene × condition matrices for specific-expression genes only,
+        # then apply multi-dimensional Fuzzy c-means.
         if use_fuzzy_z_val and _HAS_SCIPY:
-            doi_cond_values = {doi: {} for doi in doi_methods}
+            # doi_gene_data[doi][profile_id] = {condition: mean_tpm}
+            doi_gene_data = {doi: {} for doi in doi_methods}
 
             try:
                 with engine.connect().execution_options(stream_results=True) as conn:
-                    for _, profile_json in conn.execute(stmt):
+                    for profile_id, profile_json in conn.execute(stmt):
                         try:
                             data    = json.loads(profile_json)['data']
                             cat_map = data.get(sample_category, {})
@@ -699,19 +736,34 @@ def calculate_extended_tau_specificities(species_code, engine,
                                     entry[cond] = [tpm_val, 1]
 
                             for doi, cond_entries in doi_cond_sums.items():
-                                doi_bucket = doi_cond_values[doi]
-                                for cond, (s, c) in cond_entries.items():
-                                    doi_bucket.setdefault(cond, []).append(s / c)
+                                means = {cond: s / c for cond, (s, c) in cond_entries.items()}
+                                if len(means) < 2:
+                                    continue
+
+                                # Include only "Specific expression" genes in the FCM matrix
+                                log2_means = [log2(v + 1) for v in means.values()]
+                                gene_tau = tau(log2_means)
+                                if (gene_tau is None or gene_tau < tau_threshold
+                                        or max(means.values()) < min_expression):
+                                    continue
+
+                                doi_gene_data[doi][profile_id] = means
                         except Exception:
                             pass
             except Exception as e:
                 print_log_error(logger, f"[Extended Tau] Error in pass 1.5 for '{sample_category}': {e}")
 
             doi_z_vals = {}
-            for doi, cond_value_lists in doi_cond_values.items():
-                doi_z_vals[doi] = _compute_doi_z_val(cond_value_lists, fallback_z_val=z_val)
-                logger.info(f"  [Extended Tau] '{doi[:50]}': z_val = {doi_z_vals[doi]:.4f}")
-            del doi_cond_values
+            for doi, gene_data in doi_gene_data.items():
+                doi_z_vals[doi] = _compute_doi_z_val(
+                    gene_data, doi_conditions[doi],
+                    fallback_z_val=z_val, m=2.0,
+                )
+                logger.info(
+                    f"  [Extended Tau] '{doi[:50]}': z_val = {doi_z_vals[doi]:.4f} "
+                    f"({len(gene_data)} specific genes)"
+                )
+            del doi_gene_data
         else:
             doi_z_vals = {doi: z_val for doi in doi_methods}
             logger.info(f"  [Extended Tau] Using fixed z_val = {z_val} for all DOIs.")
