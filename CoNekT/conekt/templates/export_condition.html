@@ -59,6 +59,11 @@ $(function() {
     $("#fileDownloadForm").submit( function( event ) {
         event.preventDefault();
 
+        if ($('#methods').prop('disabled') || $('#conditions').prop('disabled')) {
+            alert("This species does not have the required method/condition data available for export.");
+            return;
+        }
+
         $.ajax({
             url: $(this).prop('action'),
             timeout:600000, //10 min timeout
@@ -85,6 +90,15 @@ $(function() {
                $("#leafy_loader_text").append($("<a/>").attr('href', pdata.url).attr('download', 'expression.tab').attr('id', 'download_ready_link').text("Click here"))
                .append($("<span> if the download doesn't start automatically.</span>"));
                $("#leafy_loader_close_btn").show();
+            },
+            error: function(xhr) {
+                var message = "An error occurred while exporting your data.";
+                try {
+                    var parsed = JSON.parse(xhr.responseText);
+                    if (parsed.error) { message = parsed.error; }
+                } catch (e) {}
+                $("#leafy_loader_text").html(message);
+                $("#leafy_loader_close_btn").show();
             }
         });
     })

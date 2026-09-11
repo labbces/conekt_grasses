@@ -344,7 +344,7 @@ def __generate(species_id, method_id, condition):
     yield "Sequence\tAliases\tDescription\tAvg.Expression\tMin.Expression\tMax.Expression\n"
 
     profiles = ExpressionProfile.query.filter(ExpressionProfile.species_id == species_id). \
-        filter(ExpressionProfile.sequence_id is not None). \
+        filter(ExpressionProfile.sequence_id.isnot(None)). \
         options(undefer('profile')).order_by(ExpressionProfile.probe.asc()).all()
 
     condition_tissue = ConditionTissue.query. \
@@ -386,9 +386,13 @@ def export_expression_levels():
     form.populate_form()
 
     if request.method == 'POST':
-        species_id = int(request.form.get('species'))
-        method_id = int(request.form.get('methods'))
-        condition = request.form.get('conditions')
+        species_id = request.form.get('species', type=int) or 0
+        method_id = request.form.get('methods', type=int) or 0
+        condition = request.form.get('conditions') or ''
+
+        if species_id <= 0 or method_id <= 0 or condition in ('', '0'):
+            return Response(json.dumps({"error": "Please select a species, method and condition before exporting."}),
+                             status=400, mimetype='application/json')
 
         _, filepath = tempfile.mkstemp(prefix='expr_', dir=current_app.config["TMP_DIR"])
 

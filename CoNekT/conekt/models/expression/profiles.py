@@ -52,7 +52,7 @@ class ExpressionProfile(db.Model):
                 if lit_dict is None:
                     processed_values[condition_value] = []
                 else:
-                    author_name = lit_dict[literature_doi].capitalize()
+                    author_name = lit_dict[literature_doi].capitalize() if literature_doi in lit_dict else literature_doi
                     processed_values[condition_value + " (" + author_name + ")"] = []
 
             if lit_dict is None:

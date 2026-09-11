@@ -7,7 +7,7 @@
 
 
 # Get variables from 'setup_variables.sh' file (copy/paste your full path to 'setup_variables.sh' file here)
-source /home/pturquetti/conekt/conekt_grasses/CoNekT/scripts/setup_variables.sh
+source /path/to/setup_variables.sh
 
 had_error=0  # Error counter
 

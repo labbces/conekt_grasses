@@ -186,6 +186,23 @@ for species_code in ${SPECIES_ARRAY[@]};
  fi
 done;
 
+echo -e "\nPopulating CoNekT Grasses with expression profiles"
+for species_code in ${SPECIES_ARRAY[@]};
+ do
+ if [ -f $DATA_DIR/Species/"$species_code"/"$species_code"_te_expression_matrix.txt ]; then
+ $SCRIPTS_DIR/add/add_expression_data.py --db_admin $DB_ADMIN\
+  --db_name $DB_NAME\
+  --db_password $DB_PASSWORD\
+  --species_code "$species_code"\
+  --expression_matrix $DATA_DIR/Species/"$species_code"/"$species_code"_te_expression_matrix.txt\
+  --sample_annotation $DATA_DIR/Species/"$species_code"/"$species_code"_te_expression_annotation.txt\
+  --logdir $LOG_DIR\
+  --db_verbose $DB_VERBOSE\
+  --py_verbose $PY_VERBOSE\
+  --first_run false
+ fi
+done;
+
 echo -e "\nPopulating CoNekT Grasses with expression specificity"
 first_run=true
 for species_code in ${SPECIES_EXPRESSION_PROFILES[@]};

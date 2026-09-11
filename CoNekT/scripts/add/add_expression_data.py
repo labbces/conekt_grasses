@@ -3,6 +3,7 @@
 import getpass
 import argparse
 import json
+import re
 import time
 
 from sqlalchemy import create_engine
@@ -83,12 +84,17 @@ def add_literature(doi, engine):
 
         title = literature_info['title']
 
-        if 'published-print' in literature_info:
-            public_year = literature_info['published-print']['date-parts'][0][0]
-        elif 'published-online' in literature_info:
-            public_year = literature_info['published-online']['date-parts'][0][0]
-        else:
-            public_year = literature_info['issued']['date-parts'][0][0]
+        public_year = None
+        for date_field in ('published-print', 'published-online', 'issued', 'approved', 'created', 'deposited'):
+            if date_field in literature_info:
+                year = literature_info[date_field]['date-parts'][0][0]
+                if year is not None:
+                    public_year = year
+                    break
+
+        if public_year is None:
+            print_log_error(logger, f"Could not determine a publication year for DOI '{doi}' from CrossRef metadata")
+            return None
 
         Session = sessionmaker(bind=engine)
         session = Session()
@@ -330,7 +336,7 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
             _ = fin.readline()  # skip header
             for line in fin:
                 parts = line.split('\t')
-                if len(parts) >= 9:
+                if len(parts)in [9, 10]:  # run, literature_doi, description, replicate, strandness, layout, po_anatomy, po_dev_stage, peco + optional groups
                     run, literature_doi, description, replicate, strandness, layout, po_anatomy, po_dev_stage, peco = parts[:9]
                     peco = peco.rstrip()
                     groups_raw = parts[9].strip() if len(parts) > 9 else ''
@@ -351,10 +357,10 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
                     else:
                         new_sample = Sample(
                             sample_name=run,
-                            strandness=strandness,
+                            strandness=strandness or None,
                             layout=layout,
-                            description=description,
-                            replicate=replicate,
+                            description=description or None,
+                            replicate=replicate or None,
                             species_id=species_id
                         )
                         session.add(new_sample)
@@ -466,21 +472,94 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
         logger.debug(f"Building sequence dictionary")
         with engine.connect() as conn:
             stmt = select([Sequence]).where(
-                (Sequence.__table__.c.species_id == species_id) &
-                (Sequence.__table__.c.type == "protein_coding")
+                Sequence.__table__.c.species_id == species_id
             )
             sequences = conn.execute(stmt).fetchall()
 
         sequence_dict = {s.name.upper(): s.id for s in sequences}
-        logger.debug(f"Loaded {len(sequence_dict)} sequences for species '{species_code}'")
+
+        # Fallback for probes that reference the bare gene ID while sequences are stored
+        # per-transcript (e.g. probe 'Sof_g10000' vs sequence name 'Sof_g10000.t1').
+        # Keeps the lowest-numbered isoform per base gene ID as the representative.
+        sequence_base_dict = {}
+        for s in sequences:
+            match = re.match(r'^(.*)\.t?(\d+)$', s.name, re.IGNORECASE)
+            if not match:
+                continue
+            base_id = match.group(1).upper()
+            isoform_num = int(match.group(2))
+            current = sequence_base_dict.get(base_id)
+            if current is None or isoform_num < current[0]:
+                sequence_base_dict[base_id] = (isoform_num, s.id)
+        sequence_base_dict = {k: v[1] for k, v in sequence_base_dict.items()}
+
+        # Fallback for probes that reference a TE family (e.g. 'TE_00004112') rather than a
+        # specific genomic copy. Sequences for individual copies are named '<family>_copyNNNN'
+        # (see add_tedistills.py); keep the first copy found as the family's representative.
+        te_family_dict = {}
+        for s in sequences:
+            match = re.match(r'^(.*)_copy\d+$', s.name, re.IGNORECASE)
+            if not match:
+                continue
+            family_id = match.group(1).upper()
+            if family_id not in te_family_dict:
+                te_family_dict[family_id] = s.id
+
+        logger.debug(f"Loaded {len(sequence_dict)} sequences ({len(sequence_base_dict)} base gene IDs, "
+                     f"{len(te_family_dict)} TE families) for species '{species_code}'")
     except Exception as e:
         print_log_error(logger, f"Error loading sequences for species '{species_code}': {e}")
         exit(1)
+
+    resolved_direct = 0
+    resolved_base = 0
+    resolved_te_family = 0
+    unresolved = 0
+    unresolved_examples = []
+
+    def resolve_sequence_id(transcript):
+        """Resolves a probe to a sequences.id: exact match, then base-gene-ID, then TE family."""
+        nonlocal resolved_direct, resolved_base, resolved_te_family, unresolved
+
+        key = transcript.upper()
+
+        sid = sequence_dict.get(key)
+        if sid is not None:
+            resolved_direct += 1
+            return sid
+
+        sid = sequence_base_dict.get(key)
+        if sid is not None:
+            resolved_base += 1
+            return sid
+
+        sid = te_family_dict.get(key)
+        if sid is not None:
+            resolved_te_family += 1
+            return sid
+
+        unresolved += 1
+        if len(unresolved_examples) < 5:
+            unresolved_examples.append(transcript)
+        return None
 
     # Step 5: Parse expression matrix and insert profiles
     try:
         logger.debug(f"Parsing expression matrix and inserting profiles")
         added = 0
+        skipped = 0
+
+        # Load existing probes for this species upfront to avoid duplicate inserts
+        with engine.connect() as conn:
+            existing_probes = set(
+                row[0] for row in conn.execute(
+                    select([ExpressionProfile.__table__.c.probe]).where(
+                        ExpressionProfile.__table__.c.species_id == species_id
+                    )
+                )
+            )
+        logger.debug(f"Found {len(existing_probes)} existing expression profiles for species '{species_code}'")
+
         with open(matrix_file) as fin:
             _, *colnames = fin.readline().rstrip().split()
             colnames = [c.replace('.htseq', '') for c in colnames]
@@ -535,10 +614,15 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
                         for gt, gn in annotation[c].get("groups", {}).items():
                             profile[gt][c] = gn
 
+                if transcript in existing_probes:
+                    logger.warning(f"⚠️ Skipping probe '{transcript}': already exists in expression_profiles for species '{species_code}'")
+                    skipped += 1
+                    continue
+
                 new_probe = {
                     "species_id": species_id,
                     "probe": transcript,
-                    "sequence_id": sequence_dict.get(transcript.upper()),
+                    "sequence_id": resolve_sequence_id(transcript),
                     "profile": json.dumps({
                         "order": order,
                         "colors": colors,
@@ -547,8 +631,9 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
                 }
 
                 new_probes.append(new_probe)
+                existing_probes.add(transcript)
                 session.add(ExpressionProfile(**new_probe))
-                added+=1
+                added += 1
 
                 if len(new_probes) > 400:
                     session.commit()
@@ -556,9 +641,12 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
                 
                 if added % 10000 == 0:
                     logger.debug(f"{added} expression profiles processed and committed...")
-
             session.commit()
-            logger.info(f"✅ {added} expression profiles from '{matrix_file}' for {species_code} added successfully.")
+            logger.info(f"✅ {added} expression profiles from '{matrix_file}' for {species_code} added successfully. ({skipped} skipped — probe already in database)")
+            logger.info(f"   ↳ sequence_id resolution: {resolved_direct} direct match, {resolved_base} via base gene ID fallback, "
+                        f"{resolved_te_family} via TE family fallback, {unresolved} unresolved (left NULL)")
+            if unresolved_examples:
+                logger.warning(f"⚠️ Examples of probes without a matching sequence: {unresolved_examples}")
     except Exception as e:
         session.rollback()
         print_log_error(logger, f"Error while processing matrix file '{matrix_file}': {e}")

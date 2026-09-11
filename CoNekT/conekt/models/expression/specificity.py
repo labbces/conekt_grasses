@@ -143,4 +143,5 @@ class ExpressionSpecificity(db.Model):
     score = db.Column(db.Float, index=True)
     entropy = db.Column(db.Float, index=True)
     tau = db.Column(db.Float, index=True)
+    extended_tau = db.Column(db.Float, index=True)
     method_id = db.Column(db.Integer, db.ForeignKey('expression_specificity_method.id', ondelete='CASCADE'), index=True)
