@@ -4,8 +4,8 @@ import getpass
 import argparse
 import os
 import operator
+import re
 import time
-import os
 import math
 
 import sys
@@ -188,23 +188,64 @@ def get_te_class(te_class_name):
 	else:
 		return None
 
+def load_te_class_mapping(filtered_out_file):
+	"""
+	Parses a RepeatMasker .filtered.out file and returns a dict mapping
+	repeat/family name to its class/family string.
+
+	:param filtered_out_file: path to the .filtered.out file
+	:return: dict {repeat_name: class_family_string}
+	"""
+	mapping = {}
+	with open(filtered_out_file, 'r') as f:
+		for line in f:
+			line = line.strip()
+			# Skip header lines and empty lines
+			if not line or line.startswith('SW') or line.startswith('score'):
+				continue
+			parts = line.split()
+			# RepeatMasker .out format:
+			# SW_score div del ins query begin end (left) strand repeat class/family ...
+			if len(parts) < 11:
+				continue
+			repeat_name = parts[9]
+			te_class = parts[10]
+			mapping[repeat_name] = te_class
+	logger.debug(f"✅  Loaded {len(mapping)} unique family→class mappings from {filtered_out_file}")
+	return mapping
+
+
 def add_from_fasta(species_code, species_id, compressed=False, sequence_type='protein_coding'):
 	logger.info("______________________________________________________________________")
 	logger.info(f"➡️  Adding {sequence_type} sequences")
 
-
 	ftype_map = {
 		'protein_coding': 'cds',
 		'RNA': 'rnas',
-		'TE': 'tes'
 	}
 
-	ftype = ftype_map.get(sequence_type)
-	if not ftype:
-		raise ValueError(f"Unsupported sequence type: {sequence_type}")
+	# TE sequences: use {code}_te_copies.fa + {code}_te_copies.fa.filtered.out (RepeatMasker format)
+	te_class_mapping = {}
+	use_filtered_out = False
 
-	# Gets file name based on species ID and sequence type
-	filename = f"{args.species_dir}/{species_code}/{species_code}_{ftype}.fa"
+	if sequence_type == 'TE':
+		filename = f"{args.species_dir}/{species_code}/{species_code}_te_copies.fa"
+		if not os.path.exists(filename):
+			logger.warning(f"⚠️  No TE copies file found for {species_code} at '{filename}'. Skipping TE loading.")
+			return 0
+		filtered_out_file = filename + ".filtered.out"
+		if not os.path.exists(filtered_out_file):
+			logger.warning(f"⚠️  No .filtered.out found for '{filename}'. Skipping TE loading for {species_code}.")
+			return 0
+		logger.info(f"📂 Using real TE data: {filename}")
+		logger.info(f"📂 Loading class mapping from: {filtered_out_file}")
+		te_class_mapping = load_te_class_mapping(filtered_out_file)
+		use_filtered_out = True
+	else:
+		ftype = ftype_map.get(sequence_type)
+		if not ftype:
+			raise ValueError(f"Unsupported sequence type: {sequence_type}")
+		filename = f"{args.species_dir}/{species_code}/{species_code}_{ftype}.fa"
 
 	try:
 		logger.debug(f"Reading FASTA file: {filename}")
@@ -223,7 +264,21 @@ def add_from_fasta(species_code, species_id, compressed=False, sequence_type='pr
 	try:
 		# Loop over sequences, sorted by name (key here) and add to db
 		for line, sequence in sorted(fasta_data.sequences.items(), key=operator.itemgetter(0)):
-			name = line.split('#')[0].strip('>')
+
+			if sequence_type == 'TE' and use_filtered_out:
+				# Real format: "TE_00006446_copy0001|chrom:start-end|strand family=TE_00006446 ..."
+				name = line.split('|')[0]
+				family_match = re.search(r'family=(\S+)', line)
+				if family_match:
+					family_name = family_match.group(1)
+				else:
+					family_name = re.sub(r'_copy\d+$', '', name)
+				te_class_name = te_class_mapping.get(family_name, 'Unknown')
+			else:
+				# Legacy format: "name#te_class"
+				name = line.split('#')[0]
+				te_class_name = line.split('#')[1] if sequence_type == 'TE' else None
+
 			new_sequence = {"species_id": species_id,
 							"name": name,
 							"description": None,
@@ -238,9 +293,9 @@ def add_from_fasta(species_code, species_id, compressed=False, sequence_type='pr
 
 			if sequence_type == 'TE':
 				session.flush() # Gera IDs mas mantém a transação
-				te_class_id = get_te_class(line.split('#')[1])
+				te_class_id = get_te_class(te_class_name)
 				if not te_class_id:
-					print(f"TE class '{line.split('#')[1]}' not found in the database")
+					print(f"TE class '{te_class_name}' not found in the database")
 					session.rollback()
 					quit()
 				new_sequence_te_class = {
@@ -254,7 +309,6 @@ def add_from_fasta(species_code, species_id, compressed=False, sequence_type='pr
 			if len(new_sequences) >= 400:
 				session.commit()
 
-				#print_memory_usage()
 				new_sequences = []
 
 				step = 10 ** int(math.log10(total_sequences))

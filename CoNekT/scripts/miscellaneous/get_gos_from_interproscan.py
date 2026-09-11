@@ -25,10 +25,11 @@ with open(interproscan, 'r') as f:
     for line in f:
         if line.startswith('#'):
             continue
-        gene, go_list = line.split('\t')[0], line.split('\t')[13]
+        gene, go_list = line.split('\t')[0], line.split('\t')[-1]
         if go_list.startswith('GO:'):
             go_list_split = go_list.split('|')
             for go in go_list_split:
+                go = go.strip()
                 go = go.replace('(PANTHER)','')
                 go = go.replace('(InterPro)','')
                 if gene not in gene2go.keys():

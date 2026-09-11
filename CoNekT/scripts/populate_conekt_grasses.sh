@@ -260,12 +260,12 @@ $SCRIPTS_DIR/add/add_gene_families.py --db_admin $DB_ADMIN\
  --db_verbose $DB_VERBOSE\
  --py_verbose $PY_VERBOSE
 
-echo "Populating CoNekT Grasses with TEdistill sequences"
+echo "Populating CoNekT Grasses with TEdistill sequences and per-species associations"
 $SCRIPTS_DIR/add/add_tedistills.py --db_admin $DB_ADMIN\
  --db_name $DB_NAME\
  --db_password $DB_PASSWORD\
- --sequences $DATA_DIR"/Transposable Elements/TEdistill_sequences.fa"\
- --orthogroups $DATA_DIR"/Transposable Elements/Orthogroups_TEdistill.txt"\
+ --sequences "$DATA_DIR/Transposable Elements/distilledTE.flTE.iter56.fa"\
+ --species_dir $SPECIES_DIR\
  --description "$TEDISTILL_DESCRIPTION"\
  --logdir $LOG_DIR\
  --db_verbose $DB_VERBOSE\
