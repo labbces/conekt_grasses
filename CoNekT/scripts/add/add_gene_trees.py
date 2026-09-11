@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import getpass
 import argparse
 
 from sqlalchemy import create_engine
@@ -46,7 +46,7 @@ args = parser.parse_args()
 if args.db_password:
     db_password = args.db_password
 else:
-    db_password = input("Enter the database password: ")
+    db_password = getpass.getpass("Enter the database password: ")
 
 
 def __read_sequence_ids(data):
@@ -161,7 +161,7 @@ tree_data_gzip = args.trees_file
 
 create_engine_string = "mysql+pymysql://"+db_admin+":"+db_password+"@localhost/"+db_name
 
-engine = create_engine(create_engine_string, echo=True)
+engine = create_engine(create_engine_string, echo=False)
 
 # Reflect an existing database into a new model
 Base = automap_base()

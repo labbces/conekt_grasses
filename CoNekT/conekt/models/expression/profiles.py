@@ -1,23 +1,18 @@
 from conekt import db
-from conekt.models.sequences import Sequence
 from conekt.models.condition_tissue import ConditionTissue
-from conekt.models.sample import Sample
-from conekt.models.ontologies import PlantOntology, PlantExperimentalConditionsOntology
 from conekt.models.relationships.sample_literature import SampleLitAssociation
 from conekt.models.literature import LiteratureItem
 
 import json
 import contextlib
-from collections import defaultdict
 from statistics import mean
 from math import log
-from werkzeug.utils import redirect
 from sqlalchemy.dialects.mysql import LONGTEXT
 
 from sqlalchemy.orm import joinedload, undefer
-from flask import flash, url_for, abort
+from flask import flash
 
-SQL_COLLATION = 'NOCASE' if db.engine.name == 'sqlite' else ''
+SQL_COLLATION = None
 
 
 class ExpressionProfile(db.Model):
@@ -57,7 +52,7 @@ class ExpressionProfile(db.Model):
                 if lit_dict is None:
                     processed_values[condition_value] = []
                 else:
-                    author_name = lit_dict[literature_doi].capitalize()
+                    author_name = lit_dict[literature_doi].capitalize() if literature_doi in lit_dict else literature_doi
                     processed_values[condition_value + " (" + author_name + ")"] = []
 
             if lit_dict is None:
@@ -404,6 +399,74 @@ class ExpressionProfile(db.Model):
 
         return {'labels':order, 'order': order, 'heatmap_data': output}
 
+    def group_profile(self, group_type):
+        """
+        Aggregates the expression profile by a dynamic group_type embedded
+        directly in the profile JSON (e.g. profile['data']['tissue'][run_id] = 'root').
+
+        :param group_type: the group_type key to aggregate by
+        :return: dict with 'order', 'colors', 'data' compatible with
+                 prepare_expression_profile(), or None if no groups found
+        """
+        profile_data = json.loads(self.profile)
+
+        group_map = profile_data['data'].get(group_type)
+        if not group_map:
+            return None
+
+        grouped_values = {}
+        for run_id, tpm in profile_data['data']['tpm'].items():
+            group_name = group_map.get(run_id)
+            if group_name:
+                grouped_values.setdefault(group_name, []).append(tpm)
+
+        if not grouped_values:
+            return None
+
+        order = sorted(grouped_values.keys())
+
+        return {
+            'order': order,
+            'colors': profile_data.get('colors', []),
+            'data': grouped_values
+        }
+
+    @staticmethod
+    def get_available_group_types(species_id):
+        """
+        Returns distinct dynamic group_type keys found in profile JSON data for a given species.
+        Scans the first profile with data to discover keys beyond the known reserved ones.
+
+        :param species_id: internal species ID
+        :return: sorted list of group_type strings
+        """
+        _RESERVED_KEYS = {
+            'tpm', 'annotation', 'replicate', 'lit_doi',
+            'po_anatomy', 'po_anatomy_class',
+            'po_dev_stage', 'po_dev_stage_class',
+            'peco', 'peco_class'
+        }
+
+        profiles = (
+            ExpressionProfile.query
+            .options(undefer('profile'))
+            .filter_by(species_id=species_id)
+            .limit(100)
+            .all()
+        )
+
+        group_types = set()
+        for p in profiles:
+            try:
+                data = json.loads(p.profile)
+                for key in data.get('data', {}).keys():
+                    if key not in _RESERVED_KEYS:
+                        group_types.add(key)
+            except Exception:
+                continue
+
+        return sorted(group_types)
+
     @staticmethod
     def get_profiles(species_id, probes, limit=1000):
         """
@@ -423,141 +486,3 @@ class ExpressionProfile(db.Model):
             limit(limit).all()
 
         return profiles
-
-    @staticmethod
-    def add_profile_from_lstrap(matrix_file, annotation_file, species_id, order_color_file=None):
-        """
-        Function to convert an (normalized) expression matrix (lstrap output) into a profile
-
-        :param matrix_file: path to the expression matrix
-        :param annotation_file: path to the file assigning samples to conditions
-        :param species_id: internal id of the species
-        :param order_color_file: tab delimited file that contains the order and color of conditions
-        """
-        annotation = {}
-
-        with open(annotation_file, 'r') as fin:
-            # get rid of the header
-            _ = fin.readline()
-            for line in fin:
-                # 9 parts (columns)
-                parts = line.split('\t')
-                if len(parts) == 9:        
-                    run, literature_doi,\
-                    description, replicate,\
-                    strandness, layout, po_anatomy,\
-                    po_dev_stage, peco = parts
-                    peco = peco.rstrip()
-                    Sample.add(run, strandness, layout,
-                                    description, species_id,
-                                    replicate)
-                    annotation[run] = {}
-                    annotation[run]["description"] = description
-                    annotation[run]["replicate"] = replicate
-
-                    # 'po_anatomy' is mandatory
-                    if po_anatomy:
-                        annotation[run]["po_anatomy"] = po_anatomy
-                        PlantOntology.add_sample_po_association(run, po_anatomy, "po_anatomy")
-                        po_details = PlantOntology.query.filter(PlantOntology.po_term == po_anatomy).first()
-                        annotation[run]["po_anatomy_class"] = po_details.po_class
-                    else:
-                        abort(400,f"The 'po_anatomy' of {run} sample is None (mandatory info)")
-                    # 'po_dev_stage' is optional
-                    if po_dev_stage:
-                        annotation[run]["po_dev_stage"] = po_dev_stage
-                        PlantOntology.add_sample_po_association(run, po_dev_stage, "po_dev_stage")
-                        po_details = PlantOntology.query.filter(PlantOntology.po_term == po_dev_stage).first()
-                        annotation[run]["po_dev_stage_class"] = po_details.po_class
-                    # 'peco' is optional
-                    if peco:
-                        annotation[run]["peco"] = peco
-                        PlantExperimentalConditionsOntology.add_sample_peco_association(run, peco)
-                        peco_details = PlantExperimentalConditionsOntology.query.filter(PlantExperimentalConditionsOntology.peco_term==peco).first()
-                        annotation[run]["peco_class"] = peco_details.peco_class
-                else:
-                    flash(f'Unexpected number of columns in annotation file ({line})', 'danger')
-                    return redirect(url_for('admin.add.expression_profiles.index'))
-                # Add literature-sample association
-                SampleLitAssociation.add_sample_lit_association(run, literature_doi, species_id)
-                annotation[run]["lit_doi"] = literature_doi
-
-        #See the modifications in other parts of code
-        order, colors = [], []
-        if order_color_file is not None:
-            with open(order_color_file, 'r') as fin:
-                for line in fin:
-                    try:
-                        o, c = line.strip().split('\t')
-                        order.append(o)
-                        colors.append(c)
-                    except Exception as _:
-                        pass
-        
-        # build conversion table for sequences
-        sequences = Sequence.query.filter_by(species_id=species_id, type="protein_coding").all()
-        sequence_dict = {}  # key = sequence name uppercase, value internal id
-        for s in sequences:
-            sequence_dict[s.name.upper()] = s.id
-
-        with open(matrix_file) as fin:
-            # read header
-            _, *colnames = fin.readline().rstrip().split()
-
-            colnames = [c.replace('.htseq', '') for c in colnames]
-
-            # determine order after annotation is not defined
-            if order == []:        
-                for c in colnames:
-                    if c in annotation.keys():
-                        if annotation[c]['po_anatomy_class'] not in order:
-                            order.append(annotation[c]['po_anatomy_class'])
-                order.sort()
-
-            # read each line and build profile
-            new_probes = []
-            for line in fin:
-                transcript, *values = line.rstrip().split()
-                profile = {'tpm': {},
-                           'annotation': {},
-                           'replicate': {},
-                            'po_anatomy': {},
-                            'po_anatomy_class': {},
-                            'po_dev_stage': {},
-                            'po_dev_stage_class': {},
-                            'peco': {},
-                            'peco_class': {},
-                            'lit_doi': {}}
-
-                for c, v in zip(colnames, values):
-                    if c in annotation.keys():
-                        profile['tpm'][c] = float(v)
-                        profile['annotation'][c] = annotation[c]['description']
-                        profile['replicate'][c] = annotation[c]['replicate']
-                        profile['lit_doi'][c] = annotation[c]['lit_doi']
-                        profile['po_anatomy'][c] = annotation[c]["po_anatomy"]
-                        profile['po_anatomy_class'][c] = annotation[c]["po_anatomy_class"]
-                        # not mandatory fields
-                        if 'po_dev_stage' in annotation[c]:
-                            profile['po_dev_stage'][c] = annotation[c]["po_dev_stage"]
-                            profile['po_dev_stage_class'][c] = annotation[c]["po_dev_stage_class"]
-                        if 'peco' in annotation[c]:
-                            profile['peco'][c] = annotation[c]["peco"]
-                            profile['peco_class'][c] = annotation[c]["peco_class"]
-
-
-                new_probe = {"species_id": species_id,
-                                "probe": transcript,
-                                "sequence_id": sequence_dict[transcript.upper()] if transcript.upper() in sequence_dict.keys() else None,
-                                "profile": json.dumps({"order": order,
-                                                        "colors": colors,
-                                                        "data": profile})
-                                }
-
-                new_probes.append(new_probe)
-
-                if len(new_probes) > 400:
-                    db.engine.execute(ExpressionProfile.__table__.insert(), new_probes)
-                    new_probes = []
-
-            db.engine.execute(ExpressionProfile.__table__.insert(), new_probes)

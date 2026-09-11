@@ -9,7 +9,7 @@ import tempfile
 import os
 
 from conekt import cache
-from conekt.helpers.chartjs import prepare_expression_profile, prepare_profile_comparison
+from conekt.helpers.chartjs import prepare_expression_profile, prepare_profile_comparison, prepare_group_profiles
 from conekt.models.expression.cross_species_profile import CrossSpeciesExpressionProfile
 from conekt.models.condition_tissue import ConditionTissue
 from conekt.models.expression.profiles import ExpressionProfile
@@ -48,7 +48,10 @@ def expression_profile_view(profile_id):
                             'name': esm.description,
                             'description': esm.condition_tissue.description})
 
-    return render_template("expression_profile.html", profile=current_profile, tissues=tissues)
+    group_types = ExpressionProfile.get_available_group_types(current_profile.species_id)
+
+    return render_template("expression_profile.html", profile=current_profile, tissues=tissues,
+                           group_types=group_types)
 
 
 @expression_profile.route('/modal/<profile_id>')
@@ -259,6 +262,76 @@ def expression_profile_compare_plot_json(first_profile_id, second_profile_id, no
     return Response(json.dumps(plot), mimetype='application/json')
 
 
+@expression_profile.route('/api/available_groups/<int:species_id>')
+@cache.cached()
+def available_group_types(species_id):
+    """
+    Returns a JSON list of distinct group_type values available for the given species.
+
+    :param species_id: internal species ID
+    """
+    group_types = ExpressionProfile.get_available_group_types(species_id)
+    return Response(json.dumps({'group_types': group_types}), mimetype='application/json')
+
+
+@expression_profile.route('/json/plot/<int:profile_id>/by_group/<group_type>')
+@cache.cached()
+def expression_profile_plot_by_group_json(profile_id, group_type):
+    """
+    Returns a Chart.js JSON for a single profile aggregated by a dynamic
+    group_type using SampleGroupAssociation (e.g. 'tissue').
+
+    :param profile_id: internal profile ID
+    :param group_type: the SampleGroupAssociation.group_type to aggregate by
+    """
+    current_profile = ExpressionProfile.query.options(undefer('profile')).get_or_404(profile_id)
+
+    grouped = current_profile.group_profile(group_type)
+
+    if grouped is None:
+        return Response(
+            json.dumps({'error': f'No group data found for type "{group_type}"'}),
+            status=404, mimetype='application/json'
+        )
+
+    plot = prepare_expression_profile(grouped, show_sample_count=True, ylabel='TPM')
+    return Response(json.dumps(plot), mimetype='application/json')
+
+
+@expression_profile.route('/json/compare_plot/<int:first_profile_id>/<int:second_profile_id>/by_group/<group_type>')
+@expression_profile.route('/json/compare_plot/<int:first_profile_id>/<int:second_profile_id>/by_group/<group_type>/<int:normalize>')
+@cache.cached()
+def expression_profile_compare_group_plot_json(first_profile_id, second_profile_id,
+                                               group_type, normalize=0):
+    """
+    Grouped comparison of two profiles using SampleGroupAssociation.
+
+    :param first_profile_id: internal ID of the first profile
+    :param second_profile_id: internal ID of the second profile
+    :param group_type: the group_type to aggregate by (e.g. 'tissue')
+    :param normalize: 1 to normalize profiles to max value, 0 to disable
+    """
+    first = ExpressionProfile.query.options(undefer('profile')).get_or_404(first_profile_id)
+    second = ExpressionProfile.query.options(undefer('profile')).get_or_404(second_profile_id)
+
+    data_first = first.group_profile(group_type)
+    data_second = second.group_profile(group_type)
+
+    if data_first is None or data_second is None:
+        return Response(
+            json.dumps({'error': 'One or both profiles have no group data for this type'}),
+            status=404, mimetype='application/json'
+        )
+
+    plot = prepare_profile_comparison(
+        data_first, data_second,
+        (first.probe, second.probe),
+        normalize=normalize,
+        ylabel='TPM' + (' (normalized)' if normalize else '')
+    )
+    return Response(json.dumps(plot), mimetype='application/json')
+
+
 def __generate(species_id, method_id, condition):
     """
 
@@ -271,7 +344,7 @@ def __generate(species_id, method_id, condition):
     yield "Sequence\tAliases\tDescription\tAvg.Expression\tMin.Expression\tMax.Expression\n"
 
     profiles = ExpressionProfile.query.filter(ExpressionProfile.species_id == species_id). \
-        filter(ExpressionProfile.sequence_id is not None). \
+        filter(ExpressionProfile.sequence_id.isnot(None)). \
         options(undefer('profile')).order_by(ExpressionProfile.probe.asc()).all()
 
     condition_tissue = ConditionTissue.query. \
@@ -313,9 +386,13 @@ def export_expression_levels():
     form.populate_form()
 
     if request.method == 'POST':
-        species_id = int(request.form.get('species'))
-        method_id = int(request.form.get('methods'))
-        condition = request.form.get('conditions')
+        species_id = request.form.get('species', type=int) or 0
+        method_id = request.form.get('methods', type=int) or 0
+        condition = request.form.get('conditions') or ''
+
+        if species_id <= 0 or method_id <= 0 or condition in ('', '0'):
+            return Response(json.dumps({"error": "Please select a species, method and condition before exporting."}),
+                             status=400, mimetype='application/json')
 
         _, filepath = tempfile.mkstemp(prefix='expr_', dir=current_app.config["TMP_DIR"])
 

@@ -1,0 +1,8 @@
+TFF;ABI3VP1;ABI3VP1 family: B3 domain-containing transcription factors involved in seed development and ABA signaling.
+TFF;WRKY;WRKY family: Transcription factors with WRKY domain, key regulators in plant stress responses.
+OTR;TRAF;TRAF family: TNF receptor-associated factors, involved in signaling and ubiquitination.
+TFF;bZIP;bZIP family: Basic leucine zipper transcription factors.
+TFF;MYB;MYB family: MYB domain-containing transcription factors, involved in regulation of gene expression.
+TFF;AP2-EREBP;AP2-EREBP family: AP2/ERF domain transcription factors, involved in development and stress responses.
+OTR;SET;SET family: SET domain-containing proteins, often involved in chromatin modification.
+TFF;bZIP;bZIP family: Transcription factors with a basic leucine zipper (bZIP) domain, essential regulators of plant development and stress responses, particularly in hormone signaling, seed maturation, and responses to abiotic stress such as drought and salinity.

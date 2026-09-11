@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if te_class %}
+        {{ te_class.name }} details
+    {% else %}
+        TE Class not found
+    {% endif %}
+{% endblock %}
+
+{% block container %}
+{% import 'macros/pagination.html' as macro %}
+{% import 'macros/ajax_table.html' as ajax %}
+<div class="top-pad">
+        <div class="sidebar-sequence" id="sidebar">
+            <p>Jump to ...</p>
+
+            <nav id="navbar-side">
+            <ul class="nav nav-pills nav-stacked" data-spy="affix">
+              <li><a href="#phylo_profile">Profile</a></li>
+              <li><a href="#sequences">Sequences</a></li>
+              <li><a href="#expression_conservation">ECC</a></li>
+              <li><a href="#associated_things">Annotation</a></li>
+              <li><a href="#links">Links</a></li>
+            </ul>
+            </nav>
+        </div>
+    {% if te_class %}
+    <ol class="breadcrumb">
+        <li><a href="{{ url_for('main.screen') }}">Home</a></li>
+        <li><abbr title="Click to show help" href="{{ url_for('help.help_topic', topic='te_class') }}" data-target="#helpModal">TE Class</abbr></li>
+        <li class="active"><strong>{{ te_class.name }}</strong></li>
+    </ol>
+
+    <h1><strong>{{ te_class.name }}</strong> <small>({{ te_class.method.method }})</small></h1>
+
+    <p>View comparative expression as heatmap: <a href="{{ url_for('heatmap.heatmap_comparative_te_class', te_class_id=te_class.id, option='raw') }}">raw</a> <span class="text-muted">| <a href="{{ url_for('heatmap.heatmap_comparative_te_class', te_class_id=te_class.id, option='row') }}">row-normalized</a></span></p>
+
+    <p>Trees:
+    {% for t in te_class.trees %}
+        <a href="{{ url_for('tree.tree_view', tree_id=t.id) }}">{{t.label}}</a> ({{t.method.description}})
+    {% else%}
+    <span class="text-muted">No tree available</span>
+    {% endfor %}
+    </p>
+    {% if te_class.clade_id %}
+    <p>Specific for <strong><a href="{{ url_for('clade.clade_view', clade_id=te_class.clade_id) }}">{{ te_class.clade.name}}</a></strong></p>
+    {% endif %}
+
+    <br />
+    <div class="row" id="phylo_profile">
+        <div class="col-lg-12 col-md-12 col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <p>There are <strong>{{ count }}</strong> sequences with this label.</p>
+                    {% if count > 0 %}
+                    <div id="canvas-holder" class="center-block" style="height:300px;max-height:300px">
+                        <div id="chart-loader"></div>
+                        <canvas id="chart-area" class="center-block" width="300" height="300" style="display:none"/>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+    <div id="transposable_elements">
+        {{ macro.pagination(
+            'Transposable Elements',
+            url_for('te_class.te_class_sequences', te_class_id=te_class.id),
+            count,
+            url_for('te_class.te_class_sequences_table', te_class_id=te_class.id),
+            'seq'
+        ) }}
+    </div>
+    <div id="expression_conservation">
+        {{ macro.pagination(
+            'Expression Context Conservation',
+            url_for('te_class.te_class_ecc_relations', te_class_id=te_class.id),
+            -1,
+            none,
+            'ecc'
+        ) }}
+    </div>
+
+    <!--{% if (count < 5000) %}
+    {{ ajax.ajax_table(
+        'Other TE Classes',
+        url_for('te_class.te_class_te_class_ajax', te_class_id=te_class.id),
+        none,
+        'te_class_ajax'
+    ) }}
+    {% endif %}-->
+
+    <div class="row">
+    <div class="col-lg-12 col-md-12 col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-heading" id="links">External Links</div>
+                <div class="table-responsive">
+                    <table class="table table-striped table-separated">
+                        <tbody>
+                            {% for xref in xrefs %}
+                            <tr>
+                                <td><strong>{{ xref.platform }}</strong></td>
+                                <td>
+                                    <a href="{{ xref.url }}">{{ xref.name }} <i class="fa fa-external-link"></i></a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td>
+                                    <p><em>No external references for this sequences in the database.</em></p>
+                                </td>
+                                <td></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+</div>
+{% endblock %}
+
+{% block extrajs %}
+    {% if count > 0 %}
+    <script src="{{ url_for('static', filename='js/Chart.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/hammer.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chartjs-plugin-zoom.min.js') }}"></script>
+	<script>
+	{% import "macros/chartjs.html" as chartjs %}
+
+	{{ chartjs.pie_chart_loader("chart-area", url_for('te_class.te_class_json_species', te_class_id=te_class.id), "chart-loader") }}
+	</script>
+    {% endif %}
+{% endblock %}

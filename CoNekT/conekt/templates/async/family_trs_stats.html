@@ -1,0 +1,26 @@
+<div class="table-responsive">
+    <table class="table table-striped stupidtable">
+        <thead>
+            <tr>
+                <th data-sort="string-ins"><span class="sort-icon"></span>TR Family</th>
+                <th data-sort="string-ins"><span class="sort-icon"></span>Type</th>
+                <th data-sort="string-ins"><span class="sort-icon"></span>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tr in tr_stats %}
+            <tr>
+                <td><a href="{{ url_for('tr.tr_view', tr_id=tr.id) }}">{{ tr.family }}</a></td>
+                <td>{{ tr.type }}</td>
+                <td>{{ tr.description }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="3">
+                    <p><em>No associated Transcription Regulators found for this family.</em></p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

@@ -48,6 +48,11 @@
         {% if peco_profiles %}
         <div class="peco"><input type="checkbox" value="peco" id="peco"><label for="peco" style="margin-left:3px; font-size:12px; color: #575555; font-weight: 100;">PECO</label></div>
         {% endif %}
+        {% if group_type_charts %}
+        {% for gt in group_type_charts.keys() %}
+        <div class="group-type-{{ gt }}"><input type="checkbox" value="{{ gt }}" id="group_{{ gt }}"><label for="group_{{ gt }}" style="margin-left:3px; font-size:12px; color: #575555; font-weight: 100;">By {{ gt | capitalize }}</label></div>
+        {% endfor %}
+        {% endif %}
     </div>
     <div class="select ontology"></div>
 
@@ -283,10 +288,11 @@
         $("#po_anatomy").click(function() {
             if (!this.checked) {
                 this.checked = true;
-            } 
+            }
             else {
                 $("#peco").prop("checked", false);
                 $("#po_dev_stage").prop("checked", false);
+                {% if group_type_charts %}{% for gt in group_type_charts.keys() %}$("#group_{{ gt }}").prop("checked", false);{% endfor %}{% endif %}
                 setupCharts({{ po_anatomy_profiles|safe }}, "po_anatomy");
             }
         });
@@ -294,10 +300,11 @@
         $("#po_dev_stage").click(function() {
             if (!this.checked) {
                 this.checked = true;
-            } 
+            }
             else {
                 $("#peco").prop("checked", false);
                 $("#po_anatomy").prop("checked", false);
+                {% if group_type_charts %}{% for gt in group_type_charts.keys() %}$("#group_{{ gt }}").prop("checked", false);{% endfor %}{% endif %}
                 setupCharts({{ po_dev_stage_profiles|safe }}, "po_dev_stage");
             }
         });
@@ -305,13 +312,39 @@
         $("#peco").click(function() {
             if (!this.checked) {
                 this.checked = true;
-            } 
+            }
             else {
                 $("#po_anatomy").prop("checked", false);
                 $("#po_dev_stage").prop("checked", false);
+                {% if group_type_charts %}{% for gt in group_type_charts.keys() %}$("#group_{{ gt }}").prop("checked", false);{% endfor %}{% endif %}
                 setupCharts({{ peco_profiles|safe }}, "peco");
             }
         });
+
+        function setupGroupChart(data) {
+            $(".select.ontology").empty();
+            if(myChart) myChart.destroy();
+            var ctx = document.getElementById("chart-line").getContext("2d");
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            myChart = new Chart(ctx, data);
+        }
+
+        {% if group_type_charts %}
+        {% for gt, chart_json in group_type_charts.items() %}
+        var chart_data_{{ gt | replace('-', '_') }} = {{ chart_json | safe }};
+        $("#group_{{ gt }}").click(function() {
+            if (!this.checked) {
+                this.checked = true;
+            } else {
+                $("#po_anatomy").prop("checked", false);
+                $("#po_dev_stage").prop("checked", false);
+                $("#peco").prop("checked", false);
+                {% for other_gt in group_type_charts.keys() %}{% if other_gt != gt %}$("#group_{{ other_gt }}").prop("checked", false);{% endif %}{% endfor %}
+                setupGroupChart(chart_data_{{ gt | replace('-', '_') }});
+            }
+        });
+        {% endfor %}
+        {% endif %}
 
         </script>
         <style>
@@ -358,7 +391,15 @@
             .peco input:checked + label:before{
                 background-color: #0b3a8b;
             }
-            
+
+            [class^="group-type-"] {
+                display: inline-block;
+            }
+
+            [class^="group-type-"] input:checked + label:before{
+                background-color: #8b5a0b;
+            }
+
             .select input:checked + label{
                 text-decoration: none;
             }

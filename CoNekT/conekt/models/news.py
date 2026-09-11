@@ -4,7 +4,7 @@ from flask import Markup
 from markdown import markdown
 from datetime import datetime
 
-SQL_COLLATION = 'NOCASE' if db.engine.name == 'sqlite' else ''
+SQL_COLLATION = None
 
 
 @whooshee.register_model('message')

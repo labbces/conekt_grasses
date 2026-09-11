@@ -5,13 +5,7 @@ each species.
 
 ## Adding the species and sequences
 
-On the 'Admin panel', under 'Add' select 'Species'.
-Fill in the full scientific name (or the name you wish to appear on the website) for
-the species and select a 'three letter code', that is unique for the
-species. And select a data type between 'Genome' and 'Transcriptome'.
-*For the code we recommend a combination of genus and species cfr. **H**omo 
-**sa**piens = hsa, note that while three characters is recommended it is
-not required, longer codes are possible. 
+On the 'Admin panel', under 'Add' select 'Species'. Fill in the full scientific name (or the name you wish to appear on the website) for the species and select a 'three letter code', that is unique for the species. It is recommended for the ‘three letter code’ a combination of genus and species cfr (a comparable nomenclature that follows the pattern and can be verified). For example, Homo sapiens = has, note that while three characters is recommended it is not required, longer codes are possible. Further details on the species or cultivars must be added to the next following description box. 
 
 ![Add Specie](../images/add_specie.png "Adding Specie")
 
@@ -19,10 +13,9 @@ Some visualizations require a color specific for each species, these can
 be entered using the controls below (clicking the box opens a color 
 picker, there is no need to manually add in hex values).
 
-Select a fasta file with all **coding sequences** or **RNAs**, in the fasta 
-headers the gene name (and only the name) needs to be present. These are
-the names genes will receive on the website.
+Select a fasta file with all **coding DNA sequences (CDS)*** or **RNAs**, in the fasta headers the gene name (and only the name) needs to be present. These are the names that the genes will receive on the website.
 
+* The requested FASTA file with the CDSs (Coding DNA Sequences) contains regions of DNA that encode proteins, meaning the content of this file corresponds to the portion of a gene that is translated into amino acids.
 ```
 >Gene1                      >Gene1
 ATG...          OR          UTG...

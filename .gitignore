@@ -6,21 +6,35 @@
 /CoNekT/whooshee/
 /CoNekT/dist/
 /CoNekT/build/
-/CoNekT/migrations/
+/CoNekT/docs/build
+/CoNekT/CACHEDIR.TAG
 
-tmp
+/htmlcov/
+coverage.xml
+/CoNekT/tests/results/
+
+tmpgit
 bin
 lib
 include
 pip-selfcheck.json
 
 /CoNekT/config.py
+# /CoNekT/scripts/populate_conekt_grasses.sh
+/CoNekT/scripts/clear_database.sh
+/CoNekT/scripts/setup_variables.sh
 
 /ftp
 
 *.swp
 *.*cfg
 
+.vscode
 .coverage
 
 __pycache__/
+
+/CoNekT/scripts/add/logs_populate
+
+venv
+.tool-versions

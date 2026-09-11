@@ -29,10 +29,3 @@ class CoexpressionClusterSimilarity(db.Model):
     gene_family_method = db.relationship('GeneFamilyMethod',
                                          backref=db.backref('CoexpressionClusterSimilarities', passive_deletes=True),
                                          lazy='joined')
-
-    @staticmethod
-    def empty_table():
-        """
-        Delete all content from this table. Use carefully !
-        """
-        CoexpressionClusterSimilarity.query.delete()

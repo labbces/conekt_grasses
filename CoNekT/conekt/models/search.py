@@ -8,7 +8,6 @@ from conekt.models.interpro import Interpro
 from conekt.models.cazyme import CAZYme
 from conekt.models.expression.coexpression_clusters import CoexpressionCluster
 from conekt.models.relationships.cluster_go import ClusterGOEnrichment
-from conekt.models.relationships.cluster_clade import ClusterCladeEnrichment
 from conekt.models.sequences import Sequence
 from conekt.models.xrefs import XRef
 from conekt.models.species import Species

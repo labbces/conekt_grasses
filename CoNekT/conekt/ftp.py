@@ -15,7 +15,6 @@ from conekt.models.gene_families import GeneFamilyMethod
 from conekt.models.relationships.sequence_cluster import SequenceCoexpressionClusterAssociation
 from conekt.models.relationships.sequence_family import SequenceFamilyAssociation
 from conekt.models.relationships.sequence_go import SequenceGOAssociation
-from conekt.models.relationships.sequence_cazyme import SequenceCAZYmeAssociation
 from conekt.models.sequences import Sequence
 from conekt.models.species import Species
 

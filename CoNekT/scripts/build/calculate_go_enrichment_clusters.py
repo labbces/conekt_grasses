@@ -130,7 +130,7 @@ db_name = args.db_name
 
 create_engine_string = "mysql+pymysql://"+db_admin+":"+db_password+"@localhost/"+db_name
 
-engine = create_engine(create_engine_string, echo=True, poolclass=NullPool)
+engine = create_engine(create_engine_string, echo=False, poolclass=NullPool)
 
 # Reflect an existing database into a new model
 Base = automap_base()

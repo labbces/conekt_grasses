@@ -148,7 +148,7 @@ tree_method_id = args.tree_method_id
 
 create_engine_string = "mysql+pymysql://"+db_admin+":"+db_password+"@localhost/"+db_name
 
-engine = create_engine(create_engine_string, echo=True)
+engine = create_engine(create_engine_string, echo=False)
 
 # Reflect an existing database into a new model
 Base = automap_base()

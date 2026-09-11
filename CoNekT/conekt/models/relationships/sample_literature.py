@@ -20,19 +20,3 @@ class SampleLitAssociation(db.Model):
         self.sample_id = sample_id
         self.literature_id = literature_id
         self.species_id = species_id
-    
-    @staticmethod
-    def add_sample_lit_association(sample_name, lit_doi, species_id):
-
-        sample = Sample.query.filter_by(sample_name=sample_name).first()
-        literature_item = LiteratureItem.query.filter_by(doi=lit_doi).first()
-
-        if literature_item is None:
-            literature_id = LiteratureItem.add(lit_doi)
-            literature_item = LiteratureItem.query.filter_by(id=literature_id).first()
-        
-        association = {'sample_id': sample.id,
-                       'literature_id': literature_item.id,
-                       'species_id': species_id}
-    
-        db.engine.execute(SampleLitAssociation.__table__.insert(), association)

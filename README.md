@@ -23,6 +23,13 @@ sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt-get update
 sudo apt-get install python3.8
 ```
+To install MariaDB execute the following codes:
+
+```bash
+sudo apt update 
+sudo apt install mariadb-server
+sudo mysql_secure_installation
+```
 
 Dependencies are usually installed using `apt` and `pip`:
 
@@ -40,18 +47,22 @@ To set up the environment from the root directory of the repository, run:
 virtualenv --python=python3.8 CoNekT
 source CoNekT/bin/activate
 sudo apt-get install python3.8-dev libmysqlclient-dev apache2 apache2-dev libapache2-mod-wsgi-py3
-cd ../
 pip3 install -r requirements.txt
+```
+
+Exclude .gitignore from the virtual environment for compatibility:
+
+```bash
+rm CoNekT/.gitignore
 ```
 
 Next steps:
 
- * [Running tests](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/run_tests.md)
- * [Build the database](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/connect_mysql.md)
- * [Add data to CoNekT Grasses](https://github.com/labbces/conekt_grasses/blob/main/CoNekT/docs/source/building_conekt.md)
+ * [Build the database](CoNekT/docs/source/conekt_grasses_mariadb.md)
+ * [Alembic Migration Guide](CoNekT/docs/source/migrations.md).
+ * [Running tests](CoNekT/docs/source/run_tests.md)
 
 ## Building documentation with Sphinx
-
 
 Documentation can be generated using Sphinx.
 
@@ -68,17 +79,14 @@ Note that we changed the default Sphinx builder to use the Markdown parser. This
 extensions = ["myst_parser"]
 ```
 
-
 ## Developers
 
- * Dr. Renato Augusto Correa dos Santos
+ * Dr. Renato Augusto Correa dos Santos (dev leader)
  * Prof. Dr. Diego M. Riaño-Pachón (group leader)
-
-
-## Collaborators
-
- * Felipe Vaz Peres
- * Jorge Muñoz
+ * Gustavo Lelli
+ * João Leite Novoletti
+ * Andreza Mattoso da Cunha
+ * Paulo Turquetti
 
 
 ## Previous collaborators
@@ -86,6 +94,9 @@ extensions = ["myst_parser"]
  * David Texeira Ferraz
  * Bianca Santos Pastos
  * Arthur Shuzo Owtake Cardoso
+ * Luis Bezerra
+ * Felipe Vaz Peres
+ * Jorge Muñoz
 
 
 ## Licenses

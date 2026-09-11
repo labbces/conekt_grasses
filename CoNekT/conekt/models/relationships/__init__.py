@@ -30,13 +30,35 @@ sequence_cazyme = db.Table('sequence_cazyme',
                             db.Column('cazyme_id', db.Integer, db.ForeignKey('cazyme.id'), index=True)
                             )
 
+sequence_tr = db.Table('sequence_tr',
+                            db.Column('id', db.Integer, primary_key=True),
+                            db.Column('sequence_id', db.Integer, db.ForeignKey('sequences.id'), index=True),
+                            db.Column('tr_id', db.Integer, db.ForeignKey('transcription_regulator.id'), index=True)
+                            )
+
+sequence_tr_domain = db.Table('sequence_tr_domain',
+                            db.Column('id', db.Integer, primary_key=True),
+                            db.Column('sequence_id', db.Integer, db.ForeignKey('sequences.id'), index=True)
+                            )
+
 sequence_family = db.Table('sequence_family',
                            db.Column('id', db.Integer, primary_key=True),
                            db.Column('sequence_id', db.Integer, db.ForeignKey('sequences.id'), index=True),
                            db.Column('gene_family_id', db.Integer, db.ForeignKey('gene_families.id'), index=True)
                            )
 
-sequence_coexpression_cluster = \
+sequence_te_class = db.Table('sequence_te_class',
+                           db.Column('id', db.Integer, primary_key=True),
+                           db.Column('sequence_id', db.Integer, db.ForeignKey('sequences.id'), index=True),
+                           db.Column('te_class_id', db.Integer, db.ForeignKey('te_classes.id'), index=True)
+                           )
+
+sequence_tedistill = db.Table('sequence_tedistill',
+                           db.Column('id', db.Integer, primary_key=True),
+                           db.Column('sequence_id', db.Integer, db.ForeignKey('sequences.id'), index=True),
+                           db.Column('tedistill_id', db.Integer, db.ForeignKey('tedistills.id'), index=True)
+                           )
+sequence_cluster = \
     db.Table('sequence_coexpression_cluster',
              db.Column('id', db.Integer, primary_key=True),
              db.Column('sequence_id', db.Integer, db.ForeignKey('sequences.id'), index=True),
@@ -90,6 +112,30 @@ family_cazyme = db.Table('family_cazyme',
                         db.Column('id', db.Integer, primary_key=True),
                         db.Column('gene_family_id', db.Integer, db.ForeignKey('gene_families.id'), index=True),
                         db.Column('cazyme_id', db.Integer, db.ForeignKey('cazyme.id'), index=True)
+                        )
+
+te_class_xref = db.Table('te_class_xref',
+                       db.Column('id', db.Integer, primary_key=True),
+                       db.Column('te_class_id', db.Integer, db.ForeignKey('te_classes.id'), index=True),
+                       db.Column('xref_id', db.Integer, db.ForeignKey('xrefs.id'), index=True)
+                       )
+
+tedistill_xref = db.Table('tedistill_xref',
+                       db.Column('id', db.Integer, primary_key=True),
+                       db.Column('tedistill_id', db.Integer, db.ForeignKey('tedistills.id'), index=True),
+                       db.Column('xref_id', db.Integer, db.ForeignKey('xrefs.id'), index=True)
+                       )
+
+tedistill_te_class = db.Table('tedistill_te_class',
+                           db.Column('id', db.Integer, primary_key=True),
+                           db.Column('tedistill_id', db.Integer, db.ForeignKey('tedistills.id'), index=True),
+                           db.Column('te_class_id', db.Integer, db.ForeignKey('te_classes.id'), index=True)
+                           )
+
+family_tr = db.Table('family_tr',
+                        db.Column('id', db.Integer, primary_key=True),
+                        db.Column('gene_family_id', db.Integer, db.ForeignKey('gene_families.id'), index=True),
+                        db.Column('tf_id', db.Integer, db.ForeignKey('cazyme.id'), index=True)
                         )
 
 cluster_go_enrichment = db.Table('cluster_go_enrichment',

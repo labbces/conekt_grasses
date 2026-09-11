@@ -43,6 +43,7 @@ def custom_network_main():
 
         network_cytoscape = CytoscapeHelper.parse_network(network)
         network_cytoscape = CytoscapeHelper.add_family_data_nodes(network_cytoscape, family_method_id)
+        network_cytoscape = CytoscapeHelper.add_trs_data_nodes(network_cytoscape)
         network_cytoscape = CytoscapeHelper.add_lc_data_nodes(network_cytoscape)
         network_cytoscape = CytoscapeHelper.add_descriptions_nodes(network_cytoscape)
         network_cytoscape = CytoscapeHelper.add_cluster_data_nodes(network_cytoscape, cluster_method_id)
@@ -131,6 +132,7 @@ def custom_network_json():
 
     network_cytoscape = CytoscapeHelper.parse_network(network)
     network_cytoscape = CytoscapeHelper.add_family_data_nodes(network_cytoscape, family_method_id)
+    network_cytoscape = CytoscapeHelper.add_trs_data_nodes(network_cytoscape)
     network_cytoscape = CytoscapeHelper.add_lc_data_nodes(network_cytoscape)
     network_cytoscape = CytoscapeHelper.add_descriptions_nodes(network_cytoscape)
     network_cytoscape = CytoscapeHelper.add_cluster_data_nodes(network_cytoscape, cluster_method_id)

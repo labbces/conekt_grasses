@@ -1,0 +1,28 @@
+<div class="table-responsive">
+    <table class="table table-striped stupidtable">
+        <thead>
+            <tr>
+                <th data-sort="string-ins"><span class="sort-icon"></span>Label</th>
+                <th data-sort="int"><span class="sort-icon"></span>Sequence count</th>
+                <th data-sort="int"><span class="sort-icon"></span>Species count</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tedistill_id, tedistill_stat in tedistill_stats.items() %}
+            <tr>
+                <td><a href="{{ url_for('tedistill.tedistill_view', tedistill_id=tedistill_id) }}">{{ tedistill_stat.tedistill.name }}</a></td>
+                <td>{{ tedistill_stat.count }}</td>
+                <td>{{ tedistill_stat.species_count }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td>
+                    <p><em>No associated TEdistill consense sequences for this item in the database.</em></p>
+                </td>
+                <td></td>
+                <td></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
