@@ -330,24 +330,74 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
             _ = fin.readline()  # skip header
             for line in fin:
                 parts = line.split('\t')
-                if len(parts) == 9:
-                    run, literature_doi, description, replicate, strandness, layout, po_anatomy, po_dev_stage, peco = parts
+                if len(parts) >= 9:
+                    run, literature_doi, description, replicate, strandness, layout, po_anatomy, po_dev_stage, peco = parts[:9]
                     peco = peco.rstrip()
+                    groups_raw = parts[9].strip() if len(parts) > 9 else ''
 
-                    session.add(Sample(
-                        sample_name=run,
-                        strandness=strandness,
-                        layout=layout,
-                        description=description,
-                        replicate=replicate,
-                        species_id=species_id
-                    ))
+                    if not run.strip():
+                        continue
+
+                    # Reuse existing sample if already created (e.g. by add_samples.py)
+                    with engine.connect() as conn:
+                        stmt = select([Sample]).where(
+                            (Sample.__table__.c.sample_name == run) &
+                            (Sample.__table__.c.species_id == species_id)
+                        )
+                        existing = conn.execute(stmt).first()
+
+                    if existing:
+                        sample_id = existing.id
+                    else:
+                        new_sample = Sample(
+                            sample_name=run,
+                            strandness=strandness,
+                            layout=layout,
+                            description=description,
+                            replicate=replicate,
+                            species_id=species_id
+                        )
+                        session.add(new_sample)
+                        session.flush()
+                        sample_id = new_sample.id
+
+                    # Optional sample group definitions (col 10): "tissue:root;treatment:control"
+                    # Only add groups if not already present for this sample+type
+                    if groups_raw:
+                        for token in groups_raw.split(';'):
+                            token = token.strip()
+                            if ':' in token:
+                                g_type, g_name = token.split(':', 1)
+                                g_type = g_type.strip()
+                                g_name = g_name.strip()
+                                with engine.connect() as conn:
+                                    existing_group = conn.execute(
+                                        select([SampleGroupAssociation]).where(
+                                            (SampleGroupAssociation.__table__.c.sample_id == sample_id) &
+                                            (SampleGroupAssociation.__table__.c.group_type == g_type)
+                                        )
+                                    ).first()
+                                if not existing_group:
+                                    session.add(SampleGroupAssociation(
+                                        sample_id=sample_id,
+                                        group_type=g_type,
+                                        group_name=g_name
+                                    ))
+
                     session.commit()
 
                     annotation[run] = {
                         "description": description,
-                        "replicate": replicate
+                        "replicate": replicate,
+                        "groups": {}
                     }
+
+                    if groups_raw:
+                        for token in groups_raw.split(';'):
+                            token = token.strip()
+                            if ':' in token:
+                                g_type, g_name = token.split(':', 1)
+                                annotation[run]["groups"][g_type.strip()] = g_name.strip()
 
                     # Mandatory po_anatomy
                     if po_anatomy:
@@ -441,6 +491,11 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
                         order.append(annotation[c]['po_anatomy_class'])
                 order.sort()
 
+            # Collect all dynamic group_types across all annotated runs
+            all_group_types = set()
+            for run_data in annotation.values():
+                all_group_types.update(run_data.get("groups", {}).keys())
+
             new_probes = []
             for line in fin:
                 transcript, *values = line.rstrip().split()
@@ -456,6 +511,9 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
                     'peco_class': {},
                     'lit_doi': {}
                 }
+                # Initialize dynamic group_type fields
+                for gt in all_group_types:
+                    profile[gt] = {}
 
                 for c, v in zip(colnames, values):
                     if c in annotation:
@@ -472,6 +530,10 @@ def add_profile_from_lstrap(matrix_file, annotation_file, species_code, engine, 
                         if 'peco' in annotation[c]:
                             profile['peco'][c] = annotation[c]["peco"]
                             profile['peco_class'][c] = annotation[c]["peco_class"]
+
+                        # Embed dynamic group assignments (e.g. day_period, subpopulation)
+                        for gt, gn in annotation[c].get("groups", {}).items():
+                            profile[gt][c] = gn
 
                 new_probe = {
                     "species_id": species_id,
@@ -540,6 +602,7 @@ try:
     SamplePOAssociation = Base.classes.sample_po
     SamplePECOAssociation = Base.classes.sample_peco
     LiteratureItem = Base.classes.literature
+    SampleGroupAssociation = Base.classes.sample_groups
 
     # Create a Session
     Session = sessionmaker(bind=engine)
